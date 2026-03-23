@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  # 让后端能被 WSL/其他网络访问到（默认绑定可能只在本机可达）
+  address: 0.0.0.0
+
+spring:
+  application:
+    name: docgen-agent-backend
+
+agent:
+  template:
+    # 后端运行目录默认在 backend/，所以这里给一个相对路径建议：
+    # g:\Agent\docgen-webapp\backend -> g:\Agent
+    templateDir: ../..
+    templateGlob: "01-PRD-*.md"
+  llm:
+    # 若未配置 OPENAI_API_KEY，将启用 MockAgent（保证你能试用交互流程）
+    openai:
+      baseUrl: https://api.openai.com/v1
+      model: gpt-4o-mini
+      timeoutMs: 30000
+
