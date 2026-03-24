@@ -1,44 +1,204 @@
-## DocGen Agent 试用 Web 应用
+# DocGen WebApp（AI 需求管理工具）
 
-功能流程：
-1. 前端输入业务需求描述（自由文本）
-2. 后端根据 `01-PRD-*.md` 模板先向用户索取澄清问题（JSON结构返回给前端）
-3. 用户在页面回答澄清问题
-4. 后端结合答案生成“需求文档（PRD）”的 Markdown（严格按模板结构输出）
+这是一个面向需求管理场景的 AI 工具，支持：
 
-注意：
-- 这是“可运行骨架”，LLM 接入默认按 OpenAI Chat Completions 兼容实现。
-- 若未配置 `OPENAI_API_KEY`，系统会启用 MockAgent 以便你先跑通交互流程。
+1. 通过对话收集/澄清需求。
+2. 生成与迭代 PRD Markdown 文档。
+3. 项目管理、需求管理、版本管理。
+4. 用户登录、用户/角色/权限管理（RBAC）。
+5. Swagger/OpenAPI 与权限联动展示。
 
-目录结构：
-- `backend`：Spring Boot
+---
+
+## 目录结构
+
+- `backend`：Spring Boot + MyBatis + PostgreSQL + Druid
 - `frontend`：Vue 3 + Vite
 
-### 运行方式（本地）
-1. 启动后端
-   - 进入：`g:\Agent\docgen-webapp\backend`
-   - 可选：设置环境变量 `OPENAI_API_KEY`（有key则调用LLM；无key则Mock）
-   - 运行：`mvn spring-boot:run`
-   - 端口：`http://localhost:8080`
+---
 
-2. 启动前端
-   - 进入：`g:\Agent\docgen-webapp\frontend`
-   - 运行：`npm install` 然后 `npm run dev`
-   - 访问：`http://localhost:5173`
+## 核心能力
 
-### 模板文件
-- 后端会在 `agent.template.templateDir=../..`（默认指向 `g:\Agent`）下匹配 `01-PRD-*.md`，自动读取作为生成依据。
+### 1) AI 需求工作台
 
-### WSL 运行时（Windows 后端 + WSL 前端）
-如果你在 WSL 里运行前端，会出现 `ECONNREFUSED 127.0.0.1:8080`。
-原因：WSL 的 `localhost` 不是 Windows 的 `localhost`。
+- 创建会话并进入澄清阶段
+- 逐步对话补齐未确认项
+- 生成 PRD 并保存版本
+- 导出指定 PRD Markdown
 
-解决方法：
-1. 在 WSL 里找到 Windows 主机可达 IP（通常是默认网关）：
-   - `ip route | grep default | awk '{print $3}'`
-2. 用该 IP 测试后端是否可达：
-   - `curl http://<windows-host-ip>:8080/api/docgen/health`
-3. 启动前端时设置代理目标：
-   - `export VITE_BACKEND_URL="http://<windows-host-ip>:8080"`
-4. 再执行：`npm run dev`
+### 2) 系统管理（RBAC）
 
+- 用户管理：创建、更新、重置密码、绑定角色
+- 角色管理：创建、更新、绑定权限
+- 权限管理：创建、更新、列表
+
+### 3) 项目与需求管理
+
+- 项目：列表、详情、创建、更新
+- 需求：创建、编辑、版本查看、版本导出
+
+### 4) OpenAPI 权限联动
+
+- 默认接口要求 Bearer Token
+- `@PublicApi` 接口自动标记为公开
+- `@RequiredPermission` 自动写入 `x-permissions`
+- 自动补充 `401/403` 响应说明
+
+详细说明见：
+- `backend/OPENAPI-AUTH-GUIDE.md`
+
+---
+
+## 环境要求
+
+- JDK 17
+- Maven 3.9+
+- Node.js 18+
+- PostgreSQL 14+（推荐）
+
+---
+
+## 数据库初始化
+
+默认数据库名建议：`ai-req-tool`
+
+在 PostgreSQL 中依次执行：
+
+1. `backend/src/main/resources/db/init-system.sql`
+2. `backend/src/main/resources/db/init-project-requirement.sql`
+
+初始化后会生成默认管理员账号：
+
+- 用户名：`admin`
+- 密码：`Admin@123`（当前脚本为 `{noop}` 明文方式，仅用于开发环境）
+
+---
+
+## 后端启动
+
+在 `g:\Agent\docgen-webapp\backend` 下执行：
+
+```powershell
+mvn spring-boot:run
+```
+
+默认地址：
+
+- `http://localhost:8080`
+
+Swagger UI：
+
+- `http://localhost:8080/swagger-ui/index.html`
+
+---
+
+## 前端启动
+
+在 `g:\Agent\docgen-webapp\frontend` 下执行：
+
+```powershell
+npm install
+npm run dev
+```
+
+默认地址：
+
+- `http://localhost:5173`
+
+---
+
+## LLM 配置
+
+`application.yml` 当前读取优先级：
+
+1. `AGENT_ROUTER_TOKEN`
+2. `OPENAI_API_KEY`
+
+即：
+
+```yaml
+agent:
+  llm:
+    openai:
+      apiKey: ${AGENT_ROUTER_TOKEN:${OPENAI_API_KEY:}}
+```
+
+### 推荐方式：环境变量
+
+PowerShell：
+
+```powershell
+$env:OPENAI_API_KEY="your-key"
+```
+
+或：
+
+```powershell
+$env:AGENT_ROUTER_TOKEN="your-token"
+```
+
+### 本地配置文件（避免提交密钥）
+
+复制：
+
+- `backend/src/main/resources/application-local.yml.example`
+- 到 `backend/src/main/resources/application-local.yml`
+
+并填入本地 key。请勿提交真实密钥到仓库。
+
+---
+
+## WSL 联调说明（Windows 后端 + WSL 前端）
+
+如果前端在 WSL 里运行，访问 `127.0.0.1:8080` 可能失败（`ECONNREFUSED`）。
+
+可按以下步骤处理：
+
+1. 在 WSL 中获取 Windows 主机 IP：
+
+```bash
+ip route | grep default | awk '{print $3}'
+```
+
+2. 测试后端连通性：
+
+```bash
+curl http://<windows-host-ip>:8080/api/docgen/health
+```
+
+3. 前端设置代理目标：
+
+```bash
+export VITE_BACKEND_URL="http://<windows-host-ip>:8080"
+npm run dev
+```
+
+---
+
+## 测试
+
+后端测试：
+
+```powershell
+cd g:\Agent\docgen-webapp\backend
+mvn test
+```
+
+当前已包含 OpenAPI 权限联动的单元测试（`OpenApiConfigTest`）。
+
+---
+
+## 安全注意事项
+
+1. 不要在 `application.yml`、`application-local.yml`、README 中写入真实密钥。
+2. 默认管理员密码仅用于开发环境，部署前请修改并启用安全加密策略。
+3. 生产环境请替换 `agent.auth.token.secret`，不要使用默认值。
+
+---
+
+## 更多文档
+
+1. 部署指南：`README-部署指南.md`
+2. OpenAPI 与权限联动：`backend/OPENAPI-AUTH-GUIDE.md`
+3. 前后端联调验收清单：`docs/前后端联调验收清单.md`
+4. 项目/需求模块回滚脚本：`backend/src/main/resources/db/rollback-project-requirement.sql`

@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tongtu.docgen.system.mapper.SystemRoleMapper">
+
+    <resultMap id="SysRoleMap" type="com.tongtu.docgen.system.model.entity.SysRoleEntity">
+        <id property="id" column="id"/>
+        <result property="roleCode" column="role_code"/>
+        <result property="roleName" column="role_name"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="listRoles" resultMap="SysRoleMap">
+        SELECT id, role_code, role_name, status, created_at, updated_at
+        FROM sys_role
+        ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="SysRoleMap">
+        SELECT id, role_code, role_name, status, created_at, updated_at
+        FROM sys_role
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findByCode" resultMap="SysRoleMap">
+        SELECT id, role_code, role_name, status, created_at, updated_at
+        FROM sys_role
+        WHERE role_code = #{roleCode}
+        LIMIT 1
+    </select>
+
+    <insert id="insertRole" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_role (role_code, role_name, status, created_at, updated_at)
+        VALUES (#{roleCode}, #{roleName}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="updateRole">
+        UPDATE sys_role
+        SET role_name = #{roleName},
+            status = #{status},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteRolePermissions">
+        DELETE
+        FROM sys_role_permission
+        WHERE role_id = #{roleId}
+    </delete>
+
+    <insert id="insertRolePermission">
+        INSERT INTO sys_role_permission (role_id, permission_id)
+        VALUES (#{roleId}, #{permissionId})
+        ON CONFLICT (role_id, permission_id) DO NOTHING
+    </insert>
+
+    <select id="findPermissionIdsByRoleId" resultType="long">
+        SELECT permission_id
+        FROM sys_role_permission
+        WHERE role_id = #{roleId}
+        ORDER BY permission_id
+    </select>
+</mapper>
+
+

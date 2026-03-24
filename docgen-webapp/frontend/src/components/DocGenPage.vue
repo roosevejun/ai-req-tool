@@ -67,18 +67,30 @@
         </div>
 
         <div v-if="unconfirmedItems.length > 0" class="form-box">
-          <div class="guide-title">分项补充（推荐）</div>
-          <div v-for="item in unconfirmedItems" :key="item" class="form-item">
-            <label class="form-label">{{ item }}</label>
+          <div class="guide-title">逐条问答卡片（推荐）</div>
+          <div class="qa-progress">
+            第 {{ currentQuestionIndex + 1 }} / {{ unconfirmedItems.length }} 题
+          </div>
+          <div v-if="currentQuestionItem" class="form-item">
+            <label class="form-label">{{ currentQuestionItem }}</label>
             <textarea
-              v-model="structuredInputs[item]"
+              v-model="structuredInputs[currentQuestionItem]"
               class="textarea"
-              :placeholder="getPlaceholderForItem(item)"
+              :placeholder="getPlaceholderForItem(currentQuestionItem)"
             />
           </div>
           <div class="row">
-            <button class="primary" :disabled="loading || !canSendStructured" @click="onSendStructured">
-              {{ loading ? '发送中...' : '一键合并并发送给AI' }}
+            <button class="ghost" :disabled="loading || currentQuestionIndex <= 0" @click="goPrevQuestion">
+              上一题
+            </button>
+            <button class="ghost" :disabled="loading || currentQuestionIndex >= unconfirmedItems.length - 1" @click="goNextQuestion">
+              下一题
+            </button>
+            <button class="primary" :disabled="loading || !canSendCurrent" @click="onSendCurrent">
+              {{ loading ? '发送中...' : '发送当前题答案' }}
+            </button>
+            <button class="ghost" :disabled="loading || !canSendStructured" @click="onSendStructured">
+              {{ loading ? '发送中...' : '合并全部并发送' }}
             </button>
           </div>
         </div>
@@ -115,6 +127,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import axios from 'axios'
+const props = withDefaults(defineProps<{ apiBase?: string; draftKey?: string }>(), {
+  apiBase: '/api/docgen',
+  draftKey: 'docgen-draft-v1'
+})
 
 type ApiResponse<T> = {
   code: number
@@ -135,6 +151,13 @@ type CreateJobResponse = {
   status: string
   clarifyQuestions: ClarifyQuestion[] | null
   prdMarkdown: string | null
+  readyToGenerate: boolean
+  pendingQuestion: string
+  confirmedItems: string[]
+  unconfirmedItems: string[]
+  chatHistory: ChatMessage[]
+  basePrdMarkdown: string | null
+  currentVersion: number
 }
 
 type ChatMessage = {
@@ -152,12 +175,14 @@ type ChatResponse = {
   chatHistory: ChatMessage[]
   prdMarkdown: string | null
   basePrdMarkdown: string | null
+  currentVersion: number
 }
 
 const businessDescription = ref('')
 const previousPrdMarkdown = ref('')
 const jobId = ref<string>('')
 const status = ref<string>('')
+const currentVersion = ref<number>(0)
 const clarifyQuestions = ref<ClarifyQuestion[]>([])
 const prdMarkdown = ref<string>('')
 const basePrdMarkdown = ref<string>('')
@@ -165,10 +190,23 @@ const chatHistory = ref<ChatMessage[]>([])
 const pendingQuestion = ref<string>('')
 const confirmedItems = ref<string[]>([])
 const unconfirmedItems = ref<string[]>([])
+const currentQuestionIndex = ref<number>(0)
 const chatInput = ref('')
 const structuredInputs = reactive<Record<string, string>>({})
 const loading = ref(false)
 const error = ref<string>('')
+
+const currentQuestionItem = computed(() => {
+  if (unconfirmedItems.value.length === 0) return ''
+  const idx = Math.min(Math.max(currentQuestionIndex.value, 0), unconfirmedItems.value.length - 1)
+  return unconfirmedItems.value[idx] || ''
+})
+
+const canSendCurrent = computed(() => {
+  const item = currentQuestionItem.value
+  if (!item) return false
+  return (structuredInputs[item] || '').trim().length > 0
+})
 
 const canSendStructured = computed(() => {
   if (unconfirmedItems.value.length === 0) return false
@@ -191,13 +229,13 @@ const diffSummary = computed(() => {
   return { added, removed }
 })
 
-const DRAFT_KEY = 'docgen-draft-v1'
+const DRAFT_KEY = props.draftKey
 
 async function onCreateJob() {
   error.value = ''
   loading.value = true
   try {
-    const res = await axios.post<ApiResponse<CreateJobResponse>>('/api/docgen/jobs', {
+    const res = await axios.post<ApiResponse<CreateJobResponse>>(`${props.apiBase}/jobs`, {
       businessDescription: businessDescription.value,
       previousPrdMarkdown: previousPrdMarkdown.value
     })
@@ -207,17 +245,15 @@ async function onCreateJob() {
     const data = res.data.data
     jobId.value = data.jobId
     status.value = data.status
+    currentVersion.value = data.currentVersion ?? 0
     clarifyQuestions.value = (data.clarifyQuestions ?? []) as ClarifyQuestion[]
-    if (clarifyQuestions.value.length > 0) {
-      const first = clarifyQuestions.value[0]
-      const msg = `${first.question}${first.whyNeeded ? `（原因：${first.whyNeeded}）` : ''}`
-      chatHistory.value = [{ role: 'assistant', content: msg }]
-      pendingQuestion.value = first.question
-      confirmedItems.value = []
-      unconfirmedItems.value = ['用户与角色', '核心业务流程', '输入输出与边界', '验收标准口径']
-    }
+    chatHistory.value = data.chatHistory ?? []
+    pendingQuestion.value = data.pendingQuestion ?? ''
+    confirmedItems.value = data.confirmedItems ?? []
+    unconfirmedItems.value = data.unconfirmedItems ?? []
+    initStructuredInputs(unconfirmedItems.value)
     prdMarkdown.value = data.prdMarkdown ?? ''
-    basePrdMarkdown.value = previousPrdMarkdown.value
+    basePrdMarkdown.value = data.basePrdMarkdown ?? previousPrdMarkdown.value
   } catch (e: any) {
     // 如果后端已返回 body，尽量展示出来便于排查
     const resp = e?.response
@@ -237,12 +273,13 @@ async function onSendChat() {
   try {
     const message = chatInput.value.trim()
     if (!message) return
-    const res = await axios.post<ApiResponse<ChatResponse>>(`/api/docgen/jobs/${jobId.value}/chat`, { message })
+    const res = await axios.post<ApiResponse<ChatResponse>>(`${props.apiBase}/jobs/${jobId.value}/chat`, { message })
     if (res.data.code !== 0) {
       throw new Error(res.data.message || '提交失败')
     }
     const data = res.data.data
     status.value = data.status
+    currentVersion.value = data.currentVersion ?? currentVersion.value
     chatHistory.value = data.chatHistory ?? []
     pendingQuestion.value = data.pendingQuestion ?? ''
     confirmedItems.value = data.confirmedItems ?? []
@@ -267,10 +304,11 @@ async function onGeneratePrd() {
   error.value = ''
   loading.value = true
   try {
-    const res = await axios.post<ApiResponse<ChatResponse>>(`/api/docgen/jobs/${jobId.value}/generate`)
+    const res = await axios.post<ApiResponse<ChatResponse>>(`${props.apiBase}/jobs/${jobId.value}/generate`)
     if (res.data.code !== 0) throw new Error(res.data.message || '生成失败')
     const data = res.data.data
     status.value = data.status
+    currentVersion.value = data.currentVersion ?? currentVersion.value
     chatHistory.value = data.chatHistory ?? []
     confirmedItems.value = data.confirmedItems ?? []
     unconfirmedItems.value = data.unconfirmedItems ?? []
@@ -294,6 +332,7 @@ function onReset() {
   previousPrdMarkdown.value = ''
   jobId.value = ''
   status.value = ''
+  currentVersion.value = 0
   clarifyQuestions.value = []
   chatHistory.value = []
   pendingQuestion.value = ''
@@ -315,6 +354,16 @@ function initStructuredInputs(items: string[]) {
   })
   for (const it of items) {
     if (structuredInputs[it] === undefined) structuredInputs[it] = ''
+  }
+  if (items.length === 0) {
+    currentQuestionIndex.value = 0
+    return
+  }
+  if (currentQuestionIndex.value > items.length - 1) {
+    currentQuestionIndex.value = items.length - 1
+  }
+  if (currentQuestionIndex.value < 0) {
+    currentQuestionIndex.value = 0
   }
 }
 
@@ -361,6 +410,18 @@ function useGuidanceTemplate() {
   chatInput.value = buildGuidanceText(unconfirmedItems.value)
 }
 
+function goPrevQuestion() {
+  if (currentQuestionIndex.value > 0) {
+    currentQuestionIndex.value -= 1
+  }
+}
+
+function goNextQuestion() {
+  if (currentQuestionIndex.value < unconfirmedItems.value.length - 1) {
+    currentQuestionIndex.value += 1
+  }
+}
+
 function getPlaceholderForItem(item: string): string {
   if (item.includes('用户与角色')) {
     return '例如：管理员-配置模板与审批；产品经理-提交需求与修订；评审人-验收'
@@ -393,15 +454,28 @@ async function onSendStructured() {
   await onSendChat()
 }
 
+async function onSendCurrent() {
+  const item = currentQuestionItem.value
+  if (!item) return
+  const value = (structuredInputs[item] || '').trim()
+  if (!value) {
+    error.value = `请先填写：${item}`
+    return
+  }
+  chatInput.value = `【${item}】\n${value}`
+  await onSendChat()
+}
+
 async function onExportPrd() {
   if (!jobId.value) return
   try {
-    const resp = await axios.get(`/api/docgen/jobs/${jobId.value}/export`, { responseType: 'blob' })
+    const resp = await axios.get(`${props.apiBase}/jobs/${jobId.value}/export`, { responseType: 'blob' })
     const blob = new Blob([resp.data], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `PRD-${jobId.value}-revised.md`
+    const version = currentVersion.value > 0 ? currentVersion.value : 1
+    a.download = `01-PRD-Agent需求文档-v${version}.md`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -603,6 +677,12 @@ button {
   border-radius: 10px;
   padding: 10px;
   margin-bottom: 10px;
+}
+
+.qa-progress {
+  color: #1f2937;
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
 .form-item {
