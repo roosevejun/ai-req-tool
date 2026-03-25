@@ -1,12 +1,12 @@
-<template>
+﻿<template>
   <div class="page">
     <header class="topbar">
       <div>
-        <h1>项目 / 需求工作区</h1>
-        <p class="sub">层级视图：项目 -> 需求1/2/3 -> 版本</p>
+        <h1>项目 / 需求管理</h1>
+        <p class="sub">按“项目 -> 需求1/2/3 -> 版本”组织，支持创建项目、创建需求与进入 AI 工作台。</p>
       </div>
       <div class="top-actions">
-        <button class="ghost" @click="goDocgen">返回AI需求工作台</button>
+        <button class="ghost" @click="goDocgen">进入 AI 需求整理页</button>
       </div>
     </header>
 
@@ -14,18 +14,46 @@
       <aside class="sidebar">
         <section class="card">
           <h3>创建项目</h3>
-          <input v-model.trim="projectForm.projectKey" class="input" placeholder="项目编码，如 AI-REQ" />
-          <input v-model.trim="projectForm.projectName" class="input" placeholder="项目名称" />
-          <select v-model="projectForm.visibility" class="input">
-            <option value="PRIVATE">PRIVATE</option>
-            <option value="ORG">ORG</option>
-          </select>
+
+          <div class="form-grid form-grid-project">
+            <input v-model.trim="projectForm.projectKey" class="input" placeholder="项目Key（如 AI-REQ）" />
+            <input v-model.trim="projectForm.projectName" class="input" placeholder="项目名称" />
+            <select v-model="projectForm.projectType" class="input">
+              <option value="">项目类型（可选）</option>
+              <option value="PRODUCT">产品型</option>
+              <option value="PLATFORM">平台型</option>
+              <option value="OPS">运维型</option>
+              <option value="INTEGRATION">集成型</option>
+            </select>
+            <select v-model="projectForm.priority" class="input">
+              <option value="P0">P0</option>
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
+              <option value="P3">P3</option>
+            </select>
+            <input v-model="projectForm.startDate" type="date" class="input" />
+            <input v-model="projectForm.targetDate" type="date" class="input" />
+            <select v-model="projectForm.ownerUserId" class="input">
+              <option value="">负责人（默认当前登录用户）</option>
+              <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
+                {{ u.displayName || u.username }} ({{ u.username }})
+              </option>
+            </select>
+            <select v-model="projectForm.visibility" class="input">
+              <option value="PRIVATE">PRIVATE</option>
+              <option value="ORG">ORG</option>
+            </select>
+            <input v-model.trim="projectForm.tags" class="input" placeholder="标签（逗号分隔，如 车联网,地图）" />
+          </div>
+
+          <textarea v-model="projectForm.description" class="input" placeholder="项目描述（可选）" />
+
           <button
             class="primary block"
             :disabled="loading || !projectForm.projectKey || !projectForm.projectName"
             @click="createProject"
           >
-            创建
+            创建项目
           </button>
         </section>
 
@@ -66,7 +94,7 @@
 
                   <ul v-if="selectedRequirementId === r.id && versionsOf(r.id).length > 0" class="tree-children ver">
                     <li v-for="v in versionsOf(r.id)" :key="v.id" class="ver-item">
-                      {{ v.versionNo }} <span v-if="v.isCurrent" class="current">（当前）</span>
+                      {{ v.versionNo }} <span v-if="v.isCurrent" class="current">当前版本</span>
                     </li>
                   </ul>
                 </li>
@@ -78,8 +106,8 @@
 
       <main class="content">
         <section v-if="!selectedProject" class="card empty-state">
-          <h3>请先在左侧选择一个项目</h3>
-          <p>然后你可以创建/管理需求并进入AI工作台。</p>
+          <h3>请选择一个项目</h3>
+          <p>你可以先在左侧创建项目，再逐条新增需求并进入 AI 澄清与 PRD 生成流程。</p>
         </section>
 
         <template v-else>
@@ -87,11 +115,68 @@
             <h3>项目详情</h3>
             <div class="meta-grid">
               <div><strong>ID:</strong> {{ selectedProject.id }}</div>
-              <div><strong>编码:</strong> {{ selectedProject.projectKey }}</div>
-              <div><strong>名称:</strong> {{ selectedProject.projectName }}</div>
-              <div><strong>状态:</strong> {{ selectedProject.status }}</div>
+              <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
+              <div><strong>项目名称:</strong> {{ selectedProject.projectName }}</div>
+              <div><strong>项目类型:</strong> {{ selectedProject.projectType || '-' }}</div>
+              <div><strong>优先级:</strong> {{ selectedProject.priority || '-' }}</div>
               <div><strong>可见性:</strong> {{ selectedProject.visibility }}</div>
+              <div><strong>计划开始:</strong> {{ selectedProject.startDate || '-' }}</div>
+              <div><strong>计划结束:</strong> {{ selectedProject.targetDate || '-' }}</div>
+              <div><strong>状态:</strong> {{ selectedProject.status }}</div>
+              <div><strong>标签:</strong> {{ selectedProject.tags || '-' }}</div>
             </div>
+            <p class="summary">{{ selectedProject.description || '暂无项目描述' }}</p>
+          </section>
+
+          <section class="card">
+            <h3>项目成员管理</h3>
+            <div class="form-grid">
+              <select v-model="memberForm.selectedUserId" class="input">
+                <option value="">从用户列表选择（可选）</option>
+                <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
+                  {{ u.displayName || u.username }} ({{ u.id }})
+                </option>
+              </select>
+              <input v-model.trim="memberForm.userId" class="input" placeholder="用户ID（如 1）" />
+              <select v-model="memberForm.projectRole" class="input">
+                <option value="OWNER">OWNER</option>
+                <option value="PM">PM</option>
+                <option value="DEV">DEV</option>
+                <option value="QA">QA</option>
+                <option value="VIEWER">VIEWER</option>
+              </select>
+              <button class="primary" :disabled="loading || !memberForm.userId" @click="addProjectMember">
+                添加成员
+              </button>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>用户ID</th>
+                  <th>用户名</th>
+                  <th>显示名</th>
+                  <th>项目角色</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="m in membersOf(selectedProject.id)" :key="m.id">
+                  <td>{{ m.userId }}</td>
+                  <td>{{ m.username || '-' }}</td>
+                  <td>{{ m.displayName || '-' }}</td>
+                  <td>{{ m.projectRole }}</td>
+                  <td>{{ m.status }}</td>
+                  <td class="ops">
+                    <button class="mini" @click="removeProjectMember(m.userId)">移除</button>
+                  </td>
+                </tr>
+                <tr v-if="membersOf(selectedProject.id).length === 0">
+                  <td colspan="6" class="empty small">暂无项目成员</td>
+                </tr>
+              </tbody>
+            </table>
           </section>
 
           <section class="card">
@@ -138,7 +223,7 @@
                   <td>{{ r.priority }}</td>
                   <td>{{ r.status }}</td>
                   <td class="ops">
-                    <button class="mini" @click="selectRequirement(selectedProject.id, r.id)">选中</button>
+                    <button class="mini" @click="selectRequirement(selectedProject.id, r.id)">查看</button>
                     <button class="mini" @click="openWorkbench(r.id)">AI工作台</button>
                     <button class="mini" @click="openVersions(r.id)">版本页</button>
                   </td>
@@ -159,9 +244,9 @@
               <div><strong>优先级:</strong> {{ selectedRequirement.priority }}</div>
               <div><strong>状态:</strong> {{ selectedRequirement.status }}</div>
             </div>
-            <p class="summary">{{ selectedRequirement.summary || '暂无摘要' }}</p>
+            <p class="summary">{{ selectedRequirement.summary || '暂无需求摘要' }}</p>
             <div class="row">
-              <button class="primary" @click="openWorkbench(selectedRequirement.id)">进入AI工作台</button>
+              <button class="primary" @click="openWorkbench(selectedRequirement.id)">进入 AI 工作台</button>
               <button class="ghost" @click="openVersions(selectedRequirement.id)">查看版本页</button>
             </div>
           </section>
@@ -185,6 +270,11 @@ type ProjectItem = {
   projectKey: string
   projectName: string
   description?: string
+  projectType?: string
+  priority?: string
+  startDate?: string
+  targetDate?: string
+  tags?: string
   visibility: string
   status: string
 }
@@ -201,6 +291,21 @@ type VersionItem = {
   versionNo: string
   isCurrent: boolean
 }
+type UserOption = {
+  id: number
+  username: string
+  displayName?: string
+  status?: string
+}
+type ProjectMemberItem = {
+  id: number
+  projectId: number
+  userId: number
+  username?: string
+  displayName?: string
+  projectRole: string
+  status: string
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -211,6 +316,8 @@ const success = ref('')
 const projects = ref<ProjectItem[]>([])
 const requirementsMap = ref<Record<number, RequirementItem[]>>({})
 const versionsMap = ref<Record<number, VersionItem[]>>({})
+const projectMembersMap = ref<Record<number, ProjectMemberItem[]>>({})
+const userOptions = ref<UserOption[]>([])
 const expandedProjectIds = ref<number[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
@@ -218,8 +325,14 @@ const selectedRequirementId = ref<number | null>(null)
 const projectForm = reactive({
   projectKey: '',
   projectName: '',
-  visibility: 'PRIVATE',
-  description: ''
+  description: '',
+  projectType: '',
+  priority: 'P2',
+  startDate: '',
+  targetDate: '',
+  tags: '',
+  ownerUserId: '',
+  visibility: 'PRIVATE'
 })
 
 const reqForm = reactive({
@@ -227,6 +340,11 @@ const reqForm = reactive({
   summary: '',
   priority: 'P2',
   status: 'DRAFT'
+})
+const memberForm = reactive({
+  selectedUserId: '',
+  userId: '',
+  projectRole: 'DEV'
 })
 
 const selectedProject = computed(() => projects.value.find((p) => p.id === selectedProjectId.value) || null)
@@ -241,6 +359,10 @@ function requirementsOf(projectId: number): RequirementItem[] {
 
 function versionsOf(requirementId: number): VersionItem[] {
   return versionsMap.value[requirementId] || []
+}
+
+function membersOf(projectId: number): ProjectMemberItem[] {
+  return projectMembersMap.value[projectId] || []
 }
 
 function isExpanded(projectId: number): boolean {
@@ -271,9 +393,19 @@ async function loadProjects() {
       await selectProject(projects.value[0].id)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load projects'
+    error.value = e?.response?.data?.message || e?.message || '加载项目失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadUserOptions() {
+  try {
+    const res = await axios.get<ApiResponse<UserOption[]>>('/api/system/users')
+    userOptions.value = (res.data.data || []).filter((u) => u.status !== 'DISABLED')
+  } catch {
+    // Not all users have system admin permission; keep manual input fallback.
+    userOptions.value = []
   }
 }
 
@@ -282,7 +414,16 @@ async function loadRequirements(projectId: number) {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId}/requirements`)
     requirementsMap.value = { ...requirementsMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load requirements'
+    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
+  }
+}
+
+async function loadProjectMembers(projectId: number) {
+  try {
+    const res = await axios.get<ApiResponse<ProjectMemberItem[]>>(`/api/projects/${projectId}/members`)
+    projectMembersMap.value = { ...projectMembersMap.value, [projectId]: res.data.data || [] }
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '加载项目成员失败'
   }
 }
 
@@ -291,24 +432,43 @@ async function loadVersions(requirementId: number) {
     const res = await axios.get<ApiResponse<VersionItem[]>>(`/api/requirements/${requirementId}/versions`)
     versionsMap.value = { ...versionsMap.value, [requirementId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load versions'
+    error.value = e?.response?.data?.message || e?.message || '加载版本失败'
   }
 }
 
 async function createProject() {
+  if (projectForm.startDate && projectForm.targetDate && projectForm.targetDate < projectForm.startDate) {
+    error.value = '计划结束日期不能早于计划开始日期'
+    return
+  }
+
   loading.value = true
   error.value = ''
   success.value = ''
   try {
-    await axios.post('/api/projects', projectForm)
+    await axios.post('/api/projects', {
+      ...projectForm,
+      ownerUserId: projectForm.ownerUserId ? Number(projectForm.ownerUserId) : null,
+      startDate: projectForm.startDate || null,
+      targetDate: projectForm.targetDate || null,
+      projectType: projectForm.projectType || null,
+      tags: projectForm.tags || null
+    })
+
     success.value = '项目创建成功'
     projectForm.projectKey = ''
     projectForm.projectName = ''
-    projectForm.visibility = 'PRIVATE'
     projectForm.description = ''
+    projectForm.projectType = ''
+    projectForm.priority = 'P2'
+    projectForm.startDate = ''
+    projectForm.targetDate = ''
+    projectForm.tags = ''
+    projectForm.ownerUserId = ''
+    projectForm.visibility = 'PRIVATE'
     await loadProjects()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to create project'
+    error.value = e?.response?.data?.message || e?.message || '创建项目失败'
   } finally {
     loading.value = false
   }
@@ -328,7 +488,7 @@ async function createRequirement() {
     reqForm.status = 'DRAFT'
     await loadRequirements(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to create requirement'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
   } finally {
     loading.value = false
   }
@@ -340,7 +500,7 @@ async function selectProject(projectId: number) {
   if (!isExpanded(projectId)) {
     expandedProjectIds.value.push(projectId)
   }
-  await loadRequirements(projectId)
+  await Promise.all([loadRequirements(projectId), loadProjectMembers(projectId)])
 }
 
 async function selectRequirement(projectId: number, requirementId: number) {
@@ -353,6 +513,48 @@ async function selectRequirement(projectId: number, requirementId: number) {
     await loadRequirements(projectId)
   }
   await loadVersions(requirementId)
+}
+
+async function addProjectMember() {
+  if (!selectedProjectId.value) return
+  const uid = Number(memberForm.selectedUserId || memberForm.userId)
+  if (!uid || uid <= 0) {
+    error.value = '请输入有效的用户ID'
+    return
+  }
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/projects/${selectedProjectId.value}/members`, {
+      userId: uid,
+      projectRole: memberForm.projectRole
+    })
+    success.value = '项目成员添加成功'
+    memberForm.selectedUserId = ''
+    memberForm.userId = ''
+    await loadProjectMembers(selectedProjectId.value)
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '添加项目成员失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function removeProjectMember(userId: number) {
+  if (!selectedProjectId.value) return
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.delete(`/api/projects/${selectedProjectId.value}/members/${userId}`)
+    success.value = '项目成员移除成功'
+    await loadProjectMembers(selectedProjectId.value)
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '移除项目成员失败'
+  } finally {
+    loading.value = false
+  }
 }
 
 function openWorkbench(requirementId: number) {
@@ -369,7 +571,9 @@ function goDocgen() {
   router.push('/docgen')
 }
 
-onMounted(loadProjects)
+onMounted(async () => {
+  await Promise.all([loadProjects(), loadUserOptions()])
+})
 </script>
 
 <style scoped>
@@ -484,6 +688,9 @@ h1 {
   grid-template-columns: 2fr 1fr 1fr;
   gap: 10px;
 }
+.form-grid-project {
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+}
 .input {
   width: 100%;
   box-sizing: border-box;
@@ -574,7 +781,8 @@ textarea.input {
   .meta-grid {
     grid-template-columns: 1fr;
   }
-  .form-grid {
+  .form-grid,
+  .form-grid-project {
     grid-template-columns: 1fr;
   }
 }

@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS pm_project (
     project_key    VARCHAR(64)  NOT NULL UNIQUE,
     project_name   VARCHAR(128) NOT NULL,
     description    TEXT         NULL,
+    project_type   VARCHAR(32)  NULL,
+    priority       VARCHAR(16)  NOT NULL DEFAULT 'P2',
+    start_date     DATE         NULL,
+    target_date    DATE         NULL,
+    tags           VARCHAR(512) NULL,
     visibility     VARCHAR(32)  NOT NULL DEFAULT 'PRIVATE',
     status         VARCHAR(32)  NOT NULL DEFAULT 'ACTIVE',
     owner_user_id  BIGINT       NOT NULL REFERENCES sys_user (id),
@@ -118,4 +123,3 @@ VALUES
     ('REQUIREMENT:GENERATE_PRD', 'Generate PRD', 'ENABLED'),
     ('REQUIREMENT:VERSION_VIEW', 'View Requirement Versions', 'ENABLED')
 ON CONFLICT (perm_code) DO NOTHING;
-

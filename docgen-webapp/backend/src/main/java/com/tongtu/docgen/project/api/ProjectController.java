@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +28,12 @@ public class ProjectController {
             @NotBlank @Size(max = 64) String projectKey,
             @NotBlank @Size(max = 128) String projectName,
             @Size(max = 2000) String description,
+            @Size(max = 32) String projectType,
+            @Size(max = 16) String priority,
+            LocalDate startDate,
+            LocalDate targetDate,
+            @Size(max = 512) String tags,
+            Long ownerUserId,
             @Size(max = 32) String visibility
     ) {
     }
@@ -34,9 +41,20 @@ public class ProjectController {
     public record UpdateProjectRequest(
             @Size(max = 128) String projectName,
             @Size(max = 2000) String description,
+            @Size(max = 32) String projectType,
+            @Size(max = 16) String priority,
+            LocalDate startDate,
+            LocalDate targetDate,
+            @Size(max = 512) String tags,
             @Size(max = 32) String visibility,
             @Size(max = 32) String status,
             Long ownerUserId
+    ) {
+    }
+
+    public record AddProjectMemberRequest(
+            Long userId,
+            @Size(max = 32) String projectRole
     ) {
     }
 
@@ -62,7 +80,19 @@ public class ProjectController {
     public ApiResponse<Object> createProject(@RequestBody CreateProjectRequest req) {
         String traceId = UUID.randomUUID().toString();
         UserContext ctx = AccessGuard.requireLogin();
-        Long id = projectService.createProject(req.projectKey(), req.projectName(), req.description(), req.visibility(), ctx);
+        Long id = projectService.createProject(
+                req.projectKey(),
+                req.projectName(),
+                req.description(),
+                req.projectType(),
+                req.priority(),
+                req.startDate(),
+                req.targetDate(),
+                req.tags(),
+                req.ownerUserId(),
+                req.visibility(),
+                ctx
+        );
         return ApiResponse.ok(traceId, id);
     }
 
@@ -72,8 +102,48 @@ public class ProjectController {
     public ApiResponse<Object> updateProject(@PathVariable("id") Long id, @RequestBody UpdateProjectRequest req) {
         String traceId = UUID.randomUUID().toString();
         UserContext ctx = AccessGuard.requireLogin();
-        projectService.updateProject(id, req.projectName(), req.description(), req.visibility(), req.status(), req.ownerUserId(), ctx);
+        projectService.updateProject(
+                id,
+                req.projectName(),
+                req.description(),
+                req.projectType(),
+                req.priority(),
+                req.startDate(),
+                req.targetDate(),
+                req.tags(),
+                req.visibility(),
+                req.status(),
+                req.ownerUserId(),
+                ctx
+        );
+        return ApiResponse.ok(traceId, "OK");
+    }
+
+    @GetMapping("/{id}/members")
+    @Operation(summary = "List project members")
+    public ApiResponse<Object> listProjectMembers(@PathVariable("id") Long id) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        return ApiResponse.ok(traceId, projectService.listMembers(id));
+    }
+
+    @PostMapping("/{id}/members")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Add project member")
+    public ApiResponse<Object> addProjectMember(@PathVariable("id") Long id, @RequestBody AddProjectMemberRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        UserContext ctx = AccessGuard.requireLogin();
+        projectService.addMember(id, req.userId(), req.projectRole(), ctx);
+        return ApiResponse.ok(traceId, "OK");
+    }
+
+    @DeleteMapping("/{id}/members/{userId}")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Remove project member")
+    public ApiResponse<Object> removeProjectMember(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        projectService.removeMember(id, userId);
         return ApiResponse.ok(traceId, "OK");
     }
 }
-

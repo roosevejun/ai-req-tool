@@ -18,8 +18,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AgentClient {
@@ -147,6 +150,41 @@ Requirements:
                 + "\n\n业务描述:\n" + businessDescription
                 + "\n\n完整对话JSON:\n" + objectToJsonSafe(history);
         return parsePrdOutput(callOpenAiForText(systemPrompt, userPrompt));
+    }
+
+    public List<String> suggestProjectTags(String traceId, String requirementTitle, String requirementSummary, String prdMarkdown) {
+        String corpus = String.join("\n",
+                requirementTitle == null ? "" : requirementTitle,
+                requirementSummary == null ? "" : requirementSummary,
+                prdMarkdown == null ? "" : prdMarkdown
+        );
+        if (mockOnly || getApiKey().isEmpty()) {
+            return fallbackTags(corpus);
+        }
+
+        String systemPrompt = """
+You are a software project tagging assistant.
+Extract concise project tags from requirement/PRD text.
+Return strict JSON only:
+{"tags":["..."]}
+Rules:
+1) 3-8 tags.
+2) Prefer product/tech domain terms.
+3) Remove duplicates and generic filler words.
+4) Keep each tag <= 12 chars.
+""";
+        String userPrompt = "Requirement/PRD text:\n" + corpus;
+        try {
+            String result = callOpenAiForText(systemPrompt, userPrompt);
+            JsonNode root = objectMapper.readTree(sanitizeJsonText(result));
+            List<String> tags = normalizeTags(toStringList(root.path("tags")));
+            if (!tags.isEmpty()) {
+                return tags;
+            }
+        } catch (Exception ignored) {
+            // fallback below
+        }
+        return fallbackTags(corpus);
     }
 
     private String buildClarifyAnswerContext(List<DocGenService.ClarifyQuestion> clarifyQuestions, Map<String, String> answers) {
@@ -321,6 +359,57 @@ Requirements:
             text = text.substring(firstBrace, lastBrace + 1);
         }
         return text;
+    }
+
+    private List<String> fallbackTags(String corpus) {
+        String lower = corpus == null ? "" : corpus.toLowerCase(Locale.ROOT);
+        List<String> tags = new ArrayList<>();
+        addIfContains(lower, tags, "thingsboard", "ThingsBoard");
+        addIfContains(lower, tags, "vehicle", "车辆");
+        addIfContains(lower, tags, "map", "地图");
+        addIfContains(lower, tags, "websocket", "WebSocket");
+        addIfContains(lower, tags, "location", "定位");
+        addIfContains(lower, tags, "status", "状态监控");
+        addIfContains(lower, tags, "trajectory", "轨迹回放");
+        addIfContains(lower, tags, "login", "登录鉴权");
+        addIfContains(lower, tags, "rbac", "RBAC");
+        addIfContains(lower, tags, "project", "项目管理");
+        addIfContains(lower, tags, "requirement", "需求管理");
+        addIfContains(lower, tags, "prd", "PRD");
+        addIfContains(lower, tags, "api", "API");
+        addIfContains(lower, tags, "swagger", "OpenAPI");
+        addIfContains(lower, tags, "postgres", "PostgreSQL");
+        addIfContains(lower, tags, "mybatis", "MyBatis");
+        if (tags.isEmpty()) {
+            tags.add("需求管理");
+            tags.add("PRD");
+        }
+        return normalizeTags(tags);
+    }
+
+    private void addIfContains(String corpus, List<String> tags, String keyword, String tag) {
+        if (corpus.contains(keyword)) {
+            tags.add(tag);
+        }
+    }
+
+    private List<String> normalizeTags(List<String> rawTags) {
+        Set<String> unique = new LinkedHashSet<>();
+        if (rawTags != null) {
+            for (String tag : rawTags) {
+                if (tag == null) continue;
+                String normalized = tag.trim();
+                if (normalized.isEmpty()) continue;
+                if (normalized.length() > 12) {
+                    normalized = normalized.substring(0, 12);
+                }
+                unique.add(normalized);
+                if (unique.size() >= 8) {
+                    break;
+                }
+            }
+        }
+        return new ArrayList<>(unique);
     }
 
     private record ApiKeyResolution(String key, String source) {}

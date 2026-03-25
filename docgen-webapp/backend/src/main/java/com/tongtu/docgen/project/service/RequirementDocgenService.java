@@ -23,16 +23,22 @@ public class RequirementDocgenService {
     private final RequirementChatMessageMapper requirementChatMessageMapper;
     private final RequirementDocgenMapper requirementDocgenMapper;
     private final RequirementService requirementService;
+    private final ProjectService projectService;
+    private final AgentClient agentClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RequirementDocgenService(DocGenControllerDelegate docGenDelegate,
                                     RequirementChatMessageMapper requirementChatMessageMapper,
                                     RequirementDocgenMapper requirementDocgenMapper,
-                                    RequirementService requirementService) {
+                                    RequirementService requirementService,
+                                    ProjectService projectService,
+                                    AgentClient agentClient) {
         this.docGenDelegate = docGenDelegate;
         this.requirementChatMessageMapper = requirementChatMessageMapper;
         this.requirementDocgenMapper = requirementDocgenMapper;
         this.requirementService = requirementService;
+        this.projectService = projectService;
+        this.agentClient = agentClient;
     }
 
     @Transactional
@@ -118,6 +124,11 @@ public class RequirementDocgenService {
                 prdMarkdown,
                 "Generated from AI workbench",
                 jobId,
+                operator
+        );
+        projectService.mergeTagsByAi(
+                requirement.getProjectId(),
+                agentClient.suggestProjectTags(traceId, requirement.getTitle(), requirement.getSummary(), prdMarkdown),
                 operator
         );
 
@@ -327,4 +338,5 @@ public class RequirementDocgenService {
         entity.setSeqNo(requirementChatMessageMapper.findMaxSeqNo(sessionId) + 1);
         requirementChatMessageMapper.insert(entity);
     }
+
 }

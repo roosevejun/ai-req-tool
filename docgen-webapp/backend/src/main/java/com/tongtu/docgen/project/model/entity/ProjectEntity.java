@@ -2,6 +2,7 @@ package com.tongtu.docgen.project.model.entity;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -10,6 +11,11 @@ public class ProjectEntity {
     private String projectKey;
     private String projectName;
     private String description;
+    private String projectType;
+    private String priority;
+    private LocalDate startDate;
+    private LocalDate targetDate;
+    private String tags;
     private String visibility;
     private String status;
     private Long ownerUserId;
