@@ -1,0 +1,41 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-req-tool-frontend
+  namespace: ai-req-tool
+  labels:
+    app: ai-req-tool-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-req-tool-frontend
+  template:
+    metadata:
+      labels:
+        app: ai-req-tool-frontend
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull-secret
+      containers:
+        - name: ai-req-tool-frontend
+          image: harbor.ahtongtu.cn/ai-req-tool/frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-req-tool-frontend
+  namespace: ai-req-tool
+spec:
+  selector:
+    app: ai-req-tool-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP
+

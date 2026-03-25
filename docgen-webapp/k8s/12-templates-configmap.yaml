@@ -1,0 +1,12 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-req-tool-templates
+  namespace: ai-req-tool
+data:
+  01-PRD-Agent需求文档.md: |
+    ## Agent需求文档（通用模板）
+    **项目名称**：{{project_name}}
+    **文档版本**：V1.0
+    **日期**：{{date}}
+    **负责人**：{{owner}}

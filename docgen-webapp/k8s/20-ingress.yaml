@@ -1,0 +1,39 @@
+﻿apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-req-tool-ingress
+  namespace: ai-req-tool
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "alidns-letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: aitool.ahtongtu.cn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-req-tool-frontend
+                port:
+                  number: 80
+    - host: aitoolapi.ahtongtu.cn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-req-tool-backend
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - aitool.ahtongtu.cn
+        - aitoolapi.ahtongtu.cn
+      secretName: ahtongtu-cn-wildcard-tls
+
+

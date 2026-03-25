@@ -1,0 +1,104 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-req-tool-backend
+  namespace: ai-req-tool
+  labels:
+    app: ai-req-tool-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-req-tool-backend
+  template:
+    metadata:
+      labels:
+        app: ai-req-tool-backend
+    spec:
+      imagePullSecrets:
+        - name: harbor-pull-secret
+      containers:
+        - name: ai-req-tool-backend
+          image: harbor.ahtongtu.cn/ai-req-tool/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "docker"
+            - name: SPRING_DATASOURCE_DRUID_URL
+              value: "jdbc:postgresql://$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
+            - name: SPRING_DATASOURCE_DRUID_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_USER
+            - name: SPRING_DATASOURCE_DRUID_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_PASSWORD
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_NAME
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: OPENAI_API_KEY
+            - name: AUTH_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: AUTH_TOKEN_SECRET
+            - name: OPENAI_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: OPENAI_BASE_URL
+            - name: OPENAI_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: OPENAI_MODEL
+            - name: OPENAI_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: OPENAI_TIMEOUT_MS
+          volumeMounts:
+            - name: templates-vol
+              mountPath: /app/templates
+              readOnly: true
+      volumes:
+        - name: templates-vol
+          configMap:
+            name: ai-req-tool-templates
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-req-tool-backend
+  namespace: ai-req-tool
+spec:
+  selector:
+    app: ai-req-tool-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+
