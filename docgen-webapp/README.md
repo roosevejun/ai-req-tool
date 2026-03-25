@@ -223,3 +223,50 @@ powershell -ExecutionPolicy Bypass -File .\scripts\e2e-p0-check.ps1 `
   -Password "Admin@123" `
   -MaxChatRounds 6
 ```
+
+---
+
+## Docker 打包与启动
+
+### 1) 准备环境变量
+
+```powershell
+cd g:\Agent\docgen-webapp
+copy .env.docker.example .env
+```
+
+按需编辑 `.env`（尤其是 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`、`OPENAI_API_KEY` 或 `AGENT_ROUTER_TOKEN`）。
+
+### 2) 构建并启动
+
+```powershell
+docker compose up -d --build
+```
+
+启动后访问：
+
+- 前端: `http://localhost:5173`
+- 后端: `http://localhost:8080`
+- Swagger: `http://localhost:8080/swagger-ui/index.html`
+
+默认管理员（初始化 SQL）：
+
+- 用户名: `admin`
+- 密码: `Admin@123`
+
+说明：当前 `docker-compose.yml` 已改为使用外部 PostgreSQL，不再内置 `postgres` 容器。请先在外部数据库执行初始化脚本：
+
+- `backend/src/main/resources/db/init-system.sql`
+- `backend/src/main/resources/db/init-project-requirement.sql`
+
+### 3) 停止与清理
+
+```powershell
+docker compose down
+```
+
+如需连同数据库卷清理：
+
+```powershell
+docker compose down -v
+```

@@ -27,5 +27,6 @@ temp/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 application-local.yml
 **/application-local.yml
