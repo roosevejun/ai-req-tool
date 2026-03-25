@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-req-tool-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_PROXY_PASS: ${BACKEND_PROXY_PASS:-http://host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"

@@ -239,3 +239,34 @@ docker compose down -v
 ```
 
 
+
+---
+
+## Separate Docker Compose (Backend / Frontend)
+
+You can now build and run backend and frontend independently.
+
+### Backend only
+
+```powershell
+cd g:\Agent\docgen-webapp\backend
+copy ..\.env.docker.example .env
+# edit .env for DB_* / OPENAI_* / AUTH_TOKEN_SECRET
+
+docker compose --env-file .env up -d --build
+```
+
+### Frontend only
+
+```powershell
+cd g:\Agent\docgen-webapp\frontend
+# optional: if backend is not on localhost:8080, set BACKEND_PROXY_PASS
+$env:BACKEND_PROXY_PASS="http://host.docker.internal:8080"
+
+docker compose up -d --build
+```
+
+Default frontend proxy target in independent mode:
+- `http://host.docker.internal:8080`
+
+This lets teams compile/deploy frontend and backend separately.
