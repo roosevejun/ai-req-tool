@@ -202,3 +202,24 @@ mvn test
 2. OpenAPI 与权限联动：`backend/OPENAPI-AUTH-GUIDE.md`
 3. 前后端联调验收清单：`docs/前后端联调验收清单.md`
 4. 项目/需求模块回滚脚本：`backend/src/main/resources/db/rollback-project-requirement.sql`
+
+---
+
+## P0 E2E Check Script
+
+Run the end-to-end verification script (login -> project -> requirement -> AI workbench -> generate -> version export):
+
+```powershell
+cd g:\Agent\docgen-webapp
+powershell -ExecutionPolicy Bypass -File .\scripts\e2e-p0-check.ps1
+```
+
+Optional parameters:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\e2e-p0-check.ps1 `
+  -BackendBaseUrl "http://localhost:8080" `
+  -Username "admin" `
+  -Password "Admin@123" `
+  -MaxChatRounds 6
+```
