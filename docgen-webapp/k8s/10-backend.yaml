@@ -27,7 +27,10 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: "docker"
             - name: SPRING_DATASOURCE_DRUID_URL
-              value: "jdbc:postgresql://$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: DB_URL
             - name: SPRING_DATASOURCE_DRUID_USERNAME
               valueFrom:
                 secretKeyRef:

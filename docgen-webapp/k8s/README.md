@@ -15,6 +15,8 @@ This directory is generated based on your existing style (`namespace: ai-req-too
 ## Before Apply
 
 1. Replace secret values in `01-secrets-and-config.example.yaml`.
+   - `DB_URL` must be a complete JDBC URL, for example:
+     - `jdbc:postgresql://192.168.20.201:5432/ai-req-tool`
 2. Create Harbor image pull secret:
    - Either use `02-image-pull-secret.example.yaml`
    - Or run:

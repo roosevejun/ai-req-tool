@@ -21,6 +21,9 @@ spec:
         - name: ai-req-tool-frontend
           image: harbor.ahtongtu.cn/ai-req-tool/frontend:latest
           imagePullPolicy: Always
+          env:
+            - name: BACKEND_PROXY_PASS
+              value: "http://ai-req-tool-backend.ai-req-tool.svc.cluster.local:8080"
           ports:
             - containerPort: 80
 ---
