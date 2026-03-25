@@ -118,6 +118,25 @@ public class DocGenService {
         return toChatResponse(s, turn.assistantMessage());
     }
 
+    public AgentClient.ConversationTurn continueConversationWithHistory(String traceId,
+                                                                        String businessDescription,
+                                                                        List<DocGenController.ChatMessage> history,
+                                                                        String pendingQuestion,
+                                                                        String basePrdMarkdown) {
+        if (isBlank(businessDescription)) {
+            throw new IllegalArgumentException("businessDescription cannot be blank.");
+        }
+        String template = loadPrdTemplate();
+        return agentClient.continueConversation(
+                traceId,
+                template,
+                businessDescription,
+                toClientHistoryFromController(history),
+                pendingQuestion,
+                basePrdMarkdown
+        );
+    }
+
     public DocGenController.ChatResponse generatePrdFromChat(String traceId, String jobId) {
         JobState s = requireJob(jobId);
         if (!s.unconfirmedItems.isEmpty()) {
@@ -144,6 +163,35 @@ public class DocGenService {
         String doneMsg = "Generated PRD successfully. You can keep chatting to revise and generate a newer version.";
         addAssistantMessage(s, doneMsg);
         return toChatResponse(s, doneMsg);
+    }
+
+    public String generatePrdFromHistory(String traceId,
+                                         String businessDescription,
+                                         List<DocGenController.ChatMessage> history,
+                                         String basePrdMarkdown,
+                                         List<String> unconfirmedItems) {
+        if (unconfirmedItems != null && !unconfirmedItems.isEmpty()) {
+            String guidance = buildUnconfirmedGuidancePrompt(unconfirmedItems);
+            throw new IllegalArgumentException(
+                    "Still has unconfirmed items. Please complete them before generating PRD: "
+                            + String.join("; ", unconfirmedItems)
+                            + "\n\nSuggested reply template:\n"
+                            + guidance
+            );
+        }
+        if (isBlank(businessDescription)) {
+            throw new IllegalArgumentException("businessDescription cannot be blank.");
+        }
+
+        String template = loadPrdTemplate();
+        String prdMarkdown = agentClient.generatePrdFromChat(
+                traceId,
+                template,
+                businessDescription,
+                toClientHistoryFromController(history),
+                basePrdMarkdown
+        );
+        return normalizePrdDocument(prdMarkdown, basePrdMarkdown);
     }
 
     public String getPrdMarkdownForExport(String jobId) {
@@ -223,6 +271,20 @@ public class DocGenService {
         List<AgentClient.ChatMessage> out = new ArrayList<>();
         for (ChatEntry e : entries) {
             out.add(new AgentClient.ChatMessage(e.role, e.content));
+        }
+        return out;
+    }
+
+    private List<AgentClient.ChatMessage> toClientHistoryFromController(List<DocGenController.ChatMessage> entries) {
+        List<AgentClient.ChatMessage> out = new ArrayList<>();
+        if (entries == null) {
+            return out;
+        }
+        for (DocGenController.ChatMessage entry : entries) {
+            if (entry == null) {
+                continue;
+            }
+            out.add(new AgentClient.ChatMessage(entry.role(), entry.content()));
         }
         return out;
     }
