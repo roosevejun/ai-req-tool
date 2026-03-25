@@ -1,8 +1,8 @@
 agent:
   llm:
     openai:
-      # AgentRouter (OpenAI Chat Completions compatible)
-      baseUrl: "https://agentrouter.org/v1"
+      # OpenAI-compatible endpoint
+      baseUrl: "https://api.openai.com/v1"
       model: "gpt-4o-mini"
       # Local-only config. Do NOT commit real keys.
-      apiKey: ${AGENT_ROUTER_TOKEN:}
+      apiKey: ${OPENAI_API_KEY:}

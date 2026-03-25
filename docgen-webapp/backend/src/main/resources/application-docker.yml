@@ -25,3 +25,9 @@ agent:
   template:
     templateDir: /app/templates
     templateGlob: "01-PRD-*.md"
+  llm:
+    openai:
+      baseUrl: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+      apiKey: ${OPENAI_API_KEY:}
+      timeoutMs: ${OPENAI_TIMEOUT_MS:30000}

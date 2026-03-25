@@ -10,8 +10,8 @@ spring:
 agent:
   auth:
     token:
-      secret: ${AGENT_AUTH_TOKEN_SECRET:change-me-in-prod}
-      expireMinutes: ${AGENT_AUTH_TOKEN_EXPIRE_MINUTES:720}
+      secret: ${AUTH_TOKEN_SECRET:change-me-in-prod}
+      expireMinutes: ${AUTH_TOKEN_EXPIRE_MINUTES:720}
   template:
     # backend runtime dir -> g:\Agent root
     templateDir: ../..
@@ -22,6 +22,5 @@ agent:
       baseUrl: https://api.openai.com/v1
       model: gpt-4o-mini
       # Recommended: inject via env variable instead of hard-coding.
-      # Priority: AGENT_ROUTER_TOKEN -> OPENAI_API_KEY -> empty
-      apiKey: ${AGENT_ROUTER_TOKEN:${OPENAI_API_KEY:}}
+      apiKey: ${OPENAI_API_KEY:}
       timeoutMs: 30000

@@ -1,173 +1,146 @@
-# DocGen WebApp（AI 需求管理工具）
+﻿# DocGen WebApp锛圓I 闇€姹傜鐞嗗伐鍏凤級
 
-这是一个面向需求管理场景的 AI 工具，支持：
+杩欐槸涓€涓潰鍚戦渶姹傜鐞嗗満鏅殑 AI 宸ュ叿锛屾敮鎸侊細
 
-1. 通过对话收集/澄清需求。
-2. 生成与迭代 PRD Markdown 文档。
-3. 项目管理、需求管理、版本管理。
-4. 用户登录、用户/角色/权限管理（RBAC）。
-5. Swagger/OpenAPI 与权限联动展示。
+1. 閫氳繃瀵硅瘽鏀堕泦/婢勬竻闇€姹傘€?2. 鐢熸垚涓庤凯浠?PRD Markdown 鏂囨。銆?3. 椤圭洰绠＄悊銆侀渶姹傜鐞嗐€佺増鏈鐞嗐€?4. 鐢ㄦ埛鐧诲綍銆佺敤鎴?瑙掕壊/鏉冮檺绠＄悊锛圧BAC锛夈€?5. Swagger/OpenAPI 涓庢潈闄愯仈鍔ㄥ睍绀恒€?
+---
+
+## 鐩綍缁撴瀯
+
+- `backend`锛歋pring Boot + MyBatis + PostgreSQL + Druid
+- `frontend`锛歏ue 3 + Vite
 
 ---
 
-## 目录结构
+## 鏍稿績鑳藉姏
 
-- `backend`：Spring Boot + MyBatis + PostgreSQL + Druid
-- `frontend`：Vue 3 + Vite
+### 1) AI 闇€姹傚伐浣滃彴
 
----
+- 鍒涘缓浼氳瘽骞惰繘鍏ユ緞娓呴樁娈?- 閫愭瀵硅瘽琛ラ綈鏈‘璁ら」
+- 鐢熸垚 PRD 骞朵繚瀛樼増鏈?- 瀵煎嚭鎸囧畾 PRD Markdown
 
-## 核心能力
+### 2) 绯荤粺绠＄悊锛圧BAC锛?
+- 鐢ㄦ埛绠＄悊锛氬垱寤恒€佹洿鏂般€侀噸缃瘑鐮併€佺粦瀹氳鑹?- 瑙掕壊绠＄悊锛氬垱寤恒€佹洿鏂般€佺粦瀹氭潈闄?- 鏉冮檺绠＄悊锛氬垱寤恒€佹洿鏂般€佸垪琛?
+### 3) 椤圭洰涓庨渶姹傜鐞?
+- 椤圭洰锛氬垪琛ㄣ€佽鎯呫€佸垱寤恒€佹洿鏂?- 闇€姹傦細鍒涘缓銆佺紪杈戙€佺増鏈煡鐪嬨€佺増鏈鍑?
+### 4) OpenAPI 鏉冮檺鑱斿姩
 
-### 1) AI 需求工作台
+- 榛樿鎺ュ彛瑕佹眰 Bearer Token
+- `@PublicApi` 鎺ュ彛鑷姩鏍囪涓哄叕寮€
+- `@RequiredPermission` 鑷姩鍐欏叆 `x-permissions`
+- 鑷姩琛ュ厖 `401/403` 鍝嶅簲璇存槑
 
-- 创建会话并进入澄清阶段
-- 逐步对话补齐未确认项
-- 生成 PRD 并保存版本
-- 导出指定 PRD Markdown
-
-### 2) 系统管理（RBAC）
-
-- 用户管理：创建、更新、重置密码、绑定角色
-- 角色管理：创建、更新、绑定权限
-- 权限管理：创建、更新、列表
-
-### 3) 项目与需求管理
-
-- 项目：列表、详情、创建、更新
-- 需求：创建、编辑、版本查看、版本导出
-
-### 4) OpenAPI 权限联动
-
-- 默认接口要求 Bearer Token
-- `@PublicApi` 接口自动标记为公开
-- `@RequiredPermission` 自动写入 `x-permissions`
-- 自动补充 `401/403` 响应说明
-
-详细说明见：
+璇︾粏璇存槑瑙侊細
 - `backend/OPENAPI-AUTH-GUIDE.md`
 
 ---
 
-## 环境要求
+## 鐜瑕佹眰
 
 - JDK 17
 - Maven 3.9+
 - Node.js 18+
-- PostgreSQL 14+（推荐）
+- PostgreSQL 14+锛堟帹鑽愶級
 
 ---
 
-## 数据库初始化
+## 鏁版嵁搴撳垵濮嬪寲
 
-默认数据库名建议：`ai-req-tool`
+榛樿鏁版嵁搴撳悕寤鸿锛歚ai-req-tool`
 
-在 PostgreSQL 中依次执行：
+鍦?PostgreSQL 涓緷娆℃墽琛岋細
 
 1. `backend/src/main/resources/db/init-system.sql`
 2. `backend/src/main/resources/db/init-project-requirement.sql`
 
-初始化后会生成默认管理员账号：
-
-- 用户名：`admin`
-- 密码：`Admin@123`（当前脚本为 `{noop}` 明文方式，仅用于开发环境）
+鍒濆鍖栧悗浼氱敓鎴愰粯璁ょ鐞嗗憳璐﹀彿锛?
+- 鐢ㄦ埛鍚嶏細`admin`
+- 瀵嗙爜锛歚Admin@123`锛堝綋鍓嶈剼鏈负 `{noop}` 鏄庢枃鏂瑰紡锛屼粎鐢ㄤ簬寮€鍙戠幆澧冿級
 
 ---
 
-## 后端启动
+## 鍚庣鍚姩
 
-在 `g:\Agent\docgen-webapp\backend` 下执行：
+鍦?`g:\Agent\docgen-webapp\backend` 涓嬫墽琛岋細
 
 ```powershell
 mvn spring-boot:run
 ```
 
-默认地址：
-
+榛樿鍦板潃锛?
 - `http://localhost:8080`
 
-Swagger UI：
-
+Swagger UI锛?
 - `http://localhost:8080/swagger-ui/index.html`
 
 ---
 
-## 前端启动
+## 鍓嶇鍚姩
 
-在 `g:\Agent\docgen-webapp\frontend` 下执行：
+鍦?`g:\Agent\docgen-webapp\frontend` 涓嬫墽琛岋細
 
 ```powershell
 npm install
 npm run dev
 ```
 
-默认地址：
-
+榛樿鍦板潃锛?
 - `http://localhost:5173`
 
 ---
 
-## LLM 配置
+## LLM 閰嶇疆
 
-`application.yml` 当前读取优先级：
+`application.yml` 褰撳墠璇诲彇浼樺厛绾э細
 
-1. `AGENT_ROUTER_TOKEN`
-2. `OPENAI_API_KEY`
+1. `OPENAI_API_KEY`
 
-即：
+鍗筹細
 
 ```yaml
 agent:
   llm:
     openai:
-      apiKey: ${AGENT_ROUTER_TOKEN:${OPENAI_API_KEY:}}
+      apiKey: ${OPENAI_API_KEY:}
 ```
 
-### 推荐方式：环境变量
-
-PowerShell：
-
+### 鎺ㄨ崘鏂瑰紡锛氱幆澧冨彉閲?
+PowerShell锛?
 ```powershell
 $env:OPENAI_API_KEY="your-key"
 ```
 
-或：
+鎴栵細
 
 ```powershell
-$env:AGENT_ROUTER_TOKEN="your-token"
+# optional: set another key if needed
+# $env:OPENAI_API_KEY="another-key"
 ```
 
-### 本地配置文件（避免提交密钥）
+### 鏈湴閰嶇疆鏂囦欢锛堥伩鍏嶆彁浜ゅ瘑閽ワ級
 
-复制：
-
+澶嶅埗锛?
 - `backend/src/main/resources/application-local.yml.example`
-- 到 `backend/src/main/resources/application-local.yml`
+- 鍒?`backend/src/main/resources/application-local.yml`
 
-并填入本地 key。请勿提交真实密钥到仓库。
-
+骞跺～鍏ユ湰鍦?key銆傝鍕挎彁浜ょ湡瀹炲瘑閽ュ埌浠撳簱銆?
 ---
 
-## WSL 联调说明（Windows 后端 + WSL 前端）
-
-如果前端在 WSL 里运行，访问 `127.0.0.1:8080` 可能失败（`ECONNREFUSED`）。
-
-可按以下步骤处理：
-
-1. 在 WSL 中获取 Windows 主机 IP：
-
+## WSL 鑱旇皟璇存槑锛圵indows 鍚庣 + WSL 鍓嶇锛?
+濡傛灉鍓嶇鍦?WSL 閲岃繍琛岋紝璁块棶 `127.0.0.1:8080` 鍙兘澶辫触锛坄ECONNREFUSED`锛夈€?
+鍙寜浠ヤ笅姝ラ澶勭悊锛?
+1. 鍦?WSL 涓幏鍙?Windows 涓绘満 IP锛?
 ```bash
 ip route | grep default | awk '{print $3}'
 ```
 
-2. 测试后端连通性：
+2. 娴嬭瘯鍚庣杩為€氭€э細
 
 ```bash
 curl http://<windows-host-ip>:8080/api/docgen/health
 ```
 
-3. 前端设置代理目标：
-
+3. 鍓嶇璁剧疆浠ｇ悊鐩爣锛?
 ```bash
 export VITE_BACKEND_URL="http://<windows-host-ip>:8080"
 npm run dev
@@ -175,33 +148,28 @@ npm run dev
 
 ---
 
-## 测试
+## 娴嬭瘯
 
-后端测试：
-
+鍚庣娴嬭瘯锛?
 ```powershell
 cd g:\Agent\docgen-webapp\backend
 mvn test
 ```
 
-当前已包含 OpenAPI 权限联动的单元测试（`OpenApiConfigTest`）。
-
+褰撳墠宸插寘鍚?OpenAPI 鏉冮檺鑱斿姩鐨勫崟鍏冩祴璇曪紙`OpenApiConfigTest`锛夈€?
 ---
 
-## 安全注意事项
+## 瀹夊叏娉ㄦ剰浜嬮」
 
-1. 不要在 `application.yml`、`application-local.yml`、README 中写入真实密钥。
-2. 默认管理员密码仅用于开发环境，部署前请修改并启用安全加密策略。
-3. 生产环境请替换 `agent.auth.token.secret`，不要使用默认值。
-
+1. 涓嶈鍦?`application.yml`銆乣application-local.yml`銆丷EADME 涓啓鍏ョ湡瀹炲瘑閽ャ€?2. 榛樿绠＄悊鍛樺瘑鐮佷粎鐢ㄤ簬寮€鍙戠幆澧冿紝閮ㄧ讲鍓嶈淇敼骞跺惎鐢ㄥ畨鍏ㄥ姞瀵嗙瓥鐣ャ€?3. 鐢熶骇鐜璇锋浛鎹?`agent.auth.token.secret`锛屼笉瑕佷娇鐢ㄩ粯璁ゅ€笺€?
 ---
 
-## 更多文档
+## 鏇村鏂囨。
 
-1. 部署指南：`README-部署指南.md`
-2. OpenAPI 与权限联动：`backend/OPENAPI-AUTH-GUIDE.md`
-3. 前后端联调验收清单：`docs/前后端联调验收清单.md`
-4. 项目/需求模块回滚脚本：`backend/src/main/resources/db/rollback-project-requirement.sql`
+1. 閮ㄧ讲鎸囧崡锛歚README-閮ㄧ讲鎸囧崡.md`
+2. OpenAPI 涓庢潈闄愯仈鍔細`backend/OPENAPI-AUTH-GUIDE.md`
+3. 鍓嶅悗绔仈璋冮獙鏀舵竻鍗曪細`docs/鍓嶅悗绔仈璋冮獙鏀舵竻鍗?md`
+4. 椤圭洰/闇€姹傛ā鍧楀洖婊氳剼鏈細`backend/src/main/resources/db/rollback-project-requirement.sql`
 
 ---
 
@@ -226,47 +194,48 @@ powershell -ExecutionPolicy Bypass -File .\scripts\e2e-p0-check.ps1 `
 
 ---
 
-## Docker 打包与启动
-
-### 1) 准备环境变量
+## Docker 鎵撳寘涓庡惎鍔?
+### 1) 鍑嗗鐜鍙橀噺
 
 ```powershell
 cd g:\Agent\docgen-webapp
 copy .env.docker.example .env
 ```
 
-按需编辑 `.env`（尤其是 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`、`OPENAI_API_KEY` 或 `AGENT_ROUTER_TOKEN`）。
+按需编辑 `.env`（尤其是 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`、`OPENAI_API_KEY`）。
+如需切换模型/网关，可在 `.env` 配置：
+- `OPENAI_BASE_URL`（例如 `https://aigc.x-see.cn/v1`）
+- `OPENAI_MODEL`（例如 `gpt-3.5-turbo`）
+- `OPENAI_TIMEOUT_MS`
 
-### 2) 构建并启动
-
+### 2) 鏋勫缓骞跺惎鍔?
 ```powershell
 docker compose up -d --build
 ```
 
-启动后访问：
+鍚姩鍚庤闂細
 
-- 前端: `http://localhost:5173`
-- 后端: `http://localhost:8080`
+- 鍓嶇: `http://localhost:5173`
+- 鍚庣: `http://localhost:8080`
 - Swagger: `http://localhost:8080/swagger-ui/index.html`
 
-默认管理员（初始化 SQL）：
+榛樿绠＄悊鍛橈紙鍒濆鍖?SQL锛夛細
 
-- 用户名: `admin`
-- 密码: `Admin@123`
+- 鐢ㄦ埛鍚? `admin`
+- 瀵嗙爜: `Admin@123`
 
-说明：当前 `docker-compose.yml` 已改为使用外部 PostgreSQL，不再内置 `postgres` 容器。请先在外部数据库执行初始化脚本：
-
+璇存槑锛氬綋鍓?`docker-compose.yml` 宸叉敼涓轰娇鐢ㄥ閮?PostgreSQL锛屼笉鍐嶅唴缃?`postgres` 瀹瑰櫒銆傝鍏堝湪澶栭儴鏁版嵁搴撴墽琛屽垵濮嬪寲鑴氭湰锛?
 - `backend/src/main/resources/db/init-system.sql`
 - `backend/src/main/resources/db/init-project-requirement.sql`
 
-### 3) 停止与清理
-
+### 3) 鍋滄涓庢竻鐞?
 ```powershell
 docker compose down
 ```
 
-如需连同数据库卷清理：
-
+濡傞渶杩炲悓鏁版嵁搴撳嵎娓呯悊锛?
 ```powershell
 docker compose down -v
 ```
+
+
