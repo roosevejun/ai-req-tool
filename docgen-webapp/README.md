@@ -270,3 +270,17 @@ Default frontend proxy target in independent mode:
 - `http://host.docker.internal:8080`
 
 This lets teams compile/deploy frontend and backend separately.
+
+---
+
+## New Doc (Automation + AI Tags)
+
+For the latest workflow on:
+
+1. one-command rebuild script (`scripts/dev-rebuild.ps1`)
+2. project metadata fields
+3. AI-driven project tag maintenance (`tags`)
+
+please read:
+
+- `docs/开发自动化与AI标签说明.md`
