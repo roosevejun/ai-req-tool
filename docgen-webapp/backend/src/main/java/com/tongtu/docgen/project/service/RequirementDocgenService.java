@@ -5,6 +5,7 @@ import com.tongtu.docgen.api.DocGenController;
 import com.tongtu.docgen.llm.AgentClient;
 import com.tongtu.docgen.project.mapper.RequirementChatMessageMapper;
 import com.tongtu.docgen.project.mapper.RequirementDocgenMapper;
+import com.tongtu.docgen.project.model.entity.ProjectEntity;
 import com.tongtu.docgen.project.model.entity.RequirementChatMessageEntity;
 import com.tongtu.docgen.project.model.entity.RequirementChatSessionEntity;
 import com.tongtu.docgen.project.model.entity.RequirementEntity;
@@ -240,20 +241,23 @@ public class RequirementDocgenService {
     }
 
     private String resolveInitialBusinessDescription(RequirementEntity requirement, String businessDescription) {
-        if (businessDescription != null && !businessDescription.isBlank()) {
-            return businessDescription;
-        }
-        return requirement.getTitle() + "\n\n" + (requirement.getSummary() == null ? "" : requirement.getSummary());
+        String requirementText = businessDescription != null && !businessDescription.isBlank()
+                ? businessDescription
+                : requirement.getTitle() + "\n\n" + (requirement.getSummary() == null ? "" : requirement.getSummary());
+        ProjectEntity project = projectService.getById(requirement.getProjectId());
+        return mergeProjectContext(projectService.buildProductContext(project), requirementText);
     }
 
     private String resolveBusinessDescription(RequirementEntity requirement, List<RequirementChatMessageEntity> messages) {
+        ProjectEntity project = projectService.getById(requirement.getProjectId());
+        String projectContext = projectService.buildProductContext(project);
         if (messages != null) {
             for (RequirementChatMessageEntity message : messages) {
                 if (message != null
                         && "user".equalsIgnoreCase(message.getRole())
                         && message.getContent() != null
                         && !message.getContent().isBlank()) {
-                    return message.getContent();
+                    return mergeProjectContext(projectContext, message.getContent());
                 }
             }
         }
@@ -337,6 +341,21 @@ public class RequirementDocgenService {
         entity.setContent(content.trim());
         entity.setSeqNo(requirementChatMessageMapper.findMaxSeqNo(sessionId) + 1);
         requirementChatMessageMapper.insert(entity);
+    }
+
+    private String mergeProjectContext(String projectContext, String requirementText) {
+        String req = requirementText == null ? "" : requirementText.trim();
+        String ctx = projectContext == null ? "" : projectContext.trim();
+        if (req.contains("【当前需求】")) {
+            return req;
+        }
+        if (ctx.isEmpty()) {
+            return req;
+        }
+        if (req.isEmpty()) {
+            return ctx;
+        }
+        return ctx + "\n\n【当前需求】\n" + req;
     }
 
 }

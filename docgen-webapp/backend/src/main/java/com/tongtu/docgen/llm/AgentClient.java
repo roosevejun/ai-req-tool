@@ -58,6 +58,21 @@ public class AgentClient {
             String pendingQuestion
     ) {}
 
+    public record ProjectProductAnswer(
+            String question,
+            String answer
+    ) {}
+
+    public record ProjectProductGuideResult(
+            String assistantMessage,
+            List<String> followUpQuestions,
+            String projectBackground,
+            String similarProducts,
+            String targetCustomerGroups,
+            String commercialValue,
+            String coreProductValue
+    ) {}
+
     public List<DocGenService.ClarifyQuestion> generateClarifyQuestions(String traceId, String prdTemplate, String businessDescription) {
         return List.of(
                 new DocGenService.ClarifyQuestion("q1", "核心业务目标是什么？", "例如：想让系统最终解决什么问题。", true),
@@ -185,6 +200,85 @@ Rules:
             // fallback below
         }
         return fallbackTags(corpus);
+    }
+
+    public ProjectProductGuideResult guideProjectProductInfo(String traceId,
+                                                             String projectName,
+                                                             String description,
+                                                             String projectBackground,
+                                                             String similarProducts,
+                                                             String targetCustomerGroups,
+                                                             String commercialValue,
+                                                             String coreProductValue,
+                                                             List<ProjectProductAnswer> answers) {
+        String context = buildProjectProductGuideContext(
+                projectName,
+                description,
+                projectBackground,
+                similarProducts,
+                targetCustomerGroups,
+                commercialValue,
+                coreProductValue,
+                answers
+        );
+        if (mockOnly || getApiKey().isEmpty()) {
+            return fallbackProjectProductGuide(
+                    projectName,
+                    description,
+                    projectBackground,
+                    similarProducts,
+                    targetCustomerGroups,
+                    commercialValue,
+                    coreProductValue,
+                    answers
+            );
+        }
+
+        String systemPrompt = """
+You are a product planning assistant for software project intake.
+Your job is to help complete project product information with guided clarification.
+Return strict JSON only:
+{
+  "assistantMessage":"...",
+  "followUpQuestions":["..."],
+  "projectBackground":"...",
+  "similarProducts":"...",
+  "targetCustomerGroups":"...",
+  "commercialValue":"...",
+  "coreProductValue":"..."
+}
+Rules:
+1) Ask at most 3 targeted follow-up questions.
+2) Questions should focus on missing critical product context, not generic filler.
+3) Always return best-effort completion suggestions for all fields, even if some are assumptions.
+4) Keep suggestions concrete, concise, and business-relevant.
+5) If answers are provided, incorporate them and reduce repeated questions.
+6) Do not output markdown or prose outside JSON.
+""";
+        String userPrompt = "Current project intake context:\n" + context;
+        try {
+            JsonNode root = objectMapper.readTree(sanitizeJsonText(callOpenAiForText(systemPrompt, userPrompt)));
+            return new ProjectProductGuideResult(
+                    root.path("assistantMessage").asText("已基于当前输入生成补全建议。"),
+                    limitQuestions(toStringList(root.path("followUpQuestions"))),
+                    normalizeLongText(root.path("projectBackground").asText(projectBackground == null ? "" : projectBackground)),
+                    normalizeLongText(root.path("similarProducts").asText(similarProducts == null ? "" : similarProducts)),
+                    normalizeShortText(root.path("targetCustomerGroups").asText(targetCustomerGroups == null ? "" : targetCustomerGroups), 1000),
+                    normalizeLongText(root.path("commercialValue").asText(commercialValue == null ? "" : commercialValue)),
+                    normalizeLongText(root.path("coreProductValue").asText(coreProductValue == null ? "" : coreProductValue))
+            );
+        } catch (Exception ignored) {
+            return fallbackProjectProductGuide(
+                    projectName,
+                    description,
+                    projectBackground,
+                    similarProducts,
+                    targetCustomerGroups,
+                    commercialValue,
+                    coreProductValue,
+                    answers
+            );
+        }
     }
 
     private String buildClarifyAnswerContext(List<DocGenService.ClarifyQuestion> clarifyQuestions, Map<String, String> answers) {
@@ -385,6 +479,200 @@ Rules:
             tags.add("PRD");
         }
         return normalizeTags(tags);
+    }
+
+    private ProjectProductGuideResult fallbackProjectProductGuide(String projectName,
+                                                                  String description,
+                                                                  String projectBackground,
+                                                                  String similarProducts,
+                                                                  String targetCustomerGroups,
+                                                                  String commercialValue,
+                                                                  String coreProductValue,
+                                                                  List<ProjectProductAnswer> answers) {
+        String seed = firstNonBlank(description, projectBackground, projectName, "该项目");
+        String answerContext = flattenAnswers(answers);
+        List<String> questions = new ArrayList<>();
+        if (isBlank(projectBackground)) {
+            questions.add("这个项目最初是因为什么业务问题或客户诉求启动的？");
+        }
+        if (isBlank(targetCustomerGroups)) {
+            questions.add("这个项目主要服务哪类客户、角色或使用群体？");
+        }
+        if (isBlank(commercialValue)) {
+            questions.add("这个项目的商业价值更偏向增收、降本、提效，还是增强竞争力？");
+        }
+        questions = limitQuestions(questions);
+
+        String mergedBackground = !isBlank(projectBackground)
+                ? projectBackground
+                : seed + "，当前处于项目早期定义阶段，需要进一步明确业务痛点、目标用户与价值定位。"
+                + (isBlank(answerContext) ? "" : " 已补充信息：" + answerContext);
+        String mergedSimilarProducts = !isBlank(similarProducts)
+                ? similarProducts
+                : inferSimilarProducts(seed);
+        String mergedTargetCustomers = !isBlank(targetCustomerGroups)
+                ? targetCustomerGroups
+                : inferTargetCustomers(seed, answerContext);
+        String mergedCommercialValue = !isBlank(commercialValue)
+                ? commercialValue
+                : inferCommercialValue(seed, answerContext);
+        String mergedCoreValue = !isBlank(coreProductValue)
+                ? coreProductValue
+                : inferCoreProductValue(seed, answerContext);
+
+        return new ProjectProductGuideResult(
+                questions.isEmpty() ? "当前信息已经比较完整，我已基于已有内容生成项目产品信息建议。" : "我先根据当前输入补全了一版建议，并补了几条关键追问，方便你继续收敛。",
+                questions,
+                normalizeLongText(mergedBackground),
+                normalizeLongText(mergedSimilarProducts),
+                normalizeShortText(mergedTargetCustomers, 1000),
+                normalizeLongText(mergedCommercialValue),
+                normalizeLongText(mergedCoreValue)
+        );
+    }
+
+    private String buildProjectProductGuideContext(String projectName,
+                                                   String description,
+                                                   String projectBackground,
+                                                   String similarProducts,
+                                                   String targetCustomerGroups,
+                                                   String commercialValue,
+                                                   String coreProductValue,
+                                                   List<ProjectProductAnswer> answers) {
+        StringBuilder sb = new StringBuilder();
+        appendSection(sb, "项目名称", projectName);
+        appendSection(sb, "项目描述", description);
+        appendSection(sb, "项目背景", projectBackground);
+        appendSection(sb, "类似产品参考", similarProducts);
+        appendSection(sb, "目标客户群体", targetCustomerGroups);
+        appendSection(sb, "商业价值", commercialValue);
+        appendSection(sb, "产品核心价值", coreProductValue);
+        if (answers != null && !answers.isEmpty()) {
+            sb.append("\n【追问回答】\n");
+            for (ProjectProductAnswer answer : answers) {
+                if (answer == null) {
+                    continue;
+                }
+                String q = answer.question() == null ? "" : answer.question().trim();
+                String a = answer.answer() == null ? "" : answer.answer().trim();
+                if (q.isEmpty() && a.isEmpty()) {
+                    continue;
+                }
+                sb.append("- 问题: ").append(q).append("\n");
+                sb.append("  回答: ").append(a).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private void appendSection(StringBuilder sb, String title, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append("\n\n");
+        }
+        sb.append("【").append(title).append("】\n").append(value.trim());
+    }
+
+    private List<String> limitQuestions(List<String> questions) {
+        List<String> result = new ArrayList<>();
+        if (questions == null) {
+            return result;
+        }
+        for (String question : questions) {
+            if (question == null || question.isBlank()) {
+                continue;
+            }
+            result.add(question.trim());
+            if (result.size() >= 3) {
+                break;
+            }
+        }
+        return result;
+    }
+
+    private String normalizeLongText(String text) {
+        return normalizeShortText(text, 4000);
+    }
+
+    private String normalizeShortText(String text, int maxLength) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength).trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (!isBlank(value)) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private String flattenAnswers(List<ProjectProductAnswer> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        for (ProjectProductAnswer answer : answers) {
+            if (answer == null || isBlank(answer.answer())) {
+                continue;
+            }
+            if (!isBlank(answer.question())) {
+                parts.add(answer.question().trim() + "：" + answer.answer().trim());
+            } else {
+                parts.add(answer.answer().trim());
+            }
+        }
+        return String.join("；", parts);
+    }
+
+    private String inferSimilarProducts(String seed) {
+        return "可参考同类的行业需求管理、项目立项分析或产品规划工具，并结合 " + seed + " 的业务场景做差异化设计。";
+    }
+
+    private String inferTargetCustomers(String seed, String answerContext) {
+        String base = "项目发起方、业务负责人、产品经理、需求分析人员";
+        if (!isBlank(answerContext)) {
+            return base + "；补充线索：" + answerContext;
+        }
+        if (!isBlank(seed)) {
+            return base + "；重点围绕“" + seed + "”相关业务使用方。";
+        }
+        return base;
+    }
+
+    private String inferCommercialValue(String seed, String answerContext) {
+        String base = "通过更早梳理项目背景、用户对象和价值主张，减少前期沟通成本、缩短需求收敛周期，并提升后续需求文档质量。";
+        if (!isBlank(answerContext)) {
+            return base + " 结合补充信息，预计还能进一步支持业务评估与项目优先级判断。";
+        }
+        if (!isBlank(seed)) {
+            return base + " 对“" + seed + "”相关场景尤其有利。";
+        }
+        return base;
+    }
+
+    private String inferCoreProductValue(String seed, String answerContext) {
+        String base = "把分散的项目想法、业务诉求与价值判断，沉淀成结构化、可复用、可继续传递到需求阶段的项目产品信息。";
+        if (!isBlank(answerContext)) {
+            return base + " AI 可进一步基于补充回答做引导式完善。";
+        }
+        if (!isBlank(seed)) {
+            return base + " 并围绕“" + seed + "”形成更清晰的立项共识。";
+        }
+        return base;
     }
 
     private void addIfContains(String corpus, List<String> tags, String keyword, String tag) {

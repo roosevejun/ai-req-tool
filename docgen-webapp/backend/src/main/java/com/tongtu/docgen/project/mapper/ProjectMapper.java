@@ -10,6 +10,9 @@ import java.util.List;
 public interface ProjectMapper {
     @Select("""
             SELECT id, project_key AS projectKey, project_name AS projectName, description,
+                   project_background AS projectBackground, similar_products AS similarProducts,
+                   target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
+                   core_product_value AS coreProductValue,
                    project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
@@ -21,6 +24,9 @@ public interface ProjectMapper {
 
     @Select("""
             SELECT id, project_key AS projectKey, project_name AS projectName, description,
+                   project_background AS projectBackground, similar_products AS similarProducts,
+                   target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
+                   core_product_value AS coreProductValue,
                    project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
@@ -33,6 +39,9 @@ public interface ProjectMapper {
 
     @Select("""
             SELECT id, project_key AS projectKey, project_name AS projectName, description,
+                   project_background AS projectBackground, similar_products AS similarProducts,
+                   target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
+                   core_product_value AS coreProductValue,
                    project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
@@ -44,8 +53,14 @@ public interface ProjectMapper {
     ProjectEntity findByKey(@Param("projectKey") String projectKey);
 
     @Insert("""
-            INSERT INTO pm_project(project_key, project_name, description, project_type, priority, start_date, target_date, tags, visibility, status, owner_user_id, created_by, updated_by, created_at, updated_at)
-            VALUES(#{projectKey}, #{projectName}, #{description}, #{projectType}, #{priority}, #{startDate}, #{targetDate}, #{tags}, #{visibility}, #{status}, #{ownerUserId}, #{createdBy}, #{updatedBy}, NOW(), NOW())
+            INSERT INTO pm_project(project_key, project_name, description, project_background, similar_products,
+                                   target_customer_groups, commercial_value, core_product_value,
+                                   project_type, priority, start_date, target_date, tags, visibility, status,
+                                   owner_user_id, created_by, updated_by, created_at, updated_at)
+            VALUES(#{projectKey}, #{projectName}, #{description}, #{projectBackground}, #{similarProducts},
+                   #{targetCustomerGroups}, #{commercialValue}, #{coreProductValue},
+                   #{projectType}, #{priority}, #{startDate}, #{targetDate}, #{tags}, #{visibility}, #{status},
+                   #{ownerUserId}, #{createdBy}, #{updatedBy}, NOW(), NOW())
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ProjectEntity project);
@@ -54,6 +69,11 @@ public interface ProjectMapper {
             UPDATE pm_project
             SET project_name = #{projectName},
                 description = #{description},
+                project_background = #{projectBackground},
+                similar_products = #{similarProducts},
+                target_customer_groups = #{targetCustomerGroups},
+                commercial_value = #{commercialValue},
+                core_product_value = #{coreProductValue},
                 project_type = #{projectType},
                 priority = #{priority},
                 start_date = #{startDate},

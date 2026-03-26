@@ -99,6 +99,57 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -D
 
 ---
 
+## Docker 构建并推送 Harbor
+
+脚本：`scripts/docker-build-push.ps1`
+
+功能：自动执行「Harbor 登录 + backend 镜像构建与推送 + frontend 镜像构建与推送」。
+
+推荐先准备本地环境变量，避免把账号密码写进命令历史：
+
+```powershell
+$env:HARBOR_USERNAME = "your-username"
+$env:HARBOR_PASSWORD = "your-password"
+```
+
+默认推送目标：
+
+- `harbor.ahtongtu.cn/ai-req-tool/backend:<tag>`
+- `harbor.ahtongtu.cn/ai-req-tool/frontend:<tag>`
+
+其中 `<tag>` 默认取当前 git 短提交号，也可以显式指定。
+
+示例：
+
+```powershell
+cd C:\javaDevelop\ai-req-tool\docgen-webapp
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.ps1
+```
+
+显式指定参数：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.ps1 `
+  -Registry harbor.ahtongtu.cn `
+  -Repository ai-req-tool `
+  -Username $env:HARBOR_USERNAME `
+  -Password $env:HARBOR_PASSWORD `
+  -Tag v0.1.0 `
+  -AlsoPushLatest
+```
+
+仅预演：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.ps1 -DryRun
+```
+
+可参考示例环境文件：
+
+- `harbor.env.example`
+
+---
+
 ## AI 自动维护项目标签（tags）
 
 在需求工作台生成 PRD 成功后，后端会自动提取标签并合并到项目 `tags` 字段。

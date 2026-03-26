@@ -11,6 +11,11 @@ public class ProjectEntity {
     private String projectKey;
     private String projectName;
     private String description;
+    private String projectBackground;
+    private String similarProducts;
+    private String targetCustomerGroups;
+    private String commercialValue;
+    private String coreProductValue;
     private String projectType;
     private String priority;
     private LocalDate startDate;

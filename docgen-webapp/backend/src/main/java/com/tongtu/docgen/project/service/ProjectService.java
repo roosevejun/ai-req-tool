@@ -3,6 +3,7 @@ package com.tongtu.docgen.project.service;
 import com.tongtu.docgen.project.mapper.ProjectMapper;
 import com.tongtu.docgen.project.model.entity.ProjectEntity;
 import com.tongtu.docgen.project.model.entity.ProjectMemberEntity;
+import com.tongtu.docgen.llm.AgentClient;
 import com.tongtu.docgen.system.mapper.SystemUserMapper;
 import com.tongtu.docgen.system.model.UserContext;
 import org.springframework.stereotype.Service;
@@ -17,10 +18,12 @@ import java.util.Set;
 public class ProjectService {
     private final ProjectMapper projectMapper;
     private final SystemUserMapper systemUserMapper;
+    private final AgentClient agentClient;
 
-    public ProjectService(ProjectMapper projectMapper, SystemUserMapper systemUserMapper) {
+    public ProjectService(ProjectMapper projectMapper, SystemUserMapper systemUserMapper, AgentClient agentClient) {
         this.projectMapper = projectMapper;
         this.systemUserMapper = systemUserMapper;
+        this.agentClient = agentClient;
     }
 
     public List<ProjectEntity> listProjects() {
@@ -39,6 +42,11 @@ public class ProjectService {
             String projectKey,
             String projectName,
             String description,
+            String projectBackground,
+            String similarProducts,
+            String targetCustomerGroups,
+            String commercialValue,
+            String coreProductValue,
             String projectType,
             String priority,
             LocalDate startDate,
@@ -60,7 +68,12 @@ public class ProjectService {
         ProjectEntity p = new ProjectEntity();
         p.setProjectKey(projectKey);
         p.setProjectName(projectName);
-        p.setDescription(description);
+        p.setDescription(normalizeBlank(description));
+        p.setProjectBackground(normalizeBlank(projectBackground));
+        p.setSimilarProducts(normalizeBlank(similarProducts));
+        p.setTargetCustomerGroups(normalizeBlank(targetCustomerGroups));
+        p.setCommercialValue(normalizeBlank(commercialValue));
+        p.setCoreProductValue(normalizeBlank(coreProductValue));
         p.setProjectType(normalizeBlank(projectType));
         p.setPriority(priority == null || priority.isBlank() ? "P2" : priority);
         p.setStartDate(startDate);
@@ -79,6 +92,11 @@ public class ProjectService {
             Long id,
             String projectName,
             String description,
+            String projectBackground,
+            String similarProducts,
+            String targetCustomerGroups,
+            String commercialValue,
+            String coreProductValue,
             String projectType,
             String priority,
             LocalDate startDate,
@@ -97,7 +115,12 @@ public class ProjectService {
         ProjectEntity p = new ProjectEntity();
         p.setId(id);
         p.setProjectName(projectName == null ? old.getProjectName() : projectName);
-        p.setDescription(description == null ? old.getDescription() : description);
+        p.setDescription(description == null ? old.getDescription() : normalizeBlank(description));
+        p.setProjectBackground(projectBackground == null ? old.getProjectBackground() : normalizeBlank(projectBackground));
+        p.setSimilarProducts(similarProducts == null ? old.getSimilarProducts() : normalizeBlank(similarProducts));
+        p.setTargetCustomerGroups(targetCustomerGroups == null ? old.getTargetCustomerGroups() : normalizeBlank(targetCustomerGroups));
+        p.setCommercialValue(commercialValue == null ? old.getCommercialValue() : normalizeBlank(commercialValue));
+        p.setCoreProductValue(coreProductValue == null ? old.getCoreProductValue() : normalizeBlank(coreProductValue));
         p.setProjectType(projectType == null ? old.getProjectType() : normalizeBlank(projectType));
         p.setPriority(priority == null ? old.getPriority() : priority);
         p.setStartDate(finalStartDate);
@@ -167,6 +190,43 @@ public class ProjectService {
         projectMapper.updateTags(projectId, joined, operator.getUserId());
     }
 
+    public String buildProductContext(ProjectEntity project) {
+        if (project == null) {
+            return "";
+        }
+        List<String> sections = new ArrayList<>();
+        appendContextSection(sections, "项目名称", project.getProjectName());
+        appendContextSection(sections, "项目描述", project.getDescription());
+        appendContextSection(sections, "项目背景", project.getProjectBackground());
+        appendContextSection(sections, "类似产品参考", project.getSimilarProducts());
+        appendContextSection(sections, "目标客户群体", project.getTargetCustomerGroups());
+        appendContextSection(sections, "商业价值", project.getCommercialValue());
+        appendContextSection(sections, "产品核心价值", project.getCoreProductValue());
+        return String.join("\n\n", sections).trim();
+    }
+
+    public AgentClient.ProjectProductGuideResult guideProjectProductInfo(String traceId,
+                                                                         String projectName,
+                                                                         String description,
+                                                                         String projectBackground,
+                                                                         String similarProducts,
+                                                                         String targetCustomerGroups,
+                                                                         String commercialValue,
+                                                                         String coreProductValue,
+                                                                         List<AgentClient.ProjectProductAnswer> answers) {
+        return agentClient.guideProjectProductInfo(
+                traceId,
+                projectName,
+                description,
+                projectBackground,
+                similarProducts,
+                targetCustomerGroups,
+                commercialValue,
+                coreProductValue,
+                answers
+        );
+    }
+
     private void validateDateRange(LocalDate startDate, LocalDate targetDate) {
         if (startDate != null && targetDate != null && targetDate.isBefore(startDate)) {
             throw new IllegalArgumentException("targetDate cannot be before startDate.");
@@ -188,6 +248,13 @@ public class ProjectService {
             }
         }
         return result;
+    }
+
+    private void appendContextSection(List<String> sections, String title, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        sections.add("【" + title + "】\n" + value.trim());
     }
 }
 

@@ -1,6 +1,7 @@
 package com.tongtu.docgen.project.api;
 
 import com.tongtu.docgen.api.ApiResponse;
+import com.tongtu.docgen.llm.AgentClient;
 import com.tongtu.docgen.project.service.ProjectService;
 import com.tongtu.docgen.system.model.UserContext;
 import com.tongtu.docgen.system.security.AccessGuard;
@@ -12,6 +13,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +30,11 @@ public class ProjectController {
             @NotBlank @Size(max = 64) String projectKey,
             @NotBlank @Size(max = 128) String projectName,
             @Size(max = 2000) String description,
+            @Size(max = 10000) String projectBackground,
+            @Size(max = 10000) String similarProducts,
+            @Size(max = 1000) String targetCustomerGroups,
+            @Size(max = 4000) String commercialValue,
+            @Size(max = 4000) String coreProductValue,
             @Size(max = 32) String projectType,
             @Size(max = 16) String priority,
             LocalDate startDate,
@@ -41,6 +48,11 @@ public class ProjectController {
     public record UpdateProjectRequest(
             @Size(max = 128) String projectName,
             @Size(max = 2000) String description,
+            @Size(max = 10000) String projectBackground,
+            @Size(max = 10000) String similarProducts,
+            @Size(max = 1000) String targetCustomerGroups,
+            @Size(max = 4000) String commercialValue,
+            @Size(max = 4000) String coreProductValue,
             @Size(max = 32) String projectType,
             @Size(max = 16) String priority,
             LocalDate startDate,
@@ -55,6 +67,24 @@ public class ProjectController {
     public record AddProjectMemberRequest(
             Long userId,
             @Size(max = 32) String projectRole
+    ) {
+    }
+
+    public record ProjectProductAiAnswer(
+            @Size(max = 500) String question,
+            @Size(max = 4000) String answer
+    ) {
+    }
+
+    public record GuideProjectProductInfoRequest(
+            @Size(max = 128) String projectName,
+            @Size(max = 2000) String description,
+            @Size(max = 10000) String projectBackground,
+            @Size(max = 10000) String similarProducts,
+            @Size(max = 1000) String targetCustomerGroups,
+            @Size(max = 4000) String commercialValue,
+            @Size(max = 4000) String coreProductValue,
+            List<ProjectProductAiAnswer> answers
     ) {
     }
 
@@ -84,6 +114,11 @@ public class ProjectController {
                 req.projectKey(),
                 req.projectName(),
                 req.description(),
+                req.projectBackground(),
+                req.similarProducts(),
+                req.targetCustomerGroups(),
+                req.commercialValue(),
+                req.coreProductValue(),
                 req.projectType(),
                 req.priority(),
                 req.startDate(),
@@ -106,6 +141,11 @@ public class ProjectController {
                 id,
                 req.projectName(),
                 req.description(),
+                req.projectBackground(),
+                req.similarProducts(),
+                req.targetCustomerGroups(),
+                req.commercialValue(),
+                req.coreProductValue(),
                 req.projectType(),
                 req.priority(),
                 req.startDate(),
@@ -145,5 +185,27 @@ public class ProjectController {
         AccessGuard.requireLogin();
         projectService.removeMember(id, userId);
         return ApiResponse.ok(traceId, "OK");
+    }
+
+    @PostMapping("/ai/product-info/guide")
+    @RequiredPermission("PROJECT:CREATE")
+    @Operation(summary = "Guide project product info with AI")
+    public ApiResponse<Object> guideProjectProductInfo(@RequestBody GuideProjectProductInfoRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        List<AgentClient.ProjectProductAnswer> answers = req.answers() == null ? List.of() : req.answers().stream()
+                .map(item -> new AgentClient.ProjectProductAnswer(item.question(), item.answer()))
+                .toList();
+        return ApiResponse.ok(traceId, projectService.guideProjectProductInfo(
+                traceId,
+                req.projectName(),
+                req.description(),
+                req.projectBackground(),
+                req.similarProducts(),
+                req.targetCustomerGroups(),
+                req.commercialValue(),
+                req.coreProductValue(),
+                answers
+        ));
     }
 }

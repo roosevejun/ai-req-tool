@@ -48,6 +48,67 @@
 
           <textarea v-model="projectForm.description" class="input" placeholder="项目描述（可选）" />
 
+          <div class="product-info-box">
+            <div class="section-head">
+              <h4>产品信息</h4>
+              <div class="row compact">
+                <button class="ghost mini" :disabled="projectAiLoading || !canGuideProjectInfo" @click="guideProjectProductInfo">
+                  {{ projectAiQuestions.length > 0 ? '继续AI补全' : 'AI引导补全' }}
+                </button>
+                <button class="ghost mini" :disabled="projectAiLoading" @click="applyProjectAiSuggestions">
+                  应用AI建议
+                </button>
+              </div>
+            </div>
+
+            <textarea v-model="projectForm.projectBackground" class="input" placeholder="项目背景（可选）" />
+            <textarea v-model="projectForm.similarProducts" class="input" placeholder="类似产品 / 参考产品（可选）" />
+            <textarea v-model="projectForm.targetCustomerGroups" class="input" placeholder="目标客户群体（可选）" />
+            <textarea v-model="projectForm.commercialValue" class="input" placeholder="商业价值（可选）" />
+            <textarea v-model="projectForm.coreProductValue" class="input" placeholder="产品核心价值（可选）" />
+
+            <div v-if="projectAiMessage" class="ai-assistant">
+              <strong>AI建议：</strong> {{ projectAiMessage }}
+            </div>
+
+            <div v-if="projectAiQuestions.length > 0" class="ai-qa-list">
+              <div v-for="(question, idx) in projectAiQuestions" :key="question + idx" class="ai-question-card">
+                <div class="ai-question">{{ idx + 1 }}. {{ question }}</div>
+                <textarea
+                  v-model="projectAiAnswers[idx]"
+                  class="input"
+                  :placeholder="`请补充回答：${question}`"
+                />
+              </div>
+            </div>
+
+            <div v-if="hasProjectAiSuggestions" class="ai-preview">
+              <h4>AI补全建议预览</h4>
+              <div class="preview-grid">
+                <div class="preview-item">
+                  <strong>项目背景</strong>
+                  <p>{{ projectAiSuggestions.projectBackground || '-' }}</p>
+                </div>
+                <div class="preview-item">
+                  <strong>类似产品</strong>
+                  <p>{{ projectAiSuggestions.similarProducts || '-' }}</p>
+                </div>
+                <div class="preview-item">
+                  <strong>目标客户群体</strong>
+                  <p>{{ projectAiSuggestions.targetCustomerGroups || '-' }}</p>
+                </div>
+                <div class="preview-item">
+                  <strong>商业价值</strong>
+                  <p>{{ projectAiSuggestions.commercialValue || '-' }}</p>
+                </div>
+                <div class="preview-item">
+                  <strong>核心价值</strong>
+                  <p>{{ projectAiSuggestions.coreProductValue || '-' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button
             class="primary block"
             :disabled="loading || !projectForm.projectKey || !projectForm.projectName"
@@ -126,6 +187,26 @@
               <div><strong>标签:</strong> {{ selectedProject.tags || '-' }}</div>
             </div>
             <p class="summary">{{ selectedProject.description || '暂无项目描述' }}</p>
+            <div class="detail-section">
+              <h4>项目背景</h4>
+              <p class="summary">{{ selectedProject.projectBackground || '暂无项目背景' }}</p>
+            </div>
+            <div class="detail-section">
+              <h4>类似产品参考</h4>
+              <p class="summary">{{ selectedProject.similarProducts || '暂无类似产品参考' }}</p>
+            </div>
+            <div class="detail-section">
+              <h4>目标客户群体</h4>
+              <p class="summary">{{ selectedProject.targetCustomerGroups || '暂无目标客户群体' }}</p>
+            </div>
+            <div class="detail-section">
+              <h4>商业价值</h4>
+              <p class="summary">{{ selectedProject.commercialValue || '暂无商业价值描述' }}</p>
+            </div>
+            <div class="detail-section">
+              <h4>产品核心价值</h4>
+              <p class="summary">{{ selectedProject.coreProductValue || '暂无产品核心价值' }}</p>
+            </div>
           </section>
 
           <section class="card">
@@ -270,6 +351,11 @@ type ProjectItem = {
   projectKey: string
   projectName: string
   description?: string
+  projectBackground?: string
+  similarProducts?: string
+  targetCustomerGroups?: string
+  commercialValue?: string
+  coreProductValue?: string
   projectType?: string
   priority?: string
   startDate?: string
@@ -306,6 +392,19 @@ type ProjectMemberItem = {
   projectRole: string
   status: string
 }
+type ProjectProductGuideAnswer = {
+  question: string
+  answer: string
+}
+type ProjectProductGuideResult = {
+  assistantMessage: string
+  followUpQuestions: string[]
+  projectBackground: string
+  similarProducts: string
+  targetCustomerGroups: string
+  commercialValue: string
+  coreProductValue: string
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -321,11 +420,27 @@ const userOptions = ref<UserOption[]>([])
 const expandedProjectIds = ref<number[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
+const projectAiLoading = ref(false)
+const projectAiMessage = ref('')
+const projectAiQuestions = ref<string[]>([])
+const projectAiAnswers = ref<string[]>([])
+const projectAiSuggestions = reactive({
+  projectBackground: '',
+  similarProducts: '',
+  targetCustomerGroups: '',
+  commercialValue: '',
+  coreProductValue: ''
+})
 
 const projectForm = reactive({
   projectKey: '',
   projectName: '',
   description: '',
+  projectBackground: '',
+  similarProducts: '',
+  targetCustomerGroups: '',
+  commercialValue: '',
+  coreProductValue: '',
   projectType: '',
   priority: 'P2',
   startDate: '',
@@ -351,6 +466,18 @@ const selectedProject = computed(() => projects.value.find((p) => p.id === selec
 const selectedRequirement = computed(() => {
   if (!selectedProjectId.value || !selectedRequirementId.value) return null
   return requirementsOf(selectedProjectId.value).find((r) => r.id === selectedRequirementId.value) || null
+})
+const canGuideProjectInfo = computed(() => {
+  return !!(projectForm.projectName || projectForm.description || projectForm.projectBackground)
+})
+const hasProjectAiSuggestions = computed(() => {
+  return !!(
+    projectAiSuggestions.projectBackground ||
+    projectAiSuggestions.similarProducts ||
+    projectAiSuggestions.targetCustomerGroups ||
+    projectAiSuggestions.commercialValue ||
+    projectAiSuggestions.coreProductValue
+  )
 })
 
 function requirementsOf(projectId: number): RequirementItem[] {
@@ -459,6 +586,11 @@ async function createProject() {
     projectForm.projectKey = ''
     projectForm.projectName = ''
     projectForm.description = ''
+    projectForm.projectBackground = ''
+    projectForm.similarProducts = ''
+    projectForm.targetCustomerGroups = ''
+    projectForm.commercialValue = ''
+    projectForm.coreProductValue = ''
     projectForm.projectType = ''
     projectForm.priority = 'P2'
     projectForm.startDate = ''
@@ -466,12 +598,83 @@ async function createProject() {
     projectForm.tags = ''
     projectForm.ownerUserId = ''
     projectForm.visibility = 'PRIVATE'
+    resetProjectAiGuide()
     await loadProjects()
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '创建项目失败'
   } finally {
     loading.value = false
   }
+}
+
+async function guideProjectProductInfo() {
+  if (!canGuideProjectInfo.value) {
+    error.value = '请至少填写项目名称、项目描述或项目背景中的一项后再使用 AI 补全'
+    return
+  }
+  projectAiLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const answers: ProjectProductGuideAnswer[] = projectAiQuestions.value.map((question, idx) => ({
+      question,
+      answer: projectAiAnswers.value[idx] || ''
+    }))
+    const res = await axios.post<ApiResponse<ProjectProductGuideResult>>('/api/projects/ai/product-info/guide', {
+      projectName: projectForm.projectName || null,
+      description: projectForm.description || null,
+      projectBackground: projectForm.projectBackground || null,
+      similarProducts: projectForm.similarProducts || null,
+      targetCustomerGroups: projectForm.targetCustomerGroups || null,
+      commercialValue: projectForm.commercialValue || null,
+      coreProductValue: projectForm.coreProductValue || null,
+      answers
+    })
+    const data = res.data.data
+    projectAiMessage.value = data.assistantMessage || ''
+    projectAiSuggestions.projectBackground = data.projectBackground || ''
+    projectAiSuggestions.similarProducts = data.similarProducts || ''
+    projectAiSuggestions.targetCustomerGroups = data.targetCustomerGroups || ''
+    projectAiSuggestions.commercialValue = data.commercialValue || ''
+    projectAiSuggestions.coreProductValue = data.coreProductValue || ''
+
+    const nextQuestions = data.followUpQuestions || []
+    const existingAnswers = new Map<string, string>()
+    projectAiQuestions.value.forEach((question, idx) => {
+      existingAnswers.set(question, projectAiAnswers.value[idx] || '')
+    })
+    projectAiQuestions.value = nextQuestions
+    projectAiAnswers.value = nextQuestions.map((question) => existingAnswers.get(question) || '')
+    success.value = nextQuestions.length > 0 ? 'AI 已生成建议并提出补充问题' : 'AI 已生成完整建议'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || 'AI 补全失败'
+  } finally {
+    projectAiLoading.value = false
+  }
+}
+
+function applyProjectAiSuggestions() {
+  if (!hasProjectAiSuggestions.value) {
+    error.value = '当前没有可应用的 AI 建议'
+    return
+  }
+  projectForm.projectBackground = projectAiSuggestions.projectBackground || projectForm.projectBackground
+  projectForm.similarProducts = projectAiSuggestions.similarProducts || projectForm.similarProducts
+  projectForm.targetCustomerGroups = projectAiSuggestions.targetCustomerGroups || projectForm.targetCustomerGroups
+  projectForm.commercialValue = projectAiSuggestions.commercialValue || projectForm.commercialValue
+  projectForm.coreProductValue = projectAiSuggestions.coreProductValue || projectForm.coreProductValue
+  success.value = 'AI 建议已应用到项目表单'
+}
+
+function resetProjectAiGuide() {
+  projectAiMessage.value = ''
+  projectAiQuestions.value = []
+  projectAiAnswers.value = []
+  projectAiSuggestions.projectBackground = ''
+  projectAiSuggestions.similarProducts = ''
+  projectAiSuggestions.targetCustomerGroups = ''
+  projectAiSuggestions.commercialValue = ''
+  projectAiSuggestions.coreProductValue = ''
 }
 
 async function createRequirement() {
@@ -753,6 +956,69 @@ textarea.input {
 .summary {
   font-size: 13px;
   color: #4b5563;
+  white-space: pre-wrap;
+}
+.product-info-box,
+.ai-preview,
+.detail-section {
+  margin-top: 12px;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.section-head h4,
+.ai-preview h4,
+.detail-section h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.compact {
+  margin-top: 0;
+}
+.ai-assistant {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #eef4ff;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+.ai-qa-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.ai-question-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafcff;
+}
+.ai-question {
+  font-size: 13px;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.preview-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfdff;
+}
+.preview-item p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #4b5563;
+  white-space: pre-wrap;
 }
 .error {
   margin-top: 8px;
@@ -779,6 +1045,9 @@ textarea.input {
     grid-template-columns: 1fr;
   }
   .meta-grid {
+    grid-template-columns: 1fr;
+  }
+  .preview-grid {
     grid-template-columns: 1fr;
   }
   .form-grid,
