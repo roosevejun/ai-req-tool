@@ -23,7 +23,7 @@
 
       <div class="user-area" v-if="loginUser">
         <span class="user-name">{{ loginUser.displayName || loginUser.username }}</span>
-        <button class="ghost" @click="handleLogout">退出</button>
+        <button class="ghost" @click="handleLogout">退出登录</button>
       </div>
     </header>
 
@@ -41,7 +41,7 @@
       </div>
 
       <div class="context-actions">
-        <button v-if="backTarget" class="ghost" @click="router.push(backTarget)">返回上层页面</button>
+        <button v-if="backTarget" class="ghost" @click="router.push(backTarget)">返回上一层</button>
       </div>
     </div>
 
@@ -140,7 +140,7 @@ const breadcrumbs = computed<Crumb[]>(() => {
     if (route.path.endsWith('/workbench')) {
       items.push({ label: 'AI 工作台' })
     } else if (route.path.endsWith('/versions')) {
-      items.push({ label: '版本页面' })
+      items.push({ label: '版本页' })
     }
     return items
   }
@@ -241,45 +241,37 @@ function handleLogout() {
   gap: 10px;
 }
 .user-name {
-  color: #334155;
+  color: #0f172a;
   font-size: 14px;
+  font-weight: 600;
 }
 .context-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   padding: 12px 18px 0;
 }
 .breadcrumbs {
   display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 8px;
 }
 .crumb {
-  background: transparent;
-  border-color: transparent;
-  color: #64748b;
-  padding: 0;
-}
-.crumb.clickable:hover {
-  color: #2563eb;
+  color: #334155;
 }
 .crumb.current {
-  color: #0f172a;
-  font-weight: 600;
+  background: #e0ecff;
+  border-color: #b6d0ff;
+  color: #1d4ed8;
 }
-.crumb + .crumb::before {
-  content: '/';
-  margin-right: 8px;
-  color: #94a3b8;
-}
-.crumb.clickable {
-  cursor: pointer;
+.crumb.clickable:hover,
+.ghost:hover,
+.nav-btn:hover {
+  border-color: #94a3b8;
 }
 .shell-body {
-  padding-bottom: 24px;
+  padding: 12px 0 28px;
 }
 @media (max-width: 980px) {
   .shell-header,

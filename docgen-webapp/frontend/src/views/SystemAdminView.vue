@@ -21,8 +21,8 @@
         <input v-model="newUser.password" type="password" class="input" placeholder="密码" />
         <input v-model.trim="newUser.displayName" class="input" placeholder="显示名称" />
         <select v-model="newUser.status" class="input">
-          <option value="ENABLED">ENABLED</option>
-          <option value="DISABLED">DISABLED</option>
+          <option value="ENABLED">启用</option>
+          <option value="DISABLED">禁用</option>
         </select>
       </div>
       <div class="checkbox-row">
@@ -53,7 +53,7 @@
             <td>{{ u.id }}</td>
             <td>{{ u.username }}</td>
             <td>{{ u.displayName }}</td>
-            <td>{{ u.status }}</td>
+            <td>{{ statusLabel(u.status) }}</td>
             <td>{{ (u.roleCodes || []).join(', ') }}</td>
             <td>
               <button class="mini" @click="openUserEdit(u)">编辑</button>
@@ -62,7 +62,7 @@
             </td>
           </tr>
           <tr v-if="users.length === 0">
-            <td colspan="6" class="muted">暂无用户。</td>
+            <td colspan="6" class="muted">暂无用户</td>
           </tr>
         </tbody>
       </table>
@@ -75,8 +75,8 @@
           <input v-model.trim="newRole.roleCode" class="input" placeholder="角色编码，例如 ADMIN" />
           <input v-model.trim="newRole.roleName" class="input" placeholder="角色名称" />
           <select v-model="newRole.status" class="input">
-            <option value="ENABLED">ENABLED</option>
-            <option value="DISABLED">DISABLED</option>
+            <option value="ENABLED">启用</option>
+            <option value="DISABLED">禁用</option>
           </select>
         </div>
         <div class="row">
@@ -86,13 +86,13 @@
         </div>
         <ul class="list">
           <li v-for="r in roles" :key="r.id">
-            <span>{{ r.roleCode }} - {{ r.roleName }} ({{ r.status }})</span>
+            <span>{{ r.roleCode }} - {{ r.roleName }} ({{ statusLabel(r.status) }})</span>
             <span class="inline-actions">
               <button class="mini" @click="openRoleEdit(r)">编辑</button>
               <button class="mini" @click="openRolePerms(r)">权限</button>
             </span>
           </li>
-          <li v-if="roles.length === 0" class="muted">暂无角色。</li>
+          <li v-if="roles.length === 0" class="muted">暂无角色</li>
         </ul>
       </div>
 
@@ -102,8 +102,8 @@
           <input v-model.trim="newPerm.permCode" class="input" placeholder="权限编码，例如 SYSTEM:MANAGE" />
           <input v-model.trim="newPerm.permName" class="input" placeholder="权限名称" />
           <select v-model="newPerm.status" class="input">
-            <option value="ENABLED">ENABLED</option>
-            <option value="DISABLED">DISABLED</option>
+            <option value="ENABLED">启用</option>
+            <option value="DISABLED">禁用</option>
           </select>
         </div>
         <div class="row">
@@ -117,10 +117,10 @@
         </div>
         <ul class="list">
           <li v-for="p in permissions" :key="p.id">
-            <span>{{ p.permCode }} - {{ p.permName }} ({{ p.status }})</span>
+            <span>{{ p.permCode }} - {{ p.permName }} ({{ statusLabel(p.status) }})</span>
             <button class="mini" @click="openPermEdit(p)">编辑</button>
           </li>
-          <li v-if="permissions.length === 0" class="muted">暂无权限。</li>
+          <li v-if="permissions.length === 0" class="muted">暂无权限</li>
         </ul>
       </div>
     </section>
@@ -130,8 +130,8 @@
       <div class="form-grid">
         <input v-model.trim="editUserForm.displayName" class="input" placeholder="显示名称" />
         <select v-model="editUserForm.status" class="input">
-          <option value="ENABLED">ENABLED</option>
-          <option value="DISABLED">DISABLED</option>
+          <option value="ENABLED">启用</option>
+          <option value="DISABLED">禁用</option>
         </select>
       </div>
       <div class="row">
@@ -159,8 +159,8 @@
       <div class="form-grid">
         <input v-model.trim="editRoleForm.roleName" class="input" placeholder="角色名称" />
         <select v-model="editRoleForm.status" class="input">
-          <option value="ENABLED">ENABLED</option>
-          <option value="DISABLED">DISABLED</option>
+          <option value="ENABLED">启用</option>
+          <option value="DISABLED">禁用</option>
         </select>
       </div>
       <div class="row">
@@ -188,8 +188,8 @@
       <div class="form-grid">
         <input v-model.trim="editPermForm.permName" class="input" placeholder="权限名称" />
         <select v-model="editPermForm.status" class="input">
-          <option value="ENABLED">ENABLED</option>
-          <option value="DISABLED">DISABLED</option>
+          <option value="ENABLED">启用</option>
+          <option value="DISABLED">禁用</option>
         </select>
       </div>
       <div class="row">
@@ -271,6 +271,12 @@ const editPermForm = ref({
   status: 'ENABLED'
 })
 
+function statusLabel(value?: string) {
+  if (value === 'ENABLED') return '启用'
+  if (value === 'DISABLED') return '禁用'
+  return value || '-'
+}
+
 function clearTips() {
   error.value = ''
   success.value = ''
@@ -293,7 +299,7 @@ async function loadAll() {
     roles.value = r.data.data || []
     permissions.value = p.data.data || []
   } catch (e: any) {
-    showError(e, '加载系统数据失败')
+    showError(e, '加载系统管理数据失败。')
   } finally {
     loading.value = false
   }
@@ -308,7 +314,7 @@ async function createUser() {
     newUser.value = { username: '', password: '', displayName: '', status: 'ENABLED', roleIds: [] }
     await loadAll()
   } catch (e: any) {
-    showError(e, '创建用户失败')
+    showError(e, '创建用户失败。')
     loading.value = false
   }
 }
@@ -331,7 +337,7 @@ async function saveUserEdit() {
     editingUser.value = null
     await loadAll()
   } catch (e: any) {
-    showError(e, '更新用户失败')
+    showError(e, '更新用户失败。')
     loading.value = false
   }
 }
@@ -354,13 +360,13 @@ async function saveUserRoles() {
     bindingUser.value = null
     await loadAll()
   } catch (e: any) {
-    showError(e, '保存用户角色失败')
+    showError(e, '保存用户角色失败。')
     loading.value = false
   }
 }
 
 async function resetPassword(u: UserItem) {
-  const pwd = window.prompt(`请输入 ${u.username} 的新密码`)
+  const pwd = window.prompt(`请为 ${u.username} 输入新密码`)
   if (!pwd) return
   loading.value = true
   clearTips()
@@ -368,7 +374,7 @@ async function resetPassword(u: UserItem) {
     await axios.put(`/api/system/users/${u.id}/password`, { newPassword: pwd })
     success.value = '密码重置成功。'
   } catch (e: any) {
-    showError(e, '重置密码失败')
+    showError(e, '重置密码失败。')
   } finally {
     loading.value = false
   }
@@ -383,7 +389,7 @@ async function createRole() {
     newRole.value = { roleCode: '', roleName: '', status: 'ENABLED' }
     await loadAll()
   } catch (e: any) {
-    showError(e, '创建角色失败')
+    showError(e, '创建角色失败。')
     loading.value = false
   }
 }
@@ -406,7 +412,7 @@ async function saveRoleEdit() {
     editingRole.value = null
     await loadAll()
   } catch (e: any) {
-    showError(e, '更新角色失败')
+    showError(e, '更新角色失败。')
     loading.value = false
   }
 }
@@ -428,7 +434,7 @@ async function saveRolePerms() {
     bindingRole.value = null
     await loadAll()
   } catch (e: any) {
-    showError(e, '保存角色权限失败')
+    showError(e, '保存角色权限失败。')
     loading.value = false
   }
 }
@@ -442,7 +448,7 @@ async function createPermission() {
     newPerm.value = { permCode: '', permName: '', status: 'ENABLED' }
     await loadAll()
   } catch (e: any) {
-    showError(e, '创建权限失败')
+    showError(e, '创建权限失败。')
     loading.value = false
   }
 }
@@ -465,7 +471,7 @@ async function savePermEdit() {
     editingPerm.value = null
     await loadAll()
   } catch (e: any) {
-    showError(e, '更新权限失败')
+    showError(e, '更新权限失败。')
     loading.value = false
   }
 }
@@ -494,6 +500,7 @@ onMounted(loadAll)
   display: flex;
   gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .form-grid {
@@ -520,50 +527,41 @@ onMounted(loadAll)
 .input {
   width: 100%;
   box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px;
-}
-
-.ghost,
-.primary,
-.mini {
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-
-.mini {
-  padding: 4px 8px;
-  font-size: 12px;
-  margin-right: 6px;
 }
 
 .panel {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
-  margin-top: 12px;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
 }
 
 .panel-head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-head h3,
+.panel h3 {
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .table th,
@@ -573,29 +571,44 @@ onMounted(loadAll)
   font-size: 13px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 .list {
-  list-style: none;
-  margin: 10px 0 0 0;
-  padding: 0;
+  margin: 12px 0 0;
+  padding-left: 18px;
 }
 
 .list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px dashed #e5e7eb;
-  padding: 8px 0;
+  margin-bottom: 8px;
 }
 
 .inline-actions {
+  margin-left: 8px;
   display: inline-flex;
-  gap: 6px;
+  gap: 8px;
+}
+
+.primary,
+.ghost,
+.mini {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.ghost,
+.mini {
+  background: #f3f4f6;
+}
+
+.mini {
+  padding: 5px 9px;
+  font-size: 12px;
 }
 
 .muted {
@@ -613,11 +626,8 @@ onMounted(loadAll)
 }
 
 @media (max-width: 980px) {
+  .grid,
   .form-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .grid {
     grid-template-columns: 1fr;
   }
 }

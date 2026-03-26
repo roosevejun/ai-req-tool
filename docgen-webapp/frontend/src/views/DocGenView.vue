@@ -25,29 +25,27 @@
           <div class="form-grid">
             <input v-model.trim="reqForm.title" class="input" placeholder="需求标题" />
             <select v-model="reqForm.priority" class="input">
-              <option value="P0">P0</option>
-              <option value="P1">P1</option>
-              <option value="P2">P2</option>
-              <option value="P3">P3</option>
+              <option value="P0">P0 - 紧急</option>
+              <option value="P1">P1 - 高</option>
+              <option value="P2">P2 - 中</option>
+              <option value="P3">P3 - 低</option>
             </select>
             <select v-model="reqForm.status" class="input">
-              <option value="DRAFT">DRAFT</option>
-              <option value="CLARIFYING">CLARIFYING</option>
-              <option value="READY_REVIEW">READY_REVIEW</option>
-              <option value="DONE">DONE</option>
+              <option value="DRAFT">草稿</option>
+              <option value="CLARIFYING">澄清中</option>
+              <option value="READY_REVIEW">待评审</option>
+              <option value="DONE">已完成</option>
             </select>
           </div>
           <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要" />
           <div class="row">
-            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">
-              创建需求
-            </button>
+            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">创建需求</button>
             <button class="ghost" :disabled="loading" @click="loadRequirements">刷新列表</button>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>项目 {{ selectedProjectId }} 下的需求</h3>
+          <h3>项目 {{ selectedProjectId }} 的需求</h3>
           <table class="table">
             <thead>
               <tr>
@@ -64,18 +62,18 @@
                 <td>{{ r.id }}</td>
                 <td>{{ r.requirementNo }}</td>
                 <td>{{ r.title }}</td>
-                <td>{{ r.priority }}</td>
-                <td>{{ r.status }}</td>
+                <td>{{ priorityLabel(r.priority) }}</td>
+                <td>{{ statusLabel(r.status) }}</td>
                 <td class="ops">
                   <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">
-                    选中
+                    查看
                   </button>
                   <button class="mini" @click="goWorkbench(r.id)">工作台</button>
                   <button class="mini" @click="goVersions(r.id)">版本页</button>
                 </td>
               </tr>
               <tr v-if="requirements.length === 0">
-                <td colspan="6" class="empty small">当前还没有需求。</td>
+                <td colspan="6" class="empty small">当前项目下暂无需求</td>
               </tr>
             </tbody>
           </table>
@@ -97,7 +95,7 @@
 
         <section v-else class="card empty-state">
           <h3>请选择一个需求开始 AI 整理</h3>
-          <p>请先在左侧树中选择项目和需求，随后这里会显示 AI 整理面板。</p>
+          <p>先在左侧树中选择项目和需求，这里会显示对应的 AI 整理面板。</p>
         </section>
       </main>
     </div>
@@ -144,6 +142,22 @@ function showError(msg: string) {
   error.value = msg
 }
 
+function priorityLabel(value?: string) {
+  if (value === 'P0') return 'P0 - 紧急'
+  if (value === 'P1') return 'P1 - 高'
+  if (value === 'P2') return 'P2 - 中'
+  if (value === 'P3') return 'P3 - 低'
+  return value || '-'
+}
+
+function statusLabel(value?: string) {
+  if (value === 'DRAFT') return '草稿'
+  if (value === 'CLARIFYING') return '澄清中'
+  if (value === 'READY_REVIEW') return '待评审'
+  if (value === 'DONE') return '已完成'
+  return value || '-'
+}
+
 function goWorkbench(requirementId: number) {
   if (!selectedProjectId.value) return
   router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
@@ -162,7 +176,7 @@ async function loadRequirements() {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${selectedProjectId.value}/requirements`)
     requirements.value = res.data.data || []
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
+    error.value = e?.response?.data?.message || e?.message || '加载需求列表失败。'
   } finally {
     loading.value = false
   }
@@ -185,7 +199,7 @@ async function createRequirement() {
       selectedRequirementId.value = res.data.data
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败。'
   } finally {
     loading.value = false
   }
@@ -320,6 +334,24 @@ textarea.input {
   font-size: 12px;
 }
 
+.empty,
+.muted {
+  color: #6b7280;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.empty-state h3,
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state p {
+  margin-top: 8px;
+}
+
 .error {
   margin-top: 8px;
   color: #b91c1c;
@@ -330,32 +362,18 @@ textarea.input {
   color: #166534;
 }
 
-.empty {
-  color: #6b7280;
-}
-
-.small {
-  font-size: 12px;
-}
-
-.empty-state {
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
   }
 
+  .form-grid,
   .meta-grid {
     grid-template-columns: 1fr;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr;
+  .between {
+    align-items: flex-start;
   }
 }
 </style>

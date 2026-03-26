@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -47,6 +49,12 @@ public class ProjectAiConversationController {
 
     public record SaveMaterialsRequest(
             List<SourceMaterialRequest> materials
+    ) {
+    }
+
+    public record UploadFileMaterialResponse(
+            Long sessionId,
+            int materialCount
     ) {
     }
 
@@ -94,6 +102,18 @@ public class ProjectAiConversationController {
         String traceId = UUID.randomUUID().toString();
         UserContext ctx = AccessGuard.requireLogin();
         return ApiResponse.ok(traceId, projectAiConversationService.addMaterials(sessionId, toMaterialInputs(req.materials()), ctx));
+    }
+
+    @PostMapping(value = "/{sessionId}/materials/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequiredPermission("PROJECT:CREATE")
+    @Operation(summary = "Upload project file material")
+    public ApiResponse<Object> uploadMaterial(@PathVariable("sessionId") Long sessionId,
+                                              @RequestParam(value = "title", required = false) String title,
+                                              @RequestPart("file") MultipartFile file) {
+        String traceId = UUID.randomUUID().toString();
+        UserContext ctx = AccessGuard.requireLogin();
+        ProjectAiConversationService.MaterialSaveResult result = projectAiConversationService.uploadFileMaterial(sessionId, title, file, ctx);
+        return ApiResponse.ok(traceId, new UploadFileMaterialResponse(result.sessionId(), result.materialCount()));
     }
 
     @GetMapping("/{sessionId}")

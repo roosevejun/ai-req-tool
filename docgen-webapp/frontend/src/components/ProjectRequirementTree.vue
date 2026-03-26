@@ -30,13 +30,13 @@
                 :class="{ active: selectedRequirementId === r.id }"
                 @click="selectRequirement(p.id, r.id)"
               >
-                需求{{ idx + 1 }}：{{ r.title }}
+                需求 {{ idx + 1 }}：{{ r.title }}
               </button>
             </div>
 
             <ul v-if="selectedRequirementId === r.id && versionsOf(r.id).length > 0" class="tree-children ver">
               <li v-for="v in versionsOf(r.id)" :key="v.id" class="ver-item">
-                {{ v.versionNo }} <span v-if="v.isCurrent" class="current">（当前）</span>
+                {{ v.versionNo }} <span v-if="v.isCurrent" class="current">当前版本</span>
               </li>
             </ul>
           </li>
@@ -94,7 +94,7 @@ async function loadProjects() {
       await loadRequirements(props.selectedProjectId)
     }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || 'Failed to load projects')
+    emit('error', e?.response?.data?.message || e?.message || '加载项目失败。')
   } finally {
     loading.value = false
   }
@@ -105,7 +105,7 @@ async function loadRequirements(projectId: number) {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId}/requirements`)
     requirementsMap.value = { ...requirementsMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || 'Failed to load requirements')
+    emit('error', e?.response?.data?.message || e?.message || '加载需求失败。')
   }
 }
 
@@ -114,7 +114,7 @@ async function loadVersions(requirementId: number) {
     const res = await axios.get<ApiResponse<VersionItem[]>>(`/api/requirements/${requirementId}/versions`)
     versionsMap.value = { ...versionsMap.value, [requirementId]: res.data.data || [] }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || 'Failed to load versions')
+    emit('error', e?.response?.data?.message || e?.message || '加载版本失败。')
   }
 }
 

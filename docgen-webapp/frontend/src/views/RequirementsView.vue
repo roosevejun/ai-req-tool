@@ -3,28 +3,30 @@
     <section class="panel">
       <div class="section-head">
         <div>
-          <h2>Requirements</h2>
-          <p class="muted">Project {{ projectId }}</p>
+          <h2>需求管理</h2>
+          <p class="muted">项目 ID：{{ projectId }}</p>
         </div>
       </div>
 
       <h3>创建需求</h3>
       <div class="form-grid">
-        <input v-model.trim="form.title" class="input" placeholder="Requirement title" />
+        <input v-model.trim="form.title" class="input" placeholder="需求标题" />
         <select v-model="form.priority" class="input">
-          <option value="P0">P0</option>
-          <option value="P1">P1</option>
-          <option value="P2">P2</option>
-          <option value="P3">P3</option>
+          <option value="P0">P0 - 紧急</option>
+          <option value="P1">P1 - 高</option>
+          <option value="P2">P2 - 中</option>
+          <option value="P3">P3 - 低</option>
         </select>
         <select v-model="form.status" class="input">
-          <option value="DRAFT">DRAFT</option>
-          <option value="CLARIFYING">CLARIFYING</option>
-          <option value="READY_REVIEW">READY_REVIEW</option>
-          <option value="DONE">DONE</option>
+          <option value="DRAFT">草稿</option>
+          <option value="CLARIFYING">澄清中</option>
+          <option value="READY_REVIEW">待评审</option>
+          <option value="DONE">已完成</option>
         </select>
       </div>
-      <textarea v-model="form.summary" class="input" placeholder="Requirement summary" />
+
+      <textarea v-model="form.summary" class="input" placeholder="需求摘要" />
+
       <div class="row">
         <button class="primary" :disabled="loading || !form.title" @click="createRequirement">创建需求</button>
         <button class="ghost" :disabled="loading" @click="loadRequirements">刷新</button>
@@ -33,16 +35,16 @@
 
     <section class="panel">
       <div class="section-head">
-        <h3>Requirement List</h3>
+        <h3>需求列表</h3>
       </div>
       <table class="table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>No</th>
-            <th>Title</th>
-            <th>Priority</th>
-            <th>Status</th>
+            <th>编号</th>
+            <th>标题</th>
+            <th>优先级</th>
+            <th>状态</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -51,15 +53,15 @@
             <td>{{ r.id }}</td>
             <td>{{ r.requirementNo }}</td>
             <td>{{ r.title }}</td>
-            <td>{{ r.priority }}</td>
-            <td>{{ r.status }}</td>
+            <td>{{ priorityLabel(r.priority) }}</td>
+            <td>{{ statusLabel(r.status) }}</td>
             <td class="ops">
-              <button class="mini" @click="openWorkbench(r.id)">工作台</button>
+              <button class="mini" @click="openWorkbench(r.id)">AI 工作台</button>
               <button class="mini" @click="openVersions(r.id)">版本页</button>
             </td>
           </tr>
           <tr v-if="requirements.length === 0">
-            <td colspan="6" class="muted">No requirements yet</td>
+            <td colspan="6" class="muted">暂无需求</td>
           </tr>
         </tbody>
       </table>
@@ -99,6 +101,22 @@ const form = reactive({
   status: 'DRAFT'
 })
 
+function priorityLabel(value?: string) {
+  if (value === 'P0') return 'P0 - 紧急'
+  if (value === 'P1') return 'P1 - 高'
+  if (value === 'P2') return 'P2 - 中'
+  if (value === 'P3') return 'P3 - 低'
+  return value || '-'
+}
+
+function statusLabel(value?: string) {
+  if (value === 'DRAFT') return '草稿'
+  if (value === 'CLARIFYING') return '澄清中'
+  if (value === 'READY_REVIEW') return '待评审'
+  if (value === 'DONE') return '已完成'
+  return value || '-'
+}
+
 async function loadRequirements() {
   loading.value = true
   error.value = ''
@@ -106,7 +124,7 @@ async function loadRequirements() {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId.value}/requirements`)
     requirements.value = res.data.data || []
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
+    error.value = e?.response?.data?.message || e?.message || '加载需求列表失败。'
   } finally {
     loading.value = false
   }
@@ -118,14 +136,15 @@ async function createRequirement() {
   success.value = ''
   try {
     await axios.post(`/api/projects/${projectId.value}/requirements`, form)
-    success.value = 'Requirement created successfully'
+    success.value = '需求创建成功。'
     form.title = ''
     form.summary = ''
     form.priority = 'P2'
     form.status = 'DRAFT'
     await loadRequirements()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败。'
+  } finally {
     loading.value = false
   }
 }
@@ -142,7 +161,7 @@ onMounted(loadRequirements)
 </script>
 
 <style scoped>
-.container { max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+.container { max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
 .panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin-top:12px; }
 .section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
 .section-head h2, .section-head h3 { margin:0; }

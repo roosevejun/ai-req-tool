@@ -22,6 +22,17 @@ public interface ProjectSourceMaterialMapper {
                    raw_content AS rawContent, ai_extracted_summary AS aiExtractedSummary,
                    created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
             FROM pm_project_source_material
+            WHERE id = #{id}
+            LIMIT 1
+            """)
+    ProjectSourceMaterialEntity findById(@Param("id") Long id);
+
+    @Select("""
+            SELECT id, project_id AS projectId, session_id AS sessionId,
+                   material_type AS materialType, title, source_uri AS sourceUri,
+                   raw_content AS rawContent, ai_extracted_summary AS aiExtractedSummary,
+                   created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+            FROM pm_project_source_material
             WHERE session_id = #{sessionId}
             ORDER BY id ASC
             """)

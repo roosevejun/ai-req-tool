@@ -11,6 +11,8 @@ import com.tongtu.docgen.project.model.entity.ProjectChatSessionEntity;
 import com.tongtu.docgen.project.model.entity.ProjectSourceMaterialEntity;
 import com.tongtu.docgen.system.model.UserContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,19 +28,28 @@ public class ProjectAiConversationService {
     private final AgentClient agentClient;
     private final ObjectMapper objectMapper;
     private final ProjectService projectService;
+    private final KnowledgeDocumentService knowledgeDocumentService;
+    private final KnowledgeDocumentProcessingService knowledgeDocumentProcessingService;
+    private final KnowledgeFileStorageService knowledgeFileStorageService;
 
     public ProjectAiConversationService(ProjectChatSessionMapper sessionMapper,
                                         ProjectChatMessageMapper messageMapper,
                                         ProjectSourceMaterialMapper materialMapper,
                                         AgentClient agentClient,
                                         ObjectMapper objectMapper,
-                                        ProjectService projectService) {
+                                        ProjectService projectService,
+                                        KnowledgeDocumentService knowledgeDocumentService,
+                                        KnowledgeDocumentProcessingService knowledgeDocumentProcessingService,
+                                        KnowledgeFileStorageService knowledgeFileStorageService) {
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.materialMapper = materialMapper;
         this.agentClient = agentClient;
         this.objectMapper = objectMapper;
         this.projectService = projectService;
+        this.knowledgeDocumentService = knowledgeDocumentService;
+        this.knowledgeDocumentProcessingService = knowledgeDocumentProcessingService;
+        this.knowledgeFileStorageService = knowledgeFileStorageService;
     }
 
     public record SourceMaterialInput(
@@ -115,6 +126,7 @@ public class ProjectAiConversationService {
     ) {
     }
 
+    @Transactional
     public ConversationTurnResult startConversation(String traceId,
                                                     String projectName,
                                                     String description,
@@ -180,6 +192,7 @@ public class ProjectAiConversationService {
         return toTurnResult(session, aiResult.assistantMessage(), aiResult.followUpQuestions(), next);
     }
 
+    @Transactional
     public MaterialSaveResult addMaterials(Long sessionId,
                                            List<SourceMaterialInput> materials,
                                            UserContext operator) {
@@ -198,6 +211,31 @@ public class ProjectAiConversationService {
             count++;
         }
         return new MaterialSaveResult(sessionId, count);
+    }
+
+    @Transactional
+    public MaterialSaveResult uploadFileMaterial(Long sessionId,
+                                                 String title,
+                                                 MultipartFile file,
+                                                 UserContext operator) {
+        requireSession(sessionId);
+        KnowledgeFileStorageService.StoredFile storedFile = knowledgeFileStorageService.storeProjectConversationFile(sessionId, file);
+
+        ProjectSourceMaterialEntity entity = new ProjectSourceMaterialEntity();
+        entity.setSessionId(sessionId);
+        entity.setProjectId(null);
+        entity.setMaterialType("FILE");
+        entity.setTitle(firstNonBlank(title, storedFile.originalFilename()));
+        entity.setSourceUri(storedFile.storageKey());
+        entity.setRawContent(null);
+        entity.setAiExtractedSummary("Uploaded file: " + storedFile.originalFilename());
+        entity.setCreatedBy(operator.getUserId());
+        materialMapper.insert(entity);
+
+        int seqNo = messageMapper.findMaxSeqNo(sessionId);
+        appendMessage(sessionId, ++seqNo, "user", "material", formatFileMaterialMessage(entity.getTitle(), storedFile));
+        syncKnowledgeDocument(entity, null, operator.getUserId(), storedFile, false);
+        return new MaterialSaveResult(sessionId, 1);
     }
 
     public ConversationView getConversation(Long sessionId) {
@@ -361,6 +399,73 @@ public class ProjectAiConversationService {
         entity.setAiExtractedSummary(buildMaterialSummary(input));
         entity.setCreatedBy(userId);
         materialMapper.insert(entity);
+        syncKnowledgeDocument(entity, input, userId, null, true);
+    }
+
+    private void syncKnowledgeDocument(ProjectSourceMaterialEntity material,
+                                       SourceMaterialInput input,
+                                       Long userId,
+                                       KnowledgeFileStorageService.StoredFile storedFile,
+                                       boolean autoProcessTask) {
+        UserContext operator = new UserContext();
+        operator.setUserId(userId);
+
+        Long documentId = knowledgeDocumentService.createDocument(
+                new KnowledgeDocumentService.CreateDocumentCommand(
+                        material.getProjectId(),
+                        null,
+                        material.getId(),
+                        normalizeMaterialType(input == null ? material.getMaterialType() : input.materialType()),
+                        normalize(input == null ? material.getSourceUri() : input.sourceUri()),
+                        normalize(input == null ? material.getTitle() : input.title()),
+                        normalize(input == null ? material.getRawContent() : input.rawContent()),
+                        null,
+                        input == null ? material.getAiExtractedSummary() : buildMaterialSummary(input),
+                        null,
+                        null,
+                        null,
+                        1,
+                        false
+                ),
+                operator
+        );
+
+        if (storedFile != null) {
+            knowledgeDocumentService.addAsset(
+                    documentId,
+                    new KnowledgeDocumentService.DocumentAssetCommand(
+                            "ORIGINAL",
+                            storedFile.storageBucket(),
+                            storedFile.storageKey(),
+                            storedFile.mimeType(),
+                            storedFile.sizeBytes(),
+                            storedFile.sha256()
+                    )
+            );
+        }
+
+        Long taskId = knowledgeDocumentService.createTask(
+                documentId,
+                new KnowledgeDocumentService.DocumentTaskCommand(
+                        resolveInitialTaskType(material.getMaterialType()),
+                        "PENDING",
+                        0,
+                        null,
+                        null,
+                        null
+                )
+        );
+        if (autoProcessTask) {
+            knowledgeDocumentProcessingService.processTask(taskId, operator);
+        }
+    }
+
+    private String resolveInitialTaskType(String materialType) {
+        return switch (normalizeMaterialType(materialType)) {
+            case "URL" -> "FETCH_URL";
+            case "FILE" -> "PARSE_FILE";
+            default -> "SUMMARIZE";
+        };
     }
 
     private String buildMaterialSummary(SourceMaterialInput input) {
@@ -388,6 +493,19 @@ public class ProjectAiConversationService {
         if (input.rawContent() != null && !input.rawContent().isBlank()) {
             parts.add("Content: " + input.rawContent().trim());
         }
+        return String.join("\n", parts);
+    }
+
+    private String formatFileMaterialMessage(String title, KnowledgeFileStorageService.StoredFile storedFile) {
+        List<String> parts = new ArrayList<>();
+        if (title != null && !title.isBlank()) {
+            parts.add("Title: " + title.trim());
+        }
+        parts.add("File: " + storedFile.originalFilename());
+        if (storedFile.mimeType() != null && !storedFile.mimeType().isBlank()) {
+            parts.add("Type: " + storedFile.mimeType().trim());
+        }
+        parts.add("Storage Key: " + storedFile.storageKey());
         return String.join("\n", parts);
     }
 

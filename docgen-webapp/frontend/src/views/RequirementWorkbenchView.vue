@@ -18,7 +18,7 @@
             <p class="muted">需求 #{{ requirementId }}</p>
           </div>
           <div class="tab-actions">
-            <button class="tab active">工作台</button>
+            <button class="tab active">AI 整理</button>
             <button class="tab" @click="goVersions">版本页</button>
           </div>
         </section>
@@ -71,67 +71,19 @@ function goVersions() {
 </script>
 
 <style scoped>
-.page {
-  max-width: 1320px;
-  margin: 18px auto;
-  padding: 0 14px 18px;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-.layout {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 14px;
-}
-.card {
-  background: #fff;
-  border: 1px solid #dbe2ea;
-  border-radius: 12px;
-  padding: 10px;
-}
-.tabs {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.title-block h2 {
-  margin: 0;
-}
-.tab-actions {
-  display: flex;
-  gap: 8px;
-}
-.tab {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 12px;
-  background: #f3f4f6;
-  cursor: pointer;
-}
-.tab.active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-.muted {
-  margin: 4px 0 0;
-  color: #6b7280;
-}
-.error {
-  margin-top: 8px;
-  color: #b91c1c;
-}
+.page { max-width: 1320px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.layout { display: grid; grid-template-columns: 350px 1fr; gap: 14px; }
+.card { background: #fff; border: 1px solid #dbe2ea; border-radius: 12px; padding: 10px; }
+.tabs { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.title-block h2 { margin: 0; }
+.tab-actions { display: flex; gap: 8px; }
+.tab { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; background: #f3f4f6; cursor: pointer; }
+.tab.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+.muted { margin: 4px 0 0; color: #6b7280; }
+.error { margin-top: 8px; color: #b91c1c; }
 @media (max-width: 980px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-  .tabs {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .tab-actions {
-    flex-wrap: wrap;
-  }
+  .layout { grid-template-columns: 1fr; }
+  .tabs { flex-direction: column; align-items: stretch; }
+  .tab-actions { flex-wrap: wrap; }
 }
 </style>
