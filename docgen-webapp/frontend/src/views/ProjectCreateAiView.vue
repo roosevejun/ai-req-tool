@@ -7,9 +7,6 @@
           先让 AI 帮我们理解项目背景、客户、价值和参考资料，再把结果沉淀为正式项目。
         </p>
       </div>
-      <div class="ops">
-        <button class="ghost" @click="goProjects">返回项目列表</button>
-      </div>
     </header>
 
     <div class="layout">
@@ -558,9 +555,6 @@ async function createProject() {
   }
 }
 
-function goProjects() {
-  router.push('/projects')
-}
 </script>
 
 <style scoped>

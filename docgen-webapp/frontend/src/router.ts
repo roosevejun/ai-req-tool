@@ -14,13 +14,13 @@ const router = createRouter({
   routes: [
     { path: '/login', component: LoginPage, meta: { public: true } },
     { path: '/', redirect: '/docgen' },
-    { path: '/docgen', component: DocGenView },
-    { path: '/system', component: SystemAdminView },
-    { path: '/projects', component: ProjectsView },
-    { path: '/projects/create-ai', component: ProjectCreateAiView },
-    { path: '/projects/:projectId/requirements', component: RequirementsView },
-    { path: '/requirements/:requirementId/workbench', component: RequirementWorkbenchView },
-    { path: '/requirements/:requirementId/versions', component: RequirementVersionsView }
+    { path: '/docgen', component: DocGenView, meta: { section: 'docgen' } },
+    { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
+    { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
+    { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },
+    { path: '/projects/:projectId/requirements', component: RequirementsView, meta: { section: 'projects' } },
+    { path: '/requirements/:requirementId/workbench', component: RequirementWorkbenchView, meta: { section: 'projects' } },
+    { path: '/requirements/:requirementId/versions', component: RequirementVersionsView, meta: { section: 'projects' } }
   ]
 })
 

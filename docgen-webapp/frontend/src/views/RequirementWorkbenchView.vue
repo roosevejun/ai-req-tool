@@ -2,7 +2,6 @@
   <div class="page">
     <header class="topbar">
       <h1>需求工作台 #{{ requirementId }}</h1>
-      <button class="ghost" @click="goProjects">返回项目页</button>
     </header>
 
     <div class="layout">
@@ -58,10 +57,6 @@ function onSelectProject(pid: number) {
 
 function onSelectRequirement(payload: { projectId: number; requirementId: number }) {
   router.push(`/requirements/${payload.requirementId}/workbench?projectId=${payload.projectId}`)
-}
-
-function goProjects() {
-  router.push('/projects')
 }
 
 function goVersions() {
