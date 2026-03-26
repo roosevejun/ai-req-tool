@@ -8,7 +8,7 @@
         </div>
       </div>
 
-      <h3>Create Requirement</h3>
+      <h3>创建需求</h3>
       <div class="form-grid">
         <input v-model.trim="form.title" class="input" placeholder="Requirement title" />
         <select v-model="form.priority" class="input">
@@ -26,8 +26,8 @@
       </div>
       <textarea v-model="form.summary" class="input" placeholder="Requirement summary" />
       <div class="row">
-        <button class="primary" :disabled="loading || !form.title" @click="createRequirement">Create Requirement</button>
-        <button class="ghost" :disabled="loading" @click="loadRequirements">Refresh</button>
+        <button class="primary" :disabled="loading || !form.title" @click="createRequirement">创建需求</button>
+        <button class="ghost" :disabled="loading" @click="loadRequirements">刷新</button>
       </div>
     </section>
 
@@ -43,7 +43,7 @@
             <th>Title</th>
             <th>Priority</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -54,8 +54,8 @@
             <td>{{ r.priority }}</td>
             <td>{{ r.status }}</td>
             <td class="ops">
-              <button class="mini" @click="openWorkbench(r.id)">Workbench</button>
-              <button class="mini" @click="openVersions(r.id)">Versions</button>
+              <button class="mini" @click="openWorkbench(r.id)">工作台</button>
+              <button class="mini" @click="openVersions(r.id)">版本页</button>
             </td>
           </tr>
           <tr v-if="requirements.length === 0">
@@ -106,7 +106,7 @@ async function loadRequirements() {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId.value}/requirements`)
     requirements.value = res.data.data || []
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load requirements'
+    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
   } finally {
     loading.value = false
   }
@@ -125,7 +125,7 @@ async function createRequirement() {
     form.status = 'DRAFT'
     await loadRequirements()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to create requirement'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
     loading.value = false
   }
 }

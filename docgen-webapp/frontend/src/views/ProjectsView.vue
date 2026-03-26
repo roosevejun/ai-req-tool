@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page">
     <div class="layout">
       <aside class="sidebar">
@@ -6,10 +6,10 @@
           <h3>创建项目</h3>
 
           <div class="form-grid form-grid-project">
-            <input v-model.trim="projectForm.projectKey" class="input" placeholder="项目Key（如 AI-REQ）" />
+            <input v-model.trim="projectForm.projectKey" class="input" placeholder="项目 Key，例如 AI-REQ" />
             <input v-model.trim="projectForm.projectName" class="input" placeholder="项目名称" />
             <select v-model="projectForm.projectType" class="input">
-              <option value="">项目类型（可选）</option>
+              <option value="">项目类型，可选</option>
               <option value="PRODUCT">产品型</option>
               <option value="PLATFORM">平台型</option>
               <option value="OPS">运维型</option>
@@ -24,7 +24,7 @@
             <input v-model="projectForm.startDate" type="date" class="input" />
             <input v-model="projectForm.targetDate" type="date" class="input" />
             <select v-model="projectForm.ownerUserId" class="input">
-              <option value="">负责人（默认当前登录用户）</option>
+              <option value="">负责人，默认当前登录用户</option>
               <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
                 {{ u.displayName || u.username }} ({{ u.username }})
               </option>
@@ -33,32 +33,32 @@
               <option value="PRIVATE">PRIVATE</option>
               <option value="ORG">ORG</option>
             </select>
-            <input v-model.trim="projectForm.tags" class="input" placeholder="标签（逗号分隔，如 车联网,地图）" />
+            <input v-model.trim="projectForm.tags" class="input" placeholder="标签，逗号分隔，例如 车联网, 地图" />
           </div>
 
-          <textarea v-model="projectForm.description" class="input" placeholder="项目描述（可选）" />
+          <textarea v-model="projectForm.description" class="input" placeholder="项目描述，可选" />
 
           <div class="product-info-box">
             <div class="section-head">
               <h4>产品信息</h4>
               <div class="row compact">
                 <button class="ghost mini" :disabled="projectAiLoading || !canGuideProjectInfo" @click="guideProjectProductInfo">
-                  {{ projectAiQuestions.length > 0 ? '继续AI补全' : 'AI引导补全' }}
+                  {{ projectAiQuestions.length > 0 ? '继续 AI 补全' : 'AI 引导补全' }}
                 </button>
                 <button class="ghost mini" :disabled="projectAiLoading" @click="applyProjectAiSuggestions">
-                  应用AI建议
+                  应用 AI 建议
                 </button>
               </div>
             </div>
 
-            <textarea v-model="projectForm.projectBackground" class="input" placeholder="项目背景（可选）" />
-            <textarea v-model="projectForm.similarProducts" class="input" placeholder="类似产品 / 参考产品（可选）" />
-            <textarea v-model="projectForm.targetCustomerGroups" class="input" placeholder="目标客户群体（可选）" />
-            <textarea v-model="projectForm.commercialValue" class="input" placeholder="商业价值（可选）" />
-            <textarea v-model="projectForm.coreProductValue" class="input" placeholder="产品核心价值（可选）" />
+            <textarea v-model="projectForm.projectBackground" class="input" placeholder="项目背景，可选" />
+            <textarea v-model="projectForm.similarProducts" class="input" placeholder="类似产品 / 参考产品，可选" />
+            <textarea v-model="projectForm.targetCustomerGroups" class="input" placeholder="目标客户群体，可选" />
+            <textarea v-model="projectForm.commercialValue" class="input" placeholder="商业价值，可选" />
+            <textarea v-model="projectForm.coreProductValue" class="input" placeholder="核心产品价值，可选" />
 
             <div v-if="projectAiMessage" class="ai-assistant">
-              <strong>AI建议：</strong> {{ projectAiMessage }}
+              <strong>AI 建议：</strong> {{ projectAiMessage }}
             </div>
 
             <div v-if="projectAiQuestions.length > 0" class="ai-qa-list">
@@ -73,7 +73,7 @@
             </div>
 
             <div v-if="hasProjectAiSuggestions" class="ai-preview">
-              <h4>AI补全建议预览</h4>
+              <h4>AI 补全建议预览</h4>
               <div class="preview-grid">
                 <div class="preview-item">
                   <strong>项目背景</strong>
@@ -92,18 +92,14 @@
                   <p>{{ projectAiSuggestions.commercialValue || '-' }}</p>
                 </div>
                 <div class="preview-item">
-                  <strong>核心价值</strong>
+                  <strong>核心产品价值</strong>
                   <p>{{ projectAiSuggestions.coreProductValue || '-' }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <button
-            class="primary block"
-            :disabled="loading"
-            @click="createProject"
-          >
+          <button class="primary block" :disabled="loading" @click="createProject">
             创建项目
           </button>
         </section>
@@ -123,8 +119,8 @@
                 <button
                   class="tree-label"
                   :class="{ active: selectedProjectId === p.id }"
-                  @click="selectProject(p.id)"
                   :title="p.projectName"
+                  @click="selectProject(p.id)"
                 >
                   {{ p.projectKey }} / {{ p.projectName }}
                 </button>
@@ -139,7 +135,7 @@
                       :class="{ active: selectedRequirementId === r.id }"
                       @click="selectRequirement(p.id, r.id)"
                     >
-                      需求{{ idx + 1 }}：{{ r.title }}
+                      需求 {{ idx + 1 }}：{{ r.title }}
                     </button>
                   </div>
 
@@ -156,9 +152,19 @@
       </aside>
 
       <main class="content">
+        <section class="card quick-actions">
+          <div class="section-head">
+            <h3>快捷操作</h3>
+            <p class="summary">常用入口放在这里，避免和顶部全局导航重复。</p>
+          </div>
+          <div class="row">
+            <button class="primary" @click="goCreateAi">AI 创建项目</button>
+            <button class="ghost" @click="goAiDocgen">进入 AI 需求整理</button>
+          </div>
+        </section>
         <section v-if="!selectedProject" class="card empty-state">
           <h3>请选择一个项目</h3>
-          <p>你可以先在左侧创建项目，再逐条新增需求并进入 AI 澄清与 PRD 生成流程。</p>
+          <p>你可以先在左侧创建项目，再逐条新增需求，并进入 AI 需求整理与 PRD 生成流程。</p>
         </section>
 
         <template v-else>
@@ -179,16 +185,16 @@
 
             <template v-if="!editingProject">
               <div class="meta-grid">
-                <div><strong>ID:</strong> {{ selectedProject.id }}</div>
-                <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
-                <div><strong>项目名称:</strong> {{ selectedProject.projectName }}</div>
-                <div><strong>项目类型:</strong> {{ selectedProject.projectType || '-' }}</div>
-                <div><strong>优先级:</strong> {{ selectedProject.priority || '-' }}</div>
-                <div><strong>可见性:</strong> {{ selectedProject.visibility }}</div>
-                <div><strong>计划开始:</strong> {{ selectedProject.startDate || '-' }}</div>
-                <div><strong>计划结束:</strong> {{ selectedProject.targetDate || '-' }}</div>
-                <div><strong>状态:</strong> {{ selectedProject.status }}</div>
-                <div><strong>标签:</strong> {{ selectedProject.tags || '-' }}</div>
+                <div><strong>ID：</strong> {{ selectedProject.id }}</div>
+                <div><strong>项目 Key：</strong> {{ selectedProject.projectKey }}</div>
+                <div><strong>项目名称：</strong> {{ selectedProject.projectName }}</div>
+                <div><strong>项目类型：</strong> {{ selectedProject.projectType || '-' }}</div>
+                <div><strong>优先级：</strong> {{ selectedProject.priority || '-' }}</div>
+                <div><strong>可见性：</strong> {{ selectedProject.visibility }}</div>
+                <div><strong>计划开始：</strong> {{ selectedProject.startDate || '-' }}</div>
+                <div><strong>计划结束：</strong> {{ selectedProject.targetDate || '-' }}</div>
+                <div><strong>状态：</strong> {{ selectedProject.status }}</div>
+                <div><strong>标签：</strong> {{ selectedProject.tags || '-' }}</div>
               </div>
               <p class="summary">{{ selectedProject.description || '暂无项目描述' }}</p>
               <div class="detail-section">
@@ -208,21 +214,21 @@
                 <p class="summary">{{ selectedProject.commercialValue || '暂无商业价值描述' }}</p>
               </div>
               <div class="detail-section">
-                <h4>产品核心价值</h4>
-                <p class="summary">{{ selectedProject.coreProductValue || '暂无产品核心价值' }}</p>
+                <h4>核心产品价值</h4>
+                <p class="summary">{{ selectedProject.coreProductValue || '暂无核心产品价值' }}</p>
               </div>
             </template>
 
             <template v-else>
               <div class="meta-grid">
-                <div><strong>ID:</strong> {{ selectedProject.id }}</div>
-                <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
+                <div><strong>ID：</strong> {{ selectedProject.id }}</div>
+                <div><strong>项目 Key：</strong> {{ selectedProject.projectKey }}</div>
               </div>
 
               <div class="form-grid form-grid-project detail-edit-grid">
                 <input v-model.trim="projectEditForm.projectName" class="input" placeholder="项目名称" />
                 <select v-model="projectEditForm.projectType" class="input">
-                  <option value="">项目类型（可选）</option>
+                  <option value="">项目类型，可选</option>
                   <option value="PRODUCT">产品型</option>
                   <option value="PLATFORM">平台型</option>
                   <option value="OPS">运维型</option>
@@ -244,25 +250,25 @@
                   <option value="PAUSED">PAUSED</option>
                 </select>
                 <select v-model="projectEditForm.ownerUserId" class="input">
-                  <option value="">负责人（保持不变）</option>
+                  <option value="">负责人，保持不变</option>
                   <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
                     {{ u.displayName || u.username }} ({{ u.username }})
                   </option>
                 </select>
                 <input v-model="projectEditForm.startDate" type="date" class="input" />
                 <input v-model="projectEditForm.targetDate" type="date" class="input" />
-                <input v-model.trim="projectEditForm.tags" class="input" placeholder="标签（逗号分隔）" />
+                <input v-model.trim="projectEditForm.tags" class="input" placeholder="标签，逗号分隔" />
               </div>
 
-              <textarea v-model="projectEditForm.description" class="input" placeholder="项目描述（可选）" />
+              <textarea v-model="projectEditForm.description" class="input" placeholder="项目描述，可选" />
 
               <div class="detail-section">
                 <h4>产品信息维护</h4>
-                <textarea v-model="projectEditForm.projectBackground" class="input" placeholder="项目背景（可选）" />
-                <textarea v-model="projectEditForm.similarProducts" class="input" placeholder="类似产品 / 参考产品（可选）" />
-                <textarea v-model="projectEditForm.targetCustomerGroups" class="input" placeholder="目标客户群体（可选）" />
-                <textarea v-model="projectEditForm.commercialValue" class="input" placeholder="商业价值（可选）" />
-                <textarea v-model="projectEditForm.coreProductValue" class="input" placeholder="产品核心价值（可选）" />
+                <textarea v-model="projectEditForm.projectBackground" class="input" placeholder="项目背景，可选" />
+                <textarea v-model="projectEditForm.similarProducts" class="input" placeholder="类似产品 / 参考产品，可选" />
+                <textarea v-model="projectEditForm.targetCustomerGroups" class="input" placeholder="目标客户群体，可选" />
+                <textarea v-model="projectEditForm.commercialValue" class="input" placeholder="商业价值，可选" />
+                <textarea v-model="projectEditForm.coreProductValue" class="input" placeholder="核心产品价值，可选" />
               </div>
             </template>
           </section>
@@ -271,12 +277,12 @@
             <h3>项目成员管理</h3>
             <div class="form-grid">
               <select v-model="memberForm.selectedUserId" class="input">
-                <option value="">从用户列表选择（可选）</option>
+                <option value="">从用户列表选择，可选</option>
                 <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
                   {{ u.displayName || u.username }} ({{ u.id }})
                 </option>
               </select>
-              <input v-model.trim="memberForm.userId" class="input" placeholder="用户ID（如 1）" />
+              <input v-model.trim="memberForm.userId" class="input" placeholder="用户 ID，例如 1" />
               <select v-model="memberForm.projectRole" class="input">
                 <option value="OWNER">OWNER</option>
                 <option value="PM">PM</option>
@@ -292,9 +298,9 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>用户ID</th>
+                  <th>用户 ID</th>
                   <th>用户名</th>
-                  <th>显示名</th>
+                  <th>显示名称</th>
                   <th>项目角色</th>
                   <th>状态</th>
                   <th>操作</th>
@@ -317,7 +323,6 @@
               </tbody>
             </table>
           </section>
-
           <section class="card">
             <h3>在当前项目下创建需求</h3>
             <div class="form-grid">
@@ -335,7 +340,7 @@
                 <option value="DONE">DONE</option>
               </select>
             </div>
-            <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要（可选）" />
+            <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要，可选" />
             <div class="row">
               <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">创建需求</button>
             </div>
@@ -363,7 +368,7 @@
                   <td>{{ r.status }}</td>
                   <td class="ops">
                     <button class="mini" @click="selectRequirement(selectedProject.id, r.id)">查看</button>
-                    <button class="mini" @click="openWorkbench(r.id)">AI工作台</button>
+                    <button class="mini" @click="openWorkbench(r.id)">AI 工作台</button>
                     <button class="mini" @click="openVersions(r.id)">版本页</button>
                   </td>
                 </tr>
@@ -377,11 +382,11 @@
           <section v-if="selectedRequirement" class="card">
             <h3>当前选中需求</h3>
             <div class="meta-grid">
-              <div><strong>ID:</strong> {{ selectedRequirement.id }}</div>
-              <div><strong>编号:</strong> {{ selectedRequirement.requirementNo }}</div>
-              <div><strong>标题:</strong> {{ selectedRequirement.title }}</div>
-              <div><strong>优先级:</strong> {{ selectedRequirement.priority }}</div>
-              <div><strong>状态:</strong> {{ selectedRequirement.status }}</div>
+              <div><strong>ID：</strong> {{ selectedRequirement.id }}</div>
+              <div><strong>编号：</strong> {{ selectedRequirement.requirementNo }}</div>
+              <div><strong>标题：</strong> {{ selectedRequirement.title }}</div>
+              <div><strong>优先级：</strong> {{ selectedRequirement.priority }}</div>
+              <div><strong>状态：</strong> {{ selectedRequirement.status }}</div>
             </div>
             <p class="summary">{{ selectedRequirement.summary || '暂无需求摘要' }}</p>
             <div class="row">
@@ -521,7 +526,6 @@ const hasProjectAiSuggestions = computed(() => !!(
   projectAiSuggestions.commercialValue ||
   projectAiSuggestions.coreProductValue
 ))
-
 function createProjectFormState() {
   return {
     projectKey: '',
@@ -690,7 +694,6 @@ async function loadVersions(requirementId: number) {
     error.value = e?.response?.data?.message || e?.message || '加载版本失败'
   }
 }
-
 async function createProject() {
   if (!projectForm.projectKey.trim() || !projectForm.projectName.trim()) {
     error.value = '请先填写项目 Key 和项目名称'
@@ -786,7 +789,7 @@ async function deleteProject() {
   success.value = ''
   try {
     await axios.delete(`/api/projects/${project.id}`)
-    success.value = 'Project deleted successfully'
+    success.value = '项目删除成功'
     editingProject.value = false
     delete requirementsMap.value[project.id]
     delete projectMembersMap.value[project.id]
@@ -798,7 +801,7 @@ async function deleteProject() {
       await selectProject(fallbackProjectId)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to delete project'
+    error.value = e?.response?.data?.message || e?.message || '删除项目失败'
   } finally {
     loading.value = false
   }
@@ -917,7 +920,6 @@ function resetProjectAiGuide() {
   projectAiSuggestions.commercialValue = ''
   projectAiSuggestions.coreProductValue = ''
 }
-
 async function createRequirement() {
   if (!selectedProjectId.value) return
   loading.value = true
@@ -972,7 +974,7 @@ async function addProjectMember() {
   if (!selectedProjectId.value) return
   const uid = Number(memberForm.selectedUserId || memberForm.userId)
   if (!uid || uid <= 0) {
-    error.value = '请输入有效的用户ID'
+    error.value = '请输入有效的用户 ID'
     return
   }
   loading.value = true
@@ -1020,6 +1022,18 @@ function openVersions(requirementId: number) {
   router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`)
 }
 
+function goCreateAi() {
+  router.push('/projects/create-ai')
+}
+
+function goAiDocgen() {
+  if (selectedRequirement.value && selectedProjectId.value) {
+    router.push(`/requirements/${selectedRequirement.value.id}/workbench?projectId=${selectedProjectId.value}`)
+    return
+  }
+  router.push('/docgen')
+}
+
 onMounted(async () => {
   await Promise.all([loadProjects(), loadUserOptions()])
 })
@@ -1032,11 +1046,6 @@ onMounted(async () => {
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #111827;
-}
-h1 {
-  margin: 0;
-  font-size: 24px;
-  letter-spacing: 0.2px;
 }
 .layout {
   display: grid;
@@ -1263,6 +1272,9 @@ textarea.input {
   font-size: 13px;
   color: #4b5563;
   white-space: pre-wrap;
+}
+.quick-actions .summary {
+  margin: 0;
 }
 .error {
   margin-top: 8px;

@@ -13,17 +13,17 @@
 
       <main class="content">
         <section class="card">
-          <h3>Current Context</h3>
+          <h3>当前上下文</h3>
           <div class="meta-grid">
-            <div><strong>Project ID:</strong> {{ selectedProjectId || '-' }}</div>
-            <div><strong>Requirement ID:</strong> {{ selectedRequirementId || '-' }}</div>
+            <div><strong>项目 ID：</strong> {{ selectedProjectId || '-' }}</div>
+            <div><strong>需求 ID：</strong> {{ selectedRequirementId || '-' }}</div>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>Create Requirement For Project {{ selectedProjectId }}</h3>
+          <h3>为项目 {{ selectedProjectId }} 创建需求</h3>
           <div class="form-grid">
-            <input v-model.trim="reqForm.title" class="input" placeholder="Requirement title" />
+            <input v-model.trim="reqForm.title" class="input" placeholder="需求标题" />
             <select v-model="reqForm.priority" class="input">
               <option value="P0">P0</option>
               <option value="P1">P1</option>
@@ -37,26 +37,26 @@
               <option value="DONE">DONE</option>
             </select>
           </div>
-          <textarea v-model="reqForm.summary" class="input" placeholder="Requirement summary" />
+          <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要" />
           <div class="row">
             <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">
-              Create Requirement
+              创建需求
             </button>
-            <button class="ghost" :disabled="loading" @click="loadRequirements">Refresh List</button>
+            <button class="ghost" :disabled="loading" @click="loadRequirements">刷新列表</button>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>Requirements In Project {{ selectedProjectId }}</h3>
+          <h3>项目 {{ selectedProjectId }} 下的需求</h3>
           <table class="table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>No.</th>
-                <th>Title</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>编号</th>
+                <th>标题</th>
+                <th>优先级</th>
+                <th>状态</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -68,14 +68,14 @@
                 <td>{{ r.status }}</td>
                 <td class="ops">
                   <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">
-                    Select
+                    选中
                   </button>
-                  <button class="mini" @click="goWorkbench(r.id)">Workbench</button>
-                  <button class="mini" @click="goVersions(r.id)">Versions</button>
+                  <button class="mini" @click="goWorkbench(r.id)">工作台</button>
+                  <button class="mini" @click="goVersions(r.id)">版本页</button>
                 </td>
               </tr>
               <tr v-if="requirements.length === 0">
-                <td colspan="6" class="empty small">No requirements yet.</td>
+                <td colspan="6" class="empty small">当前还没有需求。</td>
               </tr>
             </tbody>
           </table>
@@ -83,10 +83,10 @@
 
         <section v-if="selectedRequirementId" class="card">
           <div class="row between">
-            <h3>AI Drafting For Requirement {{ selectedRequirementId }}</h3>
+            <h3>需求 {{ selectedRequirementId }} 的 AI 整理</h3>
             <div class="row">
-              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">Open Workbench</button>
-              <button class="ghost mini" @click="goVersions(selectedRequirementId)">View Versions</button>
+              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">打开工作台</button>
+              <button class="ghost mini" @click="goVersions(selectedRequirementId)">查看版本页</button>
             </div>
           </div>
           <DocGenPage
@@ -96,8 +96,8 @@
         </section>
 
         <section v-else class="card empty-state">
-          <h3>Select a requirement to start AI drafting</h3>
-          <p>Choose a project and requirement from the left tree, then the AI drafting panel will appear here.</p>
+          <h3>请选择一个需求开始 AI 整理</h3>
+          <p>请先在左侧树中选择项目和需求，随后这里会显示 AI 整理面板。</p>
         </section>
       </main>
     </div>
@@ -162,7 +162,7 @@ async function loadRequirements() {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${selectedProjectId.value}/requirements`)
     requirements.value = res.data.data || []
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load requirements'
+    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
   } finally {
     loading.value = false
   }
@@ -175,7 +175,7 @@ async function createRequirement() {
   success.value = ''
   try {
     const res = await axios.post<ApiResponse<number>>(`/api/projects/${selectedProjectId.value}/requirements`, reqForm)
-    success.value = 'Requirement created successfully.'
+    success.value = '需求创建成功。'
     reqForm.title = ''
     reqForm.summary = ''
     reqForm.priority = 'P2'
@@ -185,7 +185,7 @@ async function createRequirement() {
       selectedRequirementId.value = res.data.data
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to create requirement'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
   } finally {
     loading.value = false
   }

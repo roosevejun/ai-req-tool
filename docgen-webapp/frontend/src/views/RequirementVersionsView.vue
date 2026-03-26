@@ -14,29 +14,29 @@
       <main class="content">
         <section class="tabs card">
           <div class="title-block">
-            <h2>Requirement Versions</h2>
-            <p class="muted">Requirement #{{ requirementId }}</p>
+            <h2>需求版本</h2>
+            <p class="muted">需求 #{{ requirementId }}</p>
           </div>
           <div class="tab-actions">
-            <button class="tab" @click="goWorkbench">Workbench</button>
-            <button class="tab active">Versions</button>
+            <button class="tab" @click="goWorkbench">工作台</button>
+            <button class="tab active">版本页</button>
           </div>
         </section>
 
         <section class="card">
           <div class="panel-head">
-            <h3>Version List</h3>
-            <button class="ghost mini" :disabled="loading" @click="loadVersions">Refresh</button>
+            <h3>版本列表</h3>
+            <button class="ghost mini" :disabled="loading" @click="loadVersions">刷新</button>
           </div>
           <table class="table">
             <thead>
             <tr>
               <th>ID</th>
-              <th>Version</th>
-              <th>Generated At</th>
-              <th>Current</th>
-              <th>Job</th>
-              <th>Actions</th>
+              <th>版本号</th>
+              <th>生成时间</th>
+              <th>当前版本</th>
+              <th>任务</th>
+              <th>操作</th>
             </tr>
             </thead>
             <tbody>
@@ -44,24 +44,24 @@
               <td>{{ v.id }}</td>
               <td>{{ v.versionNo }}</td>
               <td>{{ v.generatedAt || '-' }}</td>
-              <td>{{ v.isCurrent ? 'Yes' : 'No' }}</td>
+              <td>{{ v.isCurrent ? '是' : '否' }}</td>
               <td>{{ v.sourceJobId || '-' }}</td>
               <td class="ops">
-                <button class="mini" @click="selectVersion(v.id)">Preview</button>
-                <button class="mini" @click="downloadVersion(v.id)">Download</button>
+                <button class="mini" @click="selectVersion(v.id)">预览</button>
+                <button class="mini" @click="downloadVersion(v.id)">下载</button>
               </td>
             </tr>
-            <tr v-if="versions.length === 0"><td colspan="6" class="empty small">No versions yet</td></tr>
+            <tr v-if="versions.length === 0"><td colspan="6" class="empty small">当前还没有版本</td></tr>
             </tbody>
           </table>
         </section>
 
         <section class="card" v-if="selected">
           <div class="panel-head">
-            <h3>Version {{ selected.versionNo }}</h3>
-            <button class="ghost mini" @click="downloadVersion(selected.id)">Download</button>
+            <h3>版本 {{ selected.versionNo }}</h3>
+            <button class="ghost mini" @click="downloadVersion(selected.id)">下载</button>
           </div>
-          <p class="muted">Change summary: {{ selected.changeSummary || '-' }}</p>
+          <p class="muted">变更摘要：{{ selected.changeSummary || '-' }}</p>
           <pre class="preview">{{ selected.prdMarkdown }}</pre>
         </section>
       </main>
@@ -136,7 +136,7 @@ async function loadVersions() {
       selected.value = null
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load versions'
+    error.value = e?.response?.data?.message || e?.message || '加载版本列表失败'
   } finally {
     loading.value = false
   }
@@ -148,7 +148,7 @@ async function selectVersion(versionId: number) {
     const res = await axios.get<ApiResponse<VersionItem>>(`/api/requirements/${requirementId.value}/versions/${versionId}`)
     selected.value = res.data.data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to load version detail'
+    error.value = e?.response?.data?.message || e?.message || '加载版本详情失败'
   }
 }
 
@@ -168,7 +168,7 @@ async function downloadVersion(versionId: number) {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'Failed to download'
+    error.value = e?.response?.data?.message || e?.message || '下载失败'
   }
 }
 

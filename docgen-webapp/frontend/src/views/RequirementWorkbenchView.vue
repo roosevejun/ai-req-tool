@@ -14,12 +14,12 @@
       <main class="content">
         <section class="tabs card">
           <div class="title-block">
-            <h2>Requirement Workbench</h2>
-            <p class="muted">Requirement #{{ requirementId }}</p>
+            <h2>需求工作台</h2>
+            <p class="muted">需求 #{{ requirementId }}</p>
           </div>
           <div class="tab-actions">
-            <button class="tab active">Workbench</button>
-            <button class="tab" @click="goVersions">Versions</button>
+            <button class="tab active">工作台</button>
+            <button class="tab" @click="goVersions">版本页</button>
           </div>
         </section>
         <DocGenPage :api-base="apiBase" :draft-key="draftKey" />
