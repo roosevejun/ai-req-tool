@@ -48,3 +48,7 @@ export function logout() {
   clearLoginUser()
 }
 
+export function buildLoginRedirectPath(redirect?: string): string {
+  const safeRedirect = redirect && redirect !== '/login' ? redirect : '/docgen'
+  return `/login?redirect=${encodeURIComponent(safeRedirect)}`
+}

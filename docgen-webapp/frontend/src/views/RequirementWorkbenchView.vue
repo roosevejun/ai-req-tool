@@ -1,9 +1,5 @@
 <template>
   <div class="page">
-    <header class="topbar">
-      <h1>需求工作台 #{{ requirementId }}</h1>
-    </header>
-
     <div class="layout">
       <aside class="sidebar">
         <ProjectRequirementTree
@@ -17,8 +13,14 @@
 
       <main class="content">
         <section class="tabs card">
-          <button class="tab active">AI工作台</button>
-          <button class="tab" @click="goVersions">版本页</button>
+          <div class="title-block">
+            <h2>Requirement Workbench</h2>
+            <p class="muted">Requirement #{{ requirementId }}</p>
+          </div>
+          <div class="tab-actions">
+            <button class="tab active">Workbench</button>
+            <button class="tab" @click="goVersions">Versions</button>
+          </div>
         </section>
         <DocGenPage :api-base="apiBase" :draft-key="draftKey" />
       </main>
@@ -75,12 +77,6 @@ function goVersions() {
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
 .layout {
   display: grid;
   grid-template-columns: 350px 1fr;
@@ -94,8 +90,17 @@ function goVersions() {
 }
 .tabs {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+}
+.title-block h2 {
+  margin: 0;
+}
+.tab-actions {
+  display: flex;
+  gap: 8px;
 }
 .tab {
   border: 1px solid #d1d5db;
@@ -109,12 +114,9 @@ function goVersions() {
   border-color: #2563eb;
   color: #fff;
 }
-.ghost {
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
+.muted {
+  margin: 4px 0 0;
+  color: #6b7280;
 }
 .error {
   margin-top: 8px;
@@ -123,6 +125,13 @@ function goVersions() {
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+  .tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tab-actions {
+    flex-wrap: wrap;
   }
 }
 </style>

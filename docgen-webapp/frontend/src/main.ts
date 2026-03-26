@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import axios from 'axios'
-import { getToken, logout } from './auth'
+import { buildLoginRedirectPath, getToken, logout } from './auth'
 
 axios.interceptors.request.use((config) => {
   const token = getToken()
@@ -22,7 +22,10 @@ axios.interceptors.response.use(
       logout()
       const current = router.currentRoute.value.fullPath || '/docgen'
       if (current !== '/login') {
-        router.push({ path: '/login', query: { redirect: current } })
+        const loginPath = buildLoginRedirectPath(current)
+        void router.replace(loginPath).catch(() => {
+          window.location.replace(loginPath)
+        })
       }
     }
     return Promise.reject(error)

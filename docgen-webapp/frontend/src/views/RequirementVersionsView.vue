@@ -1,9 +1,5 @@
 <template>
   <div class="page">
-    <header class="topbar">
-      <h1>需求版本页 #{{ requirementId }}</h1>
-    </header>
-
     <div class="layout">
       <aside class="sidebar">
         <ProjectRequirementTree
@@ -17,24 +13,30 @@
 
       <main class="content">
         <section class="tabs card">
-          <button class="tab" @click="goWorkbench">AI工作台</button>
-          <button class="tab active">版本页</button>
+          <div class="title-block">
+            <h2>Requirement Versions</h2>
+            <p class="muted">Requirement #{{ requirementId }}</p>
+          </div>
+          <div class="tab-actions">
+            <button class="tab" @click="goWorkbench">Workbench</button>
+            <button class="tab active">Versions</button>
+          </div>
         </section>
 
         <section class="card">
           <div class="panel-head">
-            <h3>版本列表</h3>
-            <button class="ghost mini" :disabled="loading" @click="loadVersions">刷新</button>
+            <h3>Version List</h3>
+            <button class="ghost mini" :disabled="loading" @click="loadVersions">Refresh</button>
           </div>
           <table class="table">
             <thead>
             <tr>
               <th>ID</th>
-              <th>版本号</th>
-              <th>生成时间</th>
-              <th>当前版本</th>
-              <th>来源Job</th>
-              <th>操作</th>
+              <th>Version</th>
+              <th>Generated At</th>
+              <th>Current</th>
+              <th>Job</th>
+              <th>Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -42,24 +44,24 @@
               <td>{{ v.id }}</td>
               <td>{{ v.versionNo }}</td>
               <td>{{ v.generatedAt || '-' }}</td>
-              <td>{{ v.isCurrent ? '是' : '否' }}</td>
+              <td>{{ v.isCurrent ? 'Yes' : 'No' }}</td>
               <td>{{ v.sourceJobId || '-' }}</td>
               <td class="ops">
-                <button class="mini" @click="selectVersion(v.id)">查看</button>
-                <button class="mini" @click="downloadVersion(v.id)">下载</button>
+                <button class="mini" @click="selectVersion(v.id)">Preview</button>
+                <button class="mini" @click="downloadVersion(v.id)">Download</button>
               </td>
             </tr>
-            <tr v-if="versions.length === 0"><td colspan="6" class="empty small">暂无版本</td></tr>
+            <tr v-if="versions.length === 0"><td colspan="6" class="empty small">No versions yet</td></tr>
             </tbody>
           </table>
         </section>
 
         <section class="card" v-if="selected">
           <div class="panel-head">
-            <h3>版本详情：{{ selected.versionNo }}</h3>
-            <button class="ghost mini" @click="downloadVersion(selected.id)">下载</button>
+            <h3>Version {{ selected.versionNo }}</h3>
+            <button class="ghost mini" @click="downloadVersion(selected.id)">Download</button>
           </div>
-          <p class="muted">变更摘要：{{ selected.changeSummary || '无' }}</p>
+          <p class="muted">Change summary: {{ selected.changeSummary || '-' }}</p>
           <pre class="preview">{{ selected.prdMarkdown }}</pre>
         </section>
       </main>
@@ -180,12 +182,6 @@ onMounted(loadVersions)
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
 .layout {
   display: grid;
   grid-template-columns: 350px 1fr;
@@ -199,6 +195,15 @@ onMounted(loadVersions)
   margin-bottom: 12px;
 }
 .tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.title-block h2 {
+  margin: 0;
+}
+.tab-actions {
   display: flex;
   gap: 8px;
 }
@@ -246,7 +251,7 @@ onMounted(loadVersions)
   max-height: 520px;
   overflow: auto;
 }
-.muted { color: #6b7280; }
+.muted { color: #6b7280; margin: 4px 0 0; }
 .empty { color: #6b7280; }
 .small { font-size: 12px; }
 .ghost,
@@ -265,6 +270,13 @@ onMounted(loadVersions)
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+  .tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tab-actions {
+    flex-wrap: wrap;
   }
 }
 </style>

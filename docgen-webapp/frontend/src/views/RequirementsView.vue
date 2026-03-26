@@ -1,16 +1,16 @@
 <template>
   <div class="container">
-    <header class="topbar">
-      <h1>需求管理 - 项目 {{ projectId }}</h1>
-      <div class="actions">
-        <button class="ghost" @click="goProjects">返回项目</button>
-      </div>
-    </header>
-
     <section class="panel">
-      <h3>创建需求</h3>
+      <div class="section-head">
+        <div>
+          <h2>Requirements</h2>
+          <p class="muted">Project {{ projectId }}</p>
+        </div>
+      </div>
+
+      <h3>Create Requirement</h3>
       <div class="form-grid">
-        <input v-model.trim="form.title" class="input" placeholder="需求标题" />
+        <input v-model.trim="form.title" class="input" placeholder="Requirement title" />
         <select v-model="form.priority" class="input">
           <option value="P0">P0</option>
           <option value="P1">P1</option>
@@ -24,24 +24,26 @@
           <option value="DONE">DONE</option>
         </select>
       </div>
-      <textarea v-model="form.summary" class="input" placeholder="需求摘要（可选）" />
+      <textarea v-model="form.summary" class="input" placeholder="Requirement summary" />
       <div class="row">
-        <button class="primary" :disabled="loading || !form.title" @click="createRequirement">创建需求</button>
-        <button class="ghost" :disabled="loading" @click="loadRequirements">刷新</button>
+        <button class="primary" :disabled="loading || !form.title" @click="createRequirement">Create Requirement</button>
+        <button class="ghost" :disabled="loading" @click="loadRequirements">Refresh</button>
       </div>
     </section>
 
     <section class="panel">
-      <h3>需求列表</h3>
+      <div class="section-head">
+        <h3>Requirement List</h3>
+      </div>
       <table class="table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>编号</th>
-            <th>标题</th>
-            <th>优先级</th>
-            <th>状态</th>
-            <th>操作</th>
+            <th>No</th>
+            <th>Title</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -52,12 +54,12 @@
             <td>{{ r.priority }}</td>
             <td>{{ r.status }}</td>
             <td class="ops">
-              <button class="mini" @click="openWorkbench(r.id)">需求工作台</button>
-              <button class="mini" @click="openVersions(r.id)">版本页</button>
+              <button class="mini" @click="openWorkbench(r.id)">Workbench</button>
+              <button class="mini" @click="openVersions(r.id)">Versions</button>
             </td>
           </tr>
           <tr v-if="requirements.length === 0">
-            <td colspan="6" class="muted">暂无数据</td>
+            <td colspan="6" class="muted">No requirements yet</td>
           </tr>
         </tbody>
       </table>
@@ -104,7 +106,7 @@ async function loadRequirements() {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId.value}/requirements`)
     requirements.value = res.data.data || []
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载失败'
+    error.value = e?.response?.data?.message || e?.message || 'Failed to load requirements'
   } finally {
     loading.value = false
   }
@@ -116,14 +118,14 @@ async function createRequirement() {
   success.value = ''
   try {
     await axios.post(`/api/projects/${projectId.value}/requirements`, form)
-    success.value = '需求创建成功'
+    success.value = 'Requirement created successfully'
     form.title = ''
     form.summary = ''
     form.priority = 'P2'
     form.status = 'DRAFT'
     await loadRequirements()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '创建失败'
+    error.value = e?.response?.data?.message || e?.message || 'Failed to create requirement'
     loading.value = false
   }
 }
@@ -136,17 +138,14 @@ function openVersions(requirementId: number) {
   router.push(`/requirements/${requirementId}/versions?projectId=${projectId.value}`)
 }
 
-function goProjects() {
-  router.push('/projects')
-}
-
 onMounted(loadRequirements)
 </script>
 
 <style scoped>
 .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
-.topbar { display:flex; justify-content:space-between; align-items:center; }
 .panel { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin-top:12px; }
+.section-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
+.section-head h2, .section-head h3 { margin:0; }
 .form-grid { display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px; }
 .input { width:100%; box-sizing:border-box; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-top:8px; }
 .row { display:flex; gap:10px; margin-top:10px; }
@@ -159,4 +158,3 @@ onMounted(loadRequirements)
 .error { color:#b91c1c; margin-top:10px; }
 .success { color:#166534; margin-top:10px; }
 </style>
-
