@@ -3,6 +3,12 @@
 Thumbs.db
 .idea/
 .vscode/
+.agents/
+.claude/
+.cursor/
+.trellis/
+**/.claude/
+**/.trellis/
 
 # Node
 node_modules/
@@ -22,6 +28,8 @@ build/
 out/
 tmp/
 temp/
+*.out.log
+*.err.log
 
 # Env / secrets
 .env
