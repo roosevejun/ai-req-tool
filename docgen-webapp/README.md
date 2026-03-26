@@ -78,8 +78,17 @@ docker compose up -d --build
 功能：自动执行「提交代码 + Docker down/build/up + 状态检查」。
 
 ```powershell
-cd g:\Agent\docgen-webapp
+cd C:\javaDevelop\ai-req-tool\docgen-webapp
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -CommitMessage "chore: auto rebuild"
+```
+
+说明：
+
+1. 脚本默认会自动解析 `ProjectRoot`，优先使用当前目录，其次回退到脚本所在目录的上一级（即 `docgen-webapp`）。
+2. 如果你不是在 `docgen-webapp` 目录下执行，可以显式传入 `-ProjectRoot`。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -ProjectRoot C:\javaDevelop\ai-req-tool\docgen-webapp
 ```
 
 仅预演：

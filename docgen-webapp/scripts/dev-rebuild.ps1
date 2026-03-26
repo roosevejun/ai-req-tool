@@ -1,5 +1,5 @@
 param(
-    [string]$ProjectRoot = "g:\Agent\docgen-webapp",
+    [string]$ProjectRoot = "",
     [string]$CommitMessage = "",
     [switch]$SkipCommit,
     [switch]$SkipBackend,
@@ -62,6 +62,44 @@ function Resolve-ProjectContext {
         GitRoot = $gitRoot
         ProjectRel = $projectRel
     }
+}
+
+function Test-ProjectRootCandidate {
+    param([string]$Root)
+    if ([string]::IsNullOrWhiteSpace($Root)) {
+        return $false
+    }
+    if (-not (Test-Path $Root)) {
+        return $false
+    }
+    $resolved = (Resolve-Path $Root).Path
+    $backendCompose = Join-Path $resolved "backend\docker-compose.yml"
+    $frontendCompose = Join-Path $resolved "frontend\docker-compose.yml"
+    return (Test-Path $backendCompose) -and (Test-Path $frontendCompose)
+}
+
+function Resolve-ProjectRoot {
+    param([string]$Root)
+
+    if (-not [string]::IsNullOrWhiteSpace($Root)) {
+        if (-not (Test-ProjectRootCandidate $Root)) {
+            throw "Invalid ProjectRoot: $Root. Expected a docgen-webapp directory containing backend/docker-compose.yml and frontend/docker-compose.yml."
+        }
+        return (Resolve-Path $Root).Path
+    }
+
+    $candidates = @(
+        $PWD.Path,
+        (Join-Path $PSScriptRoot "..")
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-ProjectRootCandidate $candidate) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+
+    throw "Cannot resolve ProjectRoot automatically. Please run the script inside docgen-webapp or pass -ProjectRoot explicitly."
 }
 
 function Is-ExcludedPath {
@@ -179,7 +217,8 @@ function Invoke-ComposeCycle {
     Invoke-Tool -Command ("docker compose -f `"$ComposeFile`" ps") -WorkDir $composeDir
 }
 
-$ctx = Resolve-ProjectContext -Root $ProjectRoot
+$resolvedProjectRoot = Resolve-ProjectRoot -Root $ProjectRoot
+$ctx = Resolve-ProjectContext -Root $resolvedProjectRoot
 $backendCompose = Join-Path $ctx.ProjectAbs "backend\docker-compose.yml"
 $frontendCompose = Join-Path $ctx.ProjectAbs "frontend\docker-compose.yml"
 
