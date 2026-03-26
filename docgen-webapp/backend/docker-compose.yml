@@ -9,11 +9,11 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_DRUID_URL: jdbc:postgresql://${DB_HOST:-192.168.20.201}:${DB_PORT:-5432}/${DB_NAME:-ai-req-tool}
       SPRING_DATASOURCE_DRUID_USERNAME: ${DB_USER:-postgres}
-      SPRING_DATASOURCE_DRUID_PASSWORD: ${DB_PASSWORD:-postgres}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      SPRING_DATASOURCE_DRUID_PASSWORD: ${DB_PASSWORD:-Hn3RAV8U64}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://aigc.x-see.cn/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-3.5-turbo}
       OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-30000}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-y1KyU7GbpFkNFEvXzA8BnVwVNkxJvW99ud3ETOP9ccNfqcyU}
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-change-me-in-prod}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
