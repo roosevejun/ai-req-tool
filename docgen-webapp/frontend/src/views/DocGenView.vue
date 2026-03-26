@@ -1,17 +1,5 @@
 <template>
   <div class="page">
-    <header class="topbar">
-      <div>
-        <h1>AI需求工作台</h1>
-        <p class="sub">统一入口：项目 -> 需求 -> AI生成</p>
-      </div>
-      <div class="actions">
-        <button class="ghost" @click="goSystem">系统管理</button>
-        <button class="ghost" @click="goProjects">项目中心</button>
-        <button class="ghost" @click="onLogout">退出登录</button>
-      </div>
-    </header>
-
     <div class="layout">
       <aside class="sidebar">
         <ProjectRequirementTree
@@ -25,17 +13,17 @@
 
       <main class="content">
         <section class="card">
-          <h3>当前上下文</h3>
+          <h3>瑜版挸澧犳稉濠佺瑓閺?/h3>
           <div class="meta-grid">
-            <div><strong>项目：</strong>{{ selectedProjectId || '-' }}</div>
-            <div><strong>需求：</strong>{{ selectedRequirementId || '-' }}</div>
+            <div><strong>妞ゅ湱娲伴敍?/strong>{{ selectedProjectId || '-' }}</div>
+            <div><strong>闂団偓濮瑰偊绱?/strong>{{ selectedRequirementId || '-' }}</div>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>在项目 {{ selectedProjectId }} 下创建需求</h3>
+          <h3>閸︺劑銆嶉惄?{{ selectedProjectId }} 娑撳鍨卞娲付濮?/h3>
           <div class="form-grid">
-            <input v-model.trim="reqForm.title" class="input" placeholder="需求标题" />
+            <input v-model.trim="reqForm.title" class="input" placeholder="闂団偓濮瑰倹鐖ｆ０? />
             <select v-model="reqForm.priority" class="input">
               <option value="P0">P0</option>
               <option value="P1">P1</option>
@@ -49,24 +37,24 @@
               <option value="DONE">DONE</option>
             </select>
           </div>
-          <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要（可选）" />
+          <textarea v-model="reqForm.summary" class="input" placeholder="闂団偓濮瑰倹鎲崇憰渚婄礄閸欘垶鈧绱? />
           <div class="row">
-            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">创建需求</button>
-            <button class="ghost" :disabled="loading" @click="loadRequirements">刷新列表</button>
+            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">閸掓稑缂撻棁鈧Ч?/button>
+            <button class="ghost" :disabled="loading" @click="loadRequirements">閸掗攱鏌婇崚妤勩€?/button>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>需求列表（项目 {{ selectedProjectId }}）</h3>
+          <h3>闂団偓濮瑰倸鍨悰顭掔礄妞ゅ湱娲?{{ selectedProjectId }}閿?/h3>
           <table class="table">
             <thead>
             <tr>
               <th>ID</th>
-              <th>编号</th>
-              <th>标题</th>
-              <th>优先级</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th>缂傛牕褰?/th>
+              <th>閺嶅洭顣?/th>
+              <th>娴兼ê鍘涚痪?/th>
+              <th>閻樿埖鈧?/th>
+              <th>閹垮秳缍?/th>
             </tr>
             </thead>
             <tbody>
@@ -77,13 +65,13 @@
               <td>{{ r.priority }}</td>
               <td>{{ r.status }}</td>
               <td class="ops">
-                <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">选中</button>
-                <button class="mini" @click="goWorkbench(r.id)">工作台</button>
-                <button class="mini" @click="goVersions(r.id)">版本</button>
+                <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">闁鑵?/button>
+                <button class="mini" @click="goWorkbench(r.id)">瀹搞儰缍旈崣?/button>
+                <button class="mini" @click="goVersions(r.id)">閻楀牊婀?/button>
               </td>
             </tr>
             <tr v-if="requirements.length === 0">
-              <td colspan="6" class="empty small">暂无需求</td>
+              <td colspan="6" class="empty small">閺嗗倹妫ら棁鈧Ч?/td>
             </tr>
             </tbody>
           </table>
@@ -91,18 +79,18 @@
 
         <section v-if="selectedRequirementId" class="card">
           <div class="row between">
-            <h3>AI工作台（需求 {{ selectedRequirementId }}）</h3>
+            <h3>AI瀹搞儰缍旈崣甯礄闂団偓濮?{{ selectedRequirementId }}閿?/h3>
             <div class="row">
-              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">打开完整工作台</button>
-              <button class="ghost mini" @click="goVersions(selectedRequirementId)">打开版本页</button>
+              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">閹垫挸绱戠€瑰本鏆ｅ銉ょ稊閸?/button>
+              <button class="ghost mini" @click="goVersions(selectedRequirementId)">閹垫挸绱戦悧鍫熸拱妞?/button>
             </div>
           </div>
           <DocGenPage :api-base="`/api/requirements/${selectedRequirementId}/docgen`" :draft-key="`docgen-draft-req-${selectedRequirementId}`" />
         </section>
 
         <section v-else class="card empty-state">
-          <h3>请先从左侧项目树选择一个需求</h3>
-          <p>选择后本页会直接展示该需求的 AI 对话区。</p>
+          <h3>鐠囧嘲鍘涙禒搴′箯娓氀囥€嶉惄顔界埐闁瀚ㄦ稉鈧稉顏堟付濮?/h3>
+          <p>闁瀚ㄩ崥搴㈡拱妞ゅ吀绱伴惄瀛樺复鐏炴洜銇氱拠銉╂付濮瑰倻娈?AI 鐎电鐦介崠鎭掆偓?/p>
         </section>
       </main>
     </div>
@@ -116,7 +104,6 @@
 import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { logout } from '../auth'
 import DocGenPage from '../components/DocGenPage.vue'
 import ProjectRequirementTree from '../components/ProjectRequirementTree.vue'
 
@@ -149,20 +136,7 @@ const reqForm = reactive({
 function showError(msg: string) {
   error.value = msg
 }
-
-function onLogout() {
-  logout()
-  router.push('/login')
-}
-
-function goSystem() {
-  router.push('/system')
-}
-
-function goProjects() {
-  router.push('/projects')
-}
-
+`r`n
 function goWorkbench(requirementId: number) {
   if (!selectedProjectId.value) return
   router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
@@ -194,7 +168,7 @@ async function createRequirement() {
   success.value = ''
   try {
     const res = await axios.post<ApiResponse<number>>(`/api/projects/${selectedProjectId.value}/requirements`, reqForm)
-    success.value = '需求创建成功'
+    success.value = '闂団偓濮瑰倸鍨卞鐑樺灇閸?
     reqForm.title = ''
     reqForm.summary = ''
     reqForm.priority = 'P2'
@@ -239,27 +213,10 @@ watch(selectedProjectId, async (pid) => {
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-h1 {
+}`r`nh1 {
   margin: 0;
   font-size: 24px;
-}
-.sub {
-  margin: 6px 0 0;
-  color: #6b7280;
-  font-size: 13px;
-}
-.actions {
-  display: flex;
-  gap: 10px;
-}
-.layout {
+}`r`n.layout {
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 14px;
