@@ -16,7 +16,9 @@ public class ProjectEntity {
     private String targetCustomerGroups;
     private String commercialValue;
     private String coreProductValue;
+    private String businessKnowledgeSummary;
     private String projectType;
+    private String creationMode;
     private String priority;
     private LocalDate startDate;
     private LocalDate targetDate;

@@ -1,0 +1,561 @@
+package com.tongtu.docgen.project.service;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tongtu.docgen.llm.AgentClient;
+import com.tongtu.docgen.project.mapper.ProjectChatMessageMapper;
+import com.tongtu.docgen.project.mapper.ProjectChatSessionMapper;
+import com.tongtu.docgen.project.mapper.ProjectSourceMaterialMapper;
+import com.tongtu.docgen.project.model.entity.ProjectChatMessageEntity;
+import com.tongtu.docgen.project.model.entity.ProjectChatSessionEntity;
+import com.tongtu.docgen.project.model.entity.ProjectSourceMaterialEntity;
+import com.tongtu.docgen.system.model.UserContext;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+public class ProjectAiConversationService {
+    private final ProjectChatSessionMapper sessionMapper;
+    private final ProjectChatMessageMapper messageMapper;
+    private final ProjectSourceMaterialMapper materialMapper;
+    private final AgentClient agentClient;
+    private final ObjectMapper objectMapper;
+    private final ProjectService projectService;
+
+    public ProjectAiConversationService(ProjectChatSessionMapper sessionMapper,
+                                        ProjectChatMessageMapper messageMapper,
+                                        ProjectSourceMaterialMapper materialMapper,
+                                        AgentClient agentClient,
+                                        ObjectMapper objectMapper,
+                                        ProjectService projectService) {
+        this.sessionMapper = sessionMapper;
+        this.messageMapper = messageMapper;
+        this.materialMapper = materialMapper;
+        this.agentClient = agentClient;
+        this.objectMapper = objectMapper;
+        this.projectService = projectService;
+    }
+
+    public record SourceMaterialInput(
+            String materialType,
+            String title,
+            String sourceUri,
+            String rawContent
+    ) {
+    }
+
+    public record ChatMessageView(
+            Long id,
+            String role,
+            String messageType,
+            String content,
+            Integer seqNo
+    ) {
+    }
+
+    public record SourceMaterialView(
+            Long id,
+            String materialType,
+            String title,
+            String sourceUri,
+            String rawContent,
+            String aiExtractedSummary
+    ) {
+    }
+
+    public record StructuredInfo(
+            String projectName,
+            String description,
+            String projectBackground,
+            String similarProducts,
+            String targetCustomerGroups,
+            String commercialValue,
+            String coreProductValue,
+            String businessKnowledgeSummary
+    ) {
+    }
+
+    public record ConversationView(
+            Long sessionId,
+            String jobId,
+            String status,
+            String assistantSummary,
+            String businessKnowledgeSummary,
+            StructuredInfo structuredInfo,
+            List<ChatMessageView> messages,
+            List<SourceMaterialView> materials,
+            boolean readyToCreate
+    ) {
+    }
+
+    public record ConversationTurnResult(
+            Long sessionId,
+            String jobId,
+            String assistantMessage,
+            List<String> followUpQuestions,
+            StructuredInfo structuredInfo,
+            boolean readyToCreate
+    ) {
+    }
+
+    public record MaterialSaveResult(
+            Long sessionId,
+            int materialCount
+    ) {
+    }
+
+    public record CreateProjectFromConversationResult(
+            Long sessionId,
+            Long projectId
+    ) {
+    }
+
+    public ConversationTurnResult startConversation(String traceId,
+                                                    String projectName,
+                                                    String description,
+                                                    List<SourceMaterialInput> materials,
+                                                    UserContext operator) {
+        ProjectChatSessionEntity session = new ProjectChatSessionEntity();
+        session.setProjectId(null);
+        session.setJobId("proj-chat-" + UUID.randomUUID().toString().replace("-", ""));
+        session.setStatus("ACTIVE");
+        session.setAssistantSummary(null);
+        session.setBusinessKnowledgeSummary(null);
+        session.setStructuredInfoJson(writeStructuredInfo(new StructuredInfo(
+                normalize(projectName),
+                normalize(description),
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+        )));
+        session.setReadyToCreate(false);
+        session.setCreatedBy(operator.getUserId());
+        sessionMapper.insert(session);
+
+        int seqNo = 0;
+        String initialUserContent = buildInitialUserContent(projectName, description);
+        if (!initialUserContent.isBlank()) {
+            seqNo = appendMessage(session.getId(), ++seqNo, "user", "chat", initialUserContent);
+        }
+        if (materials != null && !materials.isEmpty()) {
+            for (SourceMaterialInput item : materials) {
+                saveMaterial(session.getId(), null, item, operator.getUserId());
+                String materialMessage = formatMaterialMessage(item);
+                if (!materialMessage.isBlank()) {
+                    seqNo = appendMessage(session.getId(), ++seqNo, "user", "material", materialMessage);
+                }
+            }
+        }
+
+        StructuredInfo current = readStructuredInfo(session.getStructuredInfoJson());
+        AgentClient.ProjectProductGuideResult aiResult = runGuide(traceId, current, session.getId());
+        StructuredInfo next = mergeStructuredInfo(current, aiResult);
+        updateSessionAfterAi(session, aiResult, next);
+        appendAssistantMessages(session.getId(), seqNo, aiResult);
+        return toTurnResult(session, aiResult.assistantMessage(), aiResult.followUpQuestions(), next);
+    }
+
+    public ConversationTurnResult continueConversation(String traceId,
+                                                       Long sessionId,
+                                                       String message,
+                                                       UserContext operator) {
+        ProjectChatSessionEntity session = requireSession(sessionId);
+        StructuredInfo current = readStructuredInfo(session.getStructuredInfoJson());
+        int seqNo = messageMapper.findMaxSeqNo(sessionId);
+        if (message != null && !message.isBlank()) {
+            appendMessage(sessionId, ++seqNo, "user", "chat", message.trim());
+        }
+        AgentClient.ProjectProductGuideResult aiResult = runGuide(traceId, current, sessionId);
+        StructuredInfo next = mergeStructuredInfo(current, aiResult);
+        updateSessionAfterAi(session, aiResult, next);
+        appendAssistantMessages(sessionId, seqNo, aiResult);
+        return toTurnResult(session, aiResult.assistantMessage(), aiResult.followUpQuestions(), next);
+    }
+
+    public MaterialSaveResult addMaterials(Long sessionId,
+                                           List<SourceMaterialInput> materials,
+                                           UserContext operator) {
+        requireSession(sessionId);
+        if (materials == null || materials.isEmpty()) {
+            return new MaterialSaveResult(sessionId, 0);
+        }
+        int seqNo = messageMapper.findMaxSeqNo(sessionId);
+        int count = 0;
+        for (SourceMaterialInput item : materials) {
+            saveMaterial(sessionId, null, item, operator.getUserId());
+            String materialMessage = formatMaterialMessage(item);
+            if (!materialMessage.isBlank()) {
+                appendMessage(sessionId, ++seqNo, "user", "material", materialMessage);
+            }
+            count++;
+        }
+        return new MaterialSaveResult(sessionId, count);
+    }
+
+    public ConversationView getConversation(Long sessionId) {
+        ProjectChatSessionEntity session = requireSession(sessionId);
+        StructuredInfo structuredInfo = readStructuredInfo(session.getStructuredInfoJson());
+        List<ChatMessageView> messages = messageMapper.listBySessionId(sessionId).stream()
+                .map(item -> new ChatMessageView(item.getId(), item.getRole(), item.getMessageType(), item.getContent(), item.getSeqNo()))
+                .toList();
+        List<SourceMaterialView> materials = materialMapper.listBySessionId(sessionId).stream()
+                .map(item -> new SourceMaterialView(item.getId(), item.getMaterialType(), item.getTitle(), item.getSourceUri(), item.getRawContent(), item.getAiExtractedSummary()))
+                .toList();
+        return new ConversationView(
+                session.getId(),
+                session.getJobId(),
+                session.getStatus(),
+                defaultString(session.getAssistantSummary()),
+                defaultString(session.getBusinessKnowledgeSummary()),
+                structuredInfo,
+                messages,
+                materials,
+                Boolean.TRUE.equals(session.getReadyToCreate())
+        );
+    }
+
+    public CreateProjectFromConversationResult createProjectFromConversation(Long sessionId,
+                                                                            String projectKey,
+                                                                            String projectName,
+                                                                            String projectType,
+                                                                            String priority,
+                                                                            String visibility,
+                                                                            Long ownerUserId,
+                                                                            UserContext operator) {
+        ProjectChatSessionEntity session = requireSession(sessionId);
+        StructuredInfo structuredInfo = readStructuredInfo(session.getStructuredInfoJson());
+        String finalProjectName = firstNonBlank(projectName, structuredInfo.projectName());
+        if (finalProjectName.isBlank()) {
+            throw new IllegalArgumentException("Project name is required.");
+        }
+        Long projectId = projectService.createProjectFromAiConversation(
+                projectKey,
+                finalProjectName,
+                blankToNull(structuredInfo.description()),
+                blankToNull(structuredInfo.projectBackground()),
+                blankToNull(structuredInfo.similarProducts()),
+                blankToNull(structuredInfo.targetCustomerGroups()),
+                blankToNull(structuredInfo.commercialValue()),
+                blankToNull(structuredInfo.coreProductValue()),
+                blankToNull(structuredInfo.businessKnowledgeSummary()),
+                blankToNull(projectType),
+                blankToNull(priority),
+                null,
+                null,
+                null,
+                ownerUserId,
+                blankToNull(visibility),
+                operator
+        );
+        session.setProjectId(projectId);
+        session.setStatus("COMPLETED");
+        session.setReadyToCreate(true);
+        session.setBusinessKnowledgeSummary(structuredInfo.businessKnowledgeSummary());
+        session.setStructuredInfoJson(writeStructuredInfo(structuredInfo));
+        sessionMapper.update(session);
+        return new CreateProjectFromConversationResult(sessionId, projectId);
+    }
+
+    private AgentClient.ProjectProductGuideResult runGuide(String traceId, StructuredInfo current, Long sessionId) {
+        String descriptionWithMaterials = mergeDescriptionAndMaterials(current.description(), sessionId);
+        return agentClient.guideProjectProductInfo(
+                traceId,
+                current.projectName(),
+                descriptionWithMaterials,
+                current.projectBackground(),
+                current.similarProducts(),
+                current.targetCustomerGroups(),
+                current.commercialValue(),
+                current.coreProductValue(),
+                buildAnswers(sessionId)
+        );
+    }
+
+    private List<AgentClient.ProjectProductAnswer> buildAnswers(Long sessionId) {
+        List<AgentClient.ProjectProductAnswer> answers = new ArrayList<>();
+        for (ProjectChatMessageEntity item : messageMapper.listBySessionId(sessionId)) {
+            if (!"user".equalsIgnoreCase(item.getRole())) {
+                continue;
+            }
+            answers.add(new AgentClient.ProjectProductAnswer("", item.getContent()));
+        }
+        return answers;
+    }
+
+    private StructuredInfo mergeStructuredInfo(StructuredInfo current, AgentClient.ProjectProductGuideResult aiResult) {
+        String background = choose(aiResult.projectBackground(), current.projectBackground());
+        String similarProducts = choose(aiResult.similarProducts(), current.similarProducts());
+        String targetCustomers = choose(aiResult.targetCustomerGroups(), current.targetCustomerGroups());
+        String commercialValue = choose(aiResult.commercialValue(), current.commercialValue());
+        String coreValue = choose(aiResult.coreProductValue(), current.coreProductValue());
+        String businessKnowledgeSummary = summarizeKnowledge(current.projectName(), current.description(), background, targetCustomers, commercialValue, coreValue);
+        return new StructuredInfo(
+                current.projectName(),
+                current.description(),
+                background,
+                similarProducts,
+                targetCustomers,
+                commercialValue,
+                coreValue,
+                businessKnowledgeSummary
+        );
+    }
+
+    private void updateSessionAfterAi(ProjectChatSessionEntity session,
+                                      AgentClient.ProjectProductGuideResult aiResult,
+                                      StructuredInfo next) {
+        boolean readyToCreate = isReadyToCreate(next);
+        session.setStatus(readyToCreate ? "READY_TO_CREATE" : "ACTIVE");
+        session.setAssistantSummary(aiResult.assistantMessage());
+        session.setBusinessKnowledgeSummary(next.businessKnowledgeSummary());
+        session.setStructuredInfoJson(writeStructuredInfo(next));
+        session.setReadyToCreate(readyToCreate);
+        sessionMapper.update(session);
+    }
+
+    private void appendAssistantMessages(Long sessionId, int currentSeqNo, AgentClient.ProjectProductGuideResult aiResult) {
+        int seqNo = currentSeqNo;
+        if (aiResult.assistantMessage() != null && !aiResult.assistantMessage().isBlank()) {
+            appendMessage(sessionId, ++seqNo, "assistant", "chat", aiResult.assistantMessage());
+        }
+        if (aiResult.followUpQuestions() != null) {
+            for (String question : aiResult.followUpQuestions()) {
+                if (question == null || question.isBlank()) {
+                    continue;
+                }
+                appendMessage(sessionId, ++seqNo, "assistant", "question", question.trim());
+            }
+        }
+    }
+
+    private int appendMessage(Long sessionId, int seqNo, String role, String messageType, String content) {
+        ProjectChatMessageEntity entity = new ProjectChatMessageEntity();
+        entity.setSessionId(sessionId);
+        entity.setSeqNo(seqNo);
+        entity.setRole(role);
+        entity.setMessageType(messageType);
+        entity.setContent(content);
+        messageMapper.insert(entity);
+        return seqNo;
+    }
+
+    private void saveMaterial(Long sessionId, Long projectId, SourceMaterialInput input, Long userId) {
+        if (input == null) {
+            return;
+        }
+        ProjectSourceMaterialEntity entity = new ProjectSourceMaterialEntity();
+        entity.setSessionId(sessionId);
+        entity.setProjectId(projectId);
+        entity.setMaterialType(normalizeMaterialType(input.materialType()));
+        entity.setTitle(normalize(input.title()));
+        entity.setSourceUri(normalize(input.sourceUri()));
+        entity.setRawContent(normalize(input.rawContent()));
+        entity.setAiExtractedSummary(buildMaterialSummary(input));
+        entity.setCreatedBy(userId);
+        materialMapper.insert(entity);
+    }
+
+    private String buildMaterialSummary(SourceMaterialInput input) {
+        if (input == null) {
+            return null;
+        }
+        if (input.rawContent() != null && !input.rawContent().isBlank()) {
+            String content = input.rawContent().trim();
+            return content.length() <= 500 ? content : content.substring(0, 500);
+        }
+        return normalize(input.sourceUri());
+    }
+
+    private String formatMaterialMessage(SourceMaterialInput input) {
+        if (input == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        if (input.title() != null && !input.title().isBlank()) {
+            parts.add("Title: " + input.title().trim());
+        }
+        if (input.sourceUri() != null && !input.sourceUri().isBlank()) {
+            parts.add("URL: " + input.sourceUri().trim());
+        }
+        if (input.rawContent() != null && !input.rawContent().isBlank()) {
+            parts.add("Content: " + input.rawContent().trim());
+        }
+        return String.join("\n", parts);
+    }
+
+    private String buildInitialUserContent(String projectName, String description) {
+        List<String> parts = new ArrayList<>();
+        if (projectName != null && !projectName.isBlank()) {
+            parts.add("Project Name: " + projectName.trim());
+        }
+        if (description != null && !description.isBlank()) {
+            parts.add("Description: " + description.trim());
+        }
+        return String.join("\n", parts);
+    }
+
+    private String mergeDescriptionAndMaterials(String description, Long sessionId) {
+        StringBuilder sb = new StringBuilder(defaultString(description));
+        List<ProjectSourceMaterialEntity> materials = materialMapper.listBySessionId(sessionId);
+        if (!materials.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append("\n\n");
+            }
+            sb.append("Reference Materials:\n");
+            for (ProjectSourceMaterialEntity item : materials) {
+                if (item.getTitle() != null && !item.getTitle().isBlank()) {
+                    sb.append("- ").append(item.getTitle().trim());
+                } else {
+                    sb.append("- Material");
+                }
+                if (item.getSourceUri() != null && !item.getSourceUri().isBlank()) {
+                    sb.append(" (").append(item.getSourceUri().trim()).append(")");
+                }
+                if (item.getAiExtractedSummary() != null && !item.getAiExtractedSummary().isBlank()) {
+                    sb.append(": ").append(item.getAiExtractedSummary().trim());
+                }
+                sb.append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private String summarizeKnowledge(String projectName,
+                                      String description,
+                                      String projectBackground,
+                                      String targetCustomers,
+                                      String commercialValue,
+                                      String coreValue) {
+        List<String> sections = new ArrayList<>();
+        if (projectName != null && !projectName.isBlank()) {
+            sections.add("项目名称：" + projectName.trim());
+        }
+        if (description != null && !description.isBlank()) {
+            sections.add("项目概述：" + description.trim());
+        }
+        if (projectBackground != null && !projectBackground.isBlank()) {
+            sections.add("项目背景：" + projectBackground.trim());
+        }
+        if (targetCustomers != null && !targetCustomers.isBlank()) {
+            sections.add("目标客户群体：" + targetCustomers.trim());
+        }
+        if (commercialValue != null && !commercialValue.isBlank()) {
+            sections.add("商业价值：" + commercialValue.trim());
+        }
+        if (coreValue != null && !coreValue.isBlank()) {
+            sections.add("产品核心价值：" + coreValue.trim());
+        }
+        return String.join("\n", sections).trim();
+    }
+
+    private boolean isReadyToCreate(StructuredInfo info) {
+        int score = 0;
+        if (info.projectBackground() != null && !info.projectBackground().isBlank()) score++;
+        if (info.targetCustomerGroups() != null && !info.targetCustomerGroups().isBlank()) score++;
+        if (info.commercialValue() != null && !info.commercialValue().isBlank()) score++;
+        if (info.coreProductValue() != null && !info.coreProductValue().isBlank()) score++;
+        if (info.businessKnowledgeSummary() != null && !info.businessKnowledgeSummary().isBlank()) score++;
+        return score >= 3;
+    }
+
+    private StructuredInfo readStructuredInfo(String json) {
+        if (json == null || json.isBlank()) {
+            return new StructuredInfo("", "", "", "", "", "", "", "");
+        }
+        try {
+            Map<String, String> map = objectMapper.readValue(json, new TypeReference<>() {});
+            return new StructuredInfo(
+                    defaultString(map.get("projectName")),
+                    defaultString(map.get("description")),
+                    defaultString(map.get("projectBackground")),
+                    defaultString(map.get("similarProducts")),
+                    defaultString(map.get("targetCustomerGroups")),
+                    defaultString(map.get("commercialValue")),
+                    defaultString(map.get("coreProductValue")),
+                    defaultString(map.get("businessKnowledgeSummary"))
+            );
+        } catch (Exception e) {
+            return new StructuredInfo("", "", "", "", "", "", "", "");
+        }
+    }
+
+    private String writeStructuredInfo(StructuredInfo info) {
+        try {
+            Map<String, String> map = new LinkedHashMap<>();
+            map.put("projectName", defaultString(info.projectName()));
+            map.put("description", defaultString(info.description()));
+            map.put("projectBackground", defaultString(info.projectBackground()));
+            map.put("similarProducts", defaultString(info.similarProducts()));
+            map.put("targetCustomerGroups", defaultString(info.targetCustomerGroups()));
+            map.put("commercialValue", defaultString(info.commercialValue()));
+            map.put("coreProductValue", defaultString(info.coreProductValue()));
+            map.put("businessKnowledgeSummary", defaultString(info.businessKnowledgeSummary()));
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize structured project info.", e);
+        }
+    }
+
+    private ConversationTurnResult toTurnResult(ProjectChatSessionEntity session,
+                                                String assistantMessage,
+                                                List<String> followUpQuestions,
+                                                StructuredInfo structuredInfo) {
+        return new ConversationTurnResult(
+                session.getId(),
+                session.getJobId(),
+                defaultString(assistantMessage),
+                followUpQuestions == null ? List.of() : followUpQuestions,
+                structuredInfo,
+                Boolean.TRUE.equals(session.getReadyToCreate())
+        );
+    }
+
+    private ProjectChatSessionEntity requireSession(Long sessionId) {
+        ProjectChatSessionEntity session = sessionMapper.findById(sessionId);
+        if (session == null) {
+            throw new IllegalArgumentException("Project AI conversation not found.");
+        }
+        return session;
+    }
+
+    private String normalizeMaterialType(String value) {
+        if (value == null || value.isBlank()) {
+            return "TEXT";
+        }
+        String normalized = value.trim().toUpperCase();
+        return ("URL".equals(normalized) || "TEXT".equals(normalized)) ? normalized : "TEXT";
+    }
+
+    private String choose(String preferred, String fallback) {
+        return preferred != null && !preferred.isBlank() ? preferred.trim() : defaultString(fallback);
+    }
+
+    private String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+}

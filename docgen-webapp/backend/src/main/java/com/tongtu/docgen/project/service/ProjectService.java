@@ -56,6 +56,85 @@ public class ProjectService {
             String visibility,
             UserContext operator
     ) {
+        return createProjectInternal(
+                projectKey,
+                projectName,
+                description,
+                projectBackground,
+                similarProducts,
+                targetCustomerGroups,
+                commercialValue,
+                coreProductValue,
+                null,
+                projectType,
+                "FORM",
+                priority,
+                startDate,
+                targetDate,
+                tags,
+                ownerUserId,
+                visibility,
+                operator
+        );
+    }
+
+    public Long createProjectFromAiConversation(String projectKey,
+                                                String projectName,
+                                                String description,
+                                                String projectBackground,
+                                                String similarProducts,
+                                                String targetCustomerGroups,
+                                                String commercialValue,
+                                                String coreProductValue,
+                                                String businessKnowledgeSummary,
+                                                String projectType,
+                                                String priority,
+                                                LocalDate startDate,
+                                                LocalDate targetDate,
+                                                String tags,
+                                                Long ownerUserId,
+                                                String visibility,
+                                                UserContext operator) {
+        return createProjectInternal(
+                projectKey,
+                projectName,
+                description,
+                projectBackground,
+                similarProducts,
+                targetCustomerGroups,
+                commercialValue,
+                coreProductValue,
+                businessKnowledgeSummary,
+                projectType,
+                "AI_CHAT",
+                priority,
+                startDate,
+                targetDate,
+                tags,
+                ownerUserId,
+                visibility,
+                operator
+        );
+    }
+
+    private Long createProjectInternal(String projectKey,
+                                       String projectName,
+                                       String description,
+                                       String projectBackground,
+                                       String similarProducts,
+                                       String targetCustomerGroups,
+                                       String commercialValue,
+                                       String coreProductValue,
+                                       String businessKnowledgeSummary,
+                                       String projectType,
+                                       String creationMode,
+                                       String priority,
+                                       LocalDate startDate,
+                                       LocalDate targetDate,
+                                       String tags,
+                                       Long ownerUserId,
+                                       String visibility,
+                                       UserContext operator) {
         if (projectMapper.findByKey(projectKey) != null) {
             throw new IllegalArgumentException("Project key already exists.");
         }
@@ -74,7 +153,9 @@ public class ProjectService {
         p.setTargetCustomerGroups(normalizeBlank(targetCustomerGroups));
         p.setCommercialValue(normalizeBlank(commercialValue));
         p.setCoreProductValue(normalizeBlank(coreProductValue));
+        p.setBusinessKnowledgeSummary(normalizeBlank(businessKnowledgeSummary));
         p.setProjectType(normalizeBlank(projectType));
+        p.setCreationMode(creationMode == null || creationMode.isBlank() ? "FORM" : creationMode);
         p.setPriority(priority == null || priority.isBlank() ? "P2" : priority);
         p.setStartDate(startDate);
         p.setTargetDate(targetDate);
@@ -121,7 +202,9 @@ public class ProjectService {
         p.setTargetCustomerGroups(targetCustomerGroups == null ? old.getTargetCustomerGroups() : normalizeBlank(targetCustomerGroups));
         p.setCommercialValue(commercialValue == null ? old.getCommercialValue() : normalizeBlank(commercialValue));
         p.setCoreProductValue(coreProductValue == null ? old.getCoreProductValue() : normalizeBlank(coreProductValue));
+        p.setBusinessKnowledgeSummary(old.getBusinessKnowledgeSummary());
         p.setProjectType(projectType == null ? old.getProjectType() : normalizeBlank(projectType));
+        p.setCreationMode(old.getCreationMode());
         p.setPriority(priority == null ? old.getPriority() : priority);
         p.setStartDate(finalStartDate);
         p.setTargetDate(finalTargetDate);

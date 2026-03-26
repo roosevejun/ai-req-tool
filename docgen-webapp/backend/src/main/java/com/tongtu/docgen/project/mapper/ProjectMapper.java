@@ -13,7 +13,9 @@ public interface ProjectMapper {
                    project_background AS projectBackground, similar_products AS similarProducts,
                    target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
                    core_product_value AS coreProductValue,
-                   project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
+                   business_knowledge_summary AS businessKnowledgeSummary,
+                   project_type AS projectType, creation_mode AS creationMode,
+                   priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
                    created_at AS createdAt, updated_at AS updatedAt
@@ -27,7 +29,9 @@ public interface ProjectMapper {
                    project_background AS projectBackground, similar_products AS similarProducts,
                    target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
                    core_product_value AS coreProductValue,
-                   project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
+                   business_knowledge_summary AS businessKnowledgeSummary,
+                   project_type AS projectType, creation_mode AS creationMode,
+                   priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
                    created_at AS createdAt, updated_at AS updatedAt
@@ -42,7 +46,9 @@ public interface ProjectMapper {
                    project_background AS projectBackground, similar_products AS similarProducts,
                    target_customer_groups AS targetCustomerGroups, commercial_value AS commercialValue,
                    core_product_value AS coreProductValue,
-                   project_type AS projectType, priority, start_date AS startDate, target_date AS targetDate, tags,
+                   business_knowledge_summary AS businessKnowledgeSummary,
+                   project_type AS projectType, creation_mode AS creationMode,
+                   priority, start_date AS startDate, target_date AS targetDate, tags,
                    visibility, status,
                    owner_user_id AS ownerUserId, created_by AS createdBy, updated_by AS updatedBy,
                    created_at AS createdAt, updated_at AS updatedAt
@@ -55,11 +61,13 @@ public interface ProjectMapper {
     @Insert("""
             INSERT INTO pm_project(project_key, project_name, description, project_background, similar_products,
                                    target_customer_groups, commercial_value, core_product_value,
-                                   project_type, priority, start_date, target_date, tags, visibility, status,
+                                   business_knowledge_summary, project_type, creation_mode,
+                                   priority, start_date, target_date, tags, visibility, status,
                                    owner_user_id, created_by, updated_by, created_at, updated_at)
             VALUES(#{projectKey}, #{projectName}, #{description}, #{projectBackground}, #{similarProducts},
                    #{targetCustomerGroups}, #{commercialValue}, #{coreProductValue},
-                   #{projectType}, #{priority}, #{startDate}, #{targetDate}, #{tags}, #{visibility}, #{status},
+                   #{businessKnowledgeSummary}, #{projectType}, #{creationMode},
+                   #{priority}, #{startDate}, #{targetDate}, #{tags}, #{visibility}, #{status},
                    #{ownerUserId}, #{createdBy}, #{updatedBy}, NOW(), NOW())
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
@@ -74,7 +82,9 @@ public interface ProjectMapper {
                 target_customer_groups = #{targetCustomerGroups},
                 commercial_value = #{commercialValue},
                 core_product_value = #{coreProductValue},
+                business_knowledge_summary = #{businessKnowledgeSummary},
                 project_type = #{projectType},
+                creation_mode = #{creationMode},
                 priority = #{priority},
                 start_date = #{startDate},
                 target_date = #{targetDate},

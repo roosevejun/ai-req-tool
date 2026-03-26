@@ -6,6 +6,7 @@
         <p class="sub">按“项目 -> 需求 -> 版本”组织，支持创建项目、维护项目信息、创建需求与进入 AI 工作台。</p>
       </div>
       <div class="top-actions">
+        <button class="ghost" @click="goCreateAi">AI 创建项目</button>
         <button class="ghost" @click="goDocgen">进入 AI 需求整理页</button>
       </div>
     </header>
@@ -111,7 +112,7 @@
 
           <button
             class="primary block"
-            :disabled="loading || !projectForm.projectKey || !projectForm.projectName"
+            :disabled="loading"
             @click="createProject"
           >
             创建项目
@@ -701,6 +702,12 @@ async function loadVersions(requirementId: number) {
 }
 
 async function createProject() {
+  if (!projectForm.projectKey.trim() || !projectForm.projectName.trim()) {
+    error.value = '请先填写项目 Key 和项目名称'
+    success.value = ''
+    return
+  }
+
   if (projectForm.startDate && projectForm.targetDate && projectForm.targetDate < projectForm.startDate) {
     error.value = '计划结束日期不能早于计划开始日期'
     return
@@ -969,6 +976,10 @@ function openVersions(requirementId: number) {
 
 function goDocgen() {
   router.push('/docgen')
+}
+
+function goCreateAi() {
+  router.push('/projects/create-ai')
 }
 
 onMounted(async () => {
