@@ -13,17 +13,17 @@
 
       <main class="content">
         <section class="card">
-          <h3>瑜版挸澧犳稉濠佺瑓閺?/h3>
+          <h3>Current Context</h3>
           <div class="meta-grid">
-            <div><strong>妞ゅ湱娲伴敍?/strong>{{ selectedProjectId || '-' }}</div>
-            <div><strong>闂団偓濮瑰偊绱?/strong>{{ selectedRequirementId || '-' }}</div>
+            <div><strong>Project ID:</strong> {{ selectedProjectId || '-' }}</div>
+            <div><strong>Requirement ID:</strong> {{ selectedRequirementId || '-' }}</div>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>閸︺劑銆嶉惄?{{ selectedProjectId }} 娑撳鍨卞娲付濮?/h3>
+          <h3>Create Requirement For Project {{ selectedProjectId }}</h3>
           <div class="form-grid">
-            <input v-model.trim="reqForm.title" class="input" placeholder="闂団偓濮瑰倹鐖ｆ０? />
+            <input v-model.trim="reqForm.title" class="input" placeholder="Requirement title" />
             <select v-model="reqForm.priority" class="input">
               <option value="P0">P0</option>
               <option value="P1">P1</option>
@@ -37,60 +37,67 @@
               <option value="DONE">DONE</option>
             </select>
           </div>
-          <textarea v-model="reqForm.summary" class="input" placeholder="闂団偓濮瑰倹鎲崇憰渚婄礄閸欘垶鈧绱? />
+          <textarea v-model="reqForm.summary" class="input" placeholder="Requirement summary" />
           <div class="row">
-            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">閸掓稑缂撻棁鈧Ч?/button>
-            <button class="ghost" :disabled="loading" @click="loadRequirements">閸掗攱鏌婇崚妤勩€?/button>
+            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">
+              Create Requirement
+            </button>
+            <button class="ghost" :disabled="loading" @click="loadRequirements">Refresh List</button>
           </div>
         </section>
 
         <section v-if="selectedProjectId" class="card">
-          <h3>闂団偓濮瑰倸鍨悰顭掔礄妞ゅ湱娲?{{ selectedProjectId }}閿?/h3>
+          <h3>Requirements In Project {{ selectedProjectId }}</h3>
           <table class="table">
             <thead>
-            <tr>
-              <th>ID</th>
-              <th>缂傛牕褰?/th>
-              <th>閺嶅洭顣?/th>
-              <th>娴兼ê鍘涚痪?/th>
-              <th>閻樿埖鈧?/th>
-              <th>閹垮秳缍?/th>
-            </tr>
+              <tr>
+                <th>ID</th>
+                <th>No.</th>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
-            <tr v-for="r in requirements" :key="r.id">
-              <td>{{ r.id }}</td>
-              <td>{{ r.requirementNo }}</td>
-              <td>{{ r.title }}</td>
-              <td>{{ r.priority }}</td>
-              <td>{{ r.status }}</td>
-              <td class="ops">
-                <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">闁鑵?/button>
-                <button class="mini" @click="goWorkbench(r.id)">瀹搞儰缍旈崣?/button>
-                <button class="mini" @click="goVersions(r.id)">閻楀牊婀?/button>
-              </td>
-            </tr>
-            <tr v-if="requirements.length === 0">
-              <td colspan="6" class="empty small">閺嗗倹妫ら棁鈧Ч?/td>
-            </tr>
+              <tr v-for="r in requirements" :key="r.id">
+                <td>{{ r.id }}</td>
+                <td>{{ r.requirementNo }}</td>
+                <td>{{ r.title }}</td>
+                <td>{{ r.priority }}</td>
+                <td>{{ r.status }}</td>
+                <td class="ops">
+                  <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">
+                    Select
+                  </button>
+                  <button class="mini" @click="goWorkbench(r.id)">Workbench</button>
+                  <button class="mini" @click="goVersions(r.id)">Versions</button>
+                </td>
+              </tr>
+              <tr v-if="requirements.length === 0">
+                <td colspan="6" class="empty small">No requirements yet.</td>
+              </tr>
             </tbody>
           </table>
         </section>
 
         <section v-if="selectedRequirementId" class="card">
           <div class="row between">
-            <h3>AI瀹搞儰缍旈崣甯礄闂団偓濮?{{ selectedRequirementId }}閿?/h3>
+            <h3>AI Drafting For Requirement {{ selectedRequirementId }}</h3>
             <div class="row">
-              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">閹垫挸绱戠€瑰本鏆ｅ銉ょ稊閸?/button>
-              <button class="ghost mini" @click="goVersions(selectedRequirementId)">閹垫挸绱戦悧鍫熸拱妞?/button>
+              <button class="ghost mini" @click="goWorkbench(selectedRequirementId)">Open Workbench</button>
+              <button class="ghost mini" @click="goVersions(selectedRequirementId)">View Versions</button>
             </div>
           </div>
-          <DocGenPage :api-base="`/api/requirements/${selectedRequirementId}/docgen`" :draft-key="`docgen-draft-req-${selectedRequirementId}`" />
+          <DocGenPage
+            :api-base="`/api/requirements/${selectedRequirementId}/docgen`"
+            :draft-key="`docgen-draft-req-${selectedRequirementId}`"
+          />
         </section>
 
         <section v-else class="card empty-state">
-          <h3>鐠囧嘲鍘涙禒搴′箯娓氀囥€嶉惄顔界埐闁瀚ㄦ稉鈧稉顏堟付濮?/h3>
-          <p>闁瀚ㄩ崥搴㈡拱妞ゅ吀绱伴惄瀛樺复鐏炴洜銇氱拠銉╂付濮瑰倻娈?AI 鐎电鐦介崠鎭掆偓?/p>
+          <h3>Select a requirement to start AI drafting</h3>
+          <p>Choose a project and requirement from the left tree, then the AI drafting panel will appear here.</p>
         </section>
       </main>
     </div>
@@ -136,7 +143,7 @@ const reqForm = reactive({
 function showError(msg: string) {
   error.value = msg
 }
-`r`n
+
 function goWorkbench(requirementId: number) {
   if (!selectedProjectId.value) return
   router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
@@ -168,7 +175,7 @@ async function createRequirement() {
   success.value = ''
   try {
     const res = await axios.post<ApiResponse<number>>(`/api/projects/${selectedProjectId.value}/requirements`, reqForm)
-    success.value = '闂団偓濮瑰倸鍨卞鐑樺灇閸?
+    success.value = 'Requirement created successfully.'
     reqForm.title = ''
     reqForm.summary = ''
     reqForm.priority = 'P2'
@@ -193,7 +200,7 @@ async function onSelectProject(projectId: number) {
 async function onSelectRequirement(payload: { projectId: number; requirementId: number }) {
   selectedProjectId.value = payload.projectId
   selectedRequirementId.value = payload.requirementId
-  if (requirements.value.length === 0 || !requirements.value.some(r => r.id === payload.requirementId)) {
+  if (requirements.value.length === 0 || !requirements.value.some((r) => r.id === payload.requirementId)) {
     await loadRequirements()
   }
 }
@@ -213,14 +220,14 @@ watch(selectedProjectId, async (pid) => {
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-}`r`nh1 {
-  margin: 0;
-  font-size: 24px;
-}`r`n.layout {
+}
+
+.layout {
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 14px;
 }
+
 .card {
   background: #fff;
   border: 1px solid #dbe2ea;
@@ -228,17 +235,20 @@ watch(selectedProjectId, async (pid) => {
   padding: 12px;
   margin-bottom: 12px;
 }
+
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
   gap: 10px;
   font-size: 14px;
 }
+
 .form-grid {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
   gap: 10px;
 }
+
 .input {
   width: 100%;
   box-sizing: border-box;
@@ -248,36 +258,43 @@ watch(selectedProjectId, async (pid) => {
   margin-top: 8px;
   background: #fff;
 }
+
 textarea.input {
   min-height: 72px;
   resize: vertical;
 }
+
 .table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
 }
+
 .table th,
 .table td {
   border: 1px solid #e5e7eb;
   padding: 8px;
   font-size: 13px;
 }
+
 .ops {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .row {
   display: flex;
   gap: 10px;
   margin-top: 10px;
   flex-wrap: wrap;
 }
+
 .between {
   justify-content: space-between;
   align-items: center;
 }
+
 .primary,
 .ghost,
 .mini {
@@ -286,46 +303,57 @@ textarea.input {
   padding: 8px 12px;
   cursor: pointer;
 }
+
 .primary {
   background: #2563eb;
   color: #fff;
   border-color: #2563eb;
 }
+
 .ghost,
 .mini {
   background: #f3f4f6;
 }
+
 .mini {
   padding: 5px 9px;
   font-size: 12px;
 }
+
 .error {
   margin-top: 8px;
   color: #b91c1c;
 }
+
 .success {
   margin-top: 8px;
   color: #166534;
 }
+
 .empty {
   color: #6b7280;
 }
+
 .small {
   font-size: 12px;
 }
+
 .empty-state {
   min-height: 180px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
+
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
   }
+
   .meta-grid {
     grid-template-columns: 1fr;
   }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
