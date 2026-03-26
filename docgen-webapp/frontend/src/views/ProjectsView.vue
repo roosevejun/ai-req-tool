@@ -1,16 +1,5 @@
 <template>
   <div class="page">
-    <header class="topbar">
-      <div>
-        <h1>项目 / 需求管理</h1>
-        <p class="sub">按“项目 -> 需求 -> 版本”组织，支持创建项目、维护项目信息、创建需求与进入 AI 工作台。</p>
-      </div>
-      <div class="top-actions">
-        <button class="ghost" @click="goCreateAi">AI 创建项目</button>
-        <button class="ghost" @click="goDocgen">进入 AI 需求整理页</button>
-      </div>
-    </header>
-
     <div class="layout">
       <aside class="sidebar">
         <section class="card">
@@ -178,6 +167,7 @@
               <h3>项目详情</h3>
               <div class="row compact">
                 <button v-if="!editingProject" class="ghost mini" @click="startEditProject">编辑项目</button>
+                <button v-if="!editingProject" class="danger mini" :disabled="loading" @click="deleteProject">删除项目</button>
                 <template v-else>
                   <button class="primary mini" :disabled="loading || !projectEditForm.projectName" @click="saveProjectEdit">
                     保存修改
@@ -758,6 +748,62 @@ function cancelProjectEdit() {
   }
 }
 
+function findProjectFallbackId(projectId: number): number | null {
+  const currentIndex = projects.value.findIndex((project) => project.id === projectId)
+  if (currentIndex < 0) {
+    return projects.value[0]?.id ?? null
+  }
+
+  const nextProject = projects.value[currentIndex + 1]
+  if (nextProject) {
+    return nextProject.id
+  }
+
+  const previousProject = projects.value[currentIndex - 1]
+  return previousProject?.id ?? null
+}
+
+async function deleteProject() {
+  if (!selectedProject.value) return
+  const project = selectedProject.value
+  const fallbackProjectId = findProjectFallbackId(project.id)
+  const confirmed = window.confirm(
+    `确认删除项目“${project.projectName}”吗？\n\n` +
+    '删除后将同时清理以下内容：\n' +
+    '1. 项目基础信息\n' +
+    '2. 项目成员\n' +
+    '3. 项目下的全部需求\n' +
+    '4. 需求版本与需求对话记录\n' +
+    '5. 项目 AI 会话、聊天消息与来源资料\n\n' +
+    '该操作不可恢复。'
+  )
+  if (!confirmed) {
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.delete(`/api/projects/${project.id}`)
+    success.value = 'Project deleted successfully'
+    editingProject.value = false
+    delete requirementsMap.value[project.id]
+    delete projectMembersMap.value[project.id]
+    selectedProjectId.value = fallbackProjectId
+    selectedRequirementId.value = null
+    resetProjectEditForm()
+    await loadProjects()
+    if (fallbackProjectId && projects.value.some((item) => item.id === fallbackProjectId)) {
+      await selectProject(fallbackProjectId)
+    }
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || 'Failed to delete project'
+  } finally {
+    loading.value = false
+  }
+}
+
 async function saveProjectEdit() {
   if (!selectedProject.value) return
   if (!projectEditForm.projectName) {
@@ -974,14 +1020,6 @@ function openVersions(requirementId: number) {
   router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`)
 }
 
-function goDocgen() {
-  router.push('/docgen')
-}
-
-function goCreateAi() {
-  router.push('/projects/create-ai')
-}
-
 onMounted(async () => {
   await Promise.all([loadProjects(), loadUserOptions()])
 })
@@ -995,25 +1033,10 @@ onMounted(async () => {
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #111827;
 }
-.topbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.top-actions {
-  display: flex;
-  gap: 8px;
-}
 h1 {
   margin: 0;
   font-size: 24px;
   letter-spacing: 0.2px;
-}
-.sub {
-  margin: 6px 0 0;
-  color: #6b7280;
-  font-size: 13px;
 }
 .layout {
   display: grid;
@@ -1144,6 +1167,7 @@ textarea.input {
 }
 .primary,
 .ghost,
+.danger,
 .mini {
   border-radius: 8px;
   border: 1px solid #d1d5db;
@@ -1156,8 +1180,14 @@ textarea.input {
   border-color: #2563eb;
 }
 .ghost,
+.danger,
 .mini {
   background: #f3f4f6;
+}
+.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 .mini {
   padding: 5px 9px;

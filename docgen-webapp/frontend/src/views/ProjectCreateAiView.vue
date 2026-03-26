@@ -1,14 +1,5 @@
 <template>
   <div class="page">
-    <header class="topbar">
-      <div>
-        <h1>AI 对话式创建项目</h1>
-        <p class="sub">
-          先让 AI 帮我们理解项目背景、客户、价值和参考资料，再把结果沉淀为正式项目。
-        </p>
-      </div>
-    </header>
-
     <div class="layout">
       <section class="card">
         <h3>启动会话</h3>
@@ -565,14 +556,6 @@ async function createProject() {
   color: #111827;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.topbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.sub,
 .muted {
   color: #6b7280;
 }

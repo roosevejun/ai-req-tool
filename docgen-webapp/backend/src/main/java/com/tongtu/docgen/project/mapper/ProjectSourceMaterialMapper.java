@@ -37,4 +37,10 @@ public interface ProjectSourceMaterialMapper {
             ORDER BY id ASC
             """)
     List<ProjectSourceMaterialEntity> listByProjectId(@Param("projectId") Long projectId);
+
+    @Delete("""
+            DELETE FROM pm_project_source_material
+            WHERE project_id = #{projectId}
+            """)
+    int deleteByProjectId(@Param("projectId") Long projectId);
 }

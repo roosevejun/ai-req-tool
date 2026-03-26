@@ -159,6 +159,16 @@ public class ProjectController {
         return ApiResponse.ok(traceId, "OK");
     }
 
+    @DeleteMapping("/{id}")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Delete project")
+    public ApiResponse<Object> deleteProject(@PathVariable("id") Long id) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        projectService.deleteProject(id);
+        return ApiResponse.ok(traceId, "OK");
+    }
+
     @GetMapping("/{id}/members")
     @Operation(summary = "List project members")
     public ApiResponse<Object> listProjectMembers(@PathVariable("id") Long id) {

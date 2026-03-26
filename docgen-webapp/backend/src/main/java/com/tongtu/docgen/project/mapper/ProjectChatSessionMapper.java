@@ -3,6 +3,8 @@ package com.tongtu.docgen.project.mapper;
 import com.tongtu.docgen.project.model.entity.ProjectChatSessionEntity;
 import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
 @Mapper
 public interface ProjectChatSessionMapper {
     @Insert("""
@@ -42,6 +44,19 @@ public interface ProjectChatSessionMapper {
             """)
     ProjectChatSessionEntity findByJobId(@Param("jobId") String jobId);
 
+    @Select("""
+            SELECT id, project_id AS projectId, job_id AS jobId, status,
+                   assistant_summary AS assistantSummary,
+                   business_knowledge_summary AS businessKnowledgeSummary,
+                   structured_info_json AS structuredInfoJson,
+                   ready_to_create AS readyToCreate,
+                   created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+            FROM pm_project_chat_session
+            WHERE project_id = #{projectId}
+            ORDER BY id ASC
+            """)
+    List<ProjectChatSessionEntity> listByProjectId(@Param("projectId") Long projectId);
+
     @Update("""
             UPDATE pm_project_chat_session
             SET project_id = #{projectId},
@@ -54,4 +69,10 @@ public interface ProjectChatSessionMapper {
             WHERE id = #{id}
             """)
     int update(ProjectChatSessionEntity entity);
+
+    @Delete("""
+            DELETE FROM pm_project_chat_session
+            WHERE project_id = #{projectId}
+            """)
+    int deleteByProjectId(@Param("projectId") Long projectId);
 }

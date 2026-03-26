@@ -144,6 +144,12 @@ public interface ProjectMapper {
             WHERE id = #{projectId}
             """)
     int updateTags(@Param("projectId") Long projectId, @Param("tags") String tags, @Param("updatedBy") Long updatedBy);
+
+    @Delete("""
+            DELETE FROM pm_project
+            WHERE id = #{projectId}
+            """)
+    int deleteProject(@Param("projectId") Long projectId);
 }
 
 

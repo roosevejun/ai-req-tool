@@ -1,6 +1,8 @@
 package com.tongtu.docgen.project.service;
 
 import com.tongtu.docgen.project.mapper.ProjectMapper;
+import com.tongtu.docgen.project.mapper.ProjectChatSessionMapper;
+import com.tongtu.docgen.project.mapper.ProjectSourceMaterialMapper;
 import com.tongtu.docgen.project.model.entity.ProjectEntity;
 import com.tongtu.docgen.project.model.entity.ProjectMemberEntity;
 import com.tongtu.docgen.llm.AgentClient;
@@ -17,11 +19,19 @@ import java.util.Set;
 @Service
 public class ProjectService {
     private final ProjectMapper projectMapper;
+    private final ProjectChatSessionMapper projectChatSessionMapper;
+    private final ProjectSourceMaterialMapper projectSourceMaterialMapper;
     private final SystemUserMapper systemUserMapper;
     private final AgentClient agentClient;
 
-    public ProjectService(ProjectMapper projectMapper, SystemUserMapper systemUserMapper, AgentClient agentClient) {
+    public ProjectService(ProjectMapper projectMapper,
+                          ProjectChatSessionMapper projectChatSessionMapper,
+                          ProjectSourceMaterialMapper projectSourceMaterialMapper,
+                          SystemUserMapper systemUserMapper,
+                          AgentClient agentClient) {
         this.projectMapper = projectMapper;
+        this.projectChatSessionMapper = projectChatSessionMapper;
+        this.projectSourceMaterialMapper = projectSourceMaterialMapper;
         this.systemUserMapper = systemUserMapper;
         this.agentClient = agentClient;
     }
@@ -243,6 +253,17 @@ public class ProjectService {
         getById(projectId);
         if (projectMapper.deleteMember(projectId, userId) <= 0) {
             throw new IllegalArgumentException("Project member not found.");
+        }
+    }
+
+    public void deleteProject(Long projectId) {
+        getById(projectId);
+        // Force-remove project AI artifacts before deleting the project itself.
+        // Chat messages are deleted via pm_project_chat_session ON DELETE CASCADE.
+        projectSourceMaterialMapper.deleteByProjectId(projectId);
+        projectChatSessionMapper.deleteByProjectId(projectId);
+        if (projectMapper.deleteProject(projectId) <= 0) {
+            throw new IllegalArgumentException("Project not found.");
         }
     }
 
