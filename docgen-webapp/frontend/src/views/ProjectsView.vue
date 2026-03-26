@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <div class="page">
     <header class="topbar">
       <div>
         <h1>项目 / 需求管理</h1>
-        <p class="sub">按“项目 -> 需求1/2/3 -> 版本”组织，支持创建项目、创建需求与进入 AI 工作台。</p>
+        <p class="sub">按“项目 -> 需求 -> 版本”组织，支持创建项目、维护项目信息、创建需求与进入 AI 工作台。</p>
       </div>
       <div class="top-actions">
         <button class="ghost" @click="goDocgen">进入 AI 需求整理页</button>
@@ -173,40 +173,107 @@
 
         <template v-else>
           <section class="card">
-            <h3>项目详情</h3>
-            <div class="meta-grid">
-              <div><strong>ID:</strong> {{ selectedProject.id }}</div>
-              <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
-              <div><strong>项目名称:</strong> {{ selectedProject.projectName }}</div>
-              <div><strong>项目类型:</strong> {{ selectedProject.projectType || '-' }}</div>
-              <div><strong>优先级:</strong> {{ selectedProject.priority || '-' }}</div>
-              <div><strong>可见性:</strong> {{ selectedProject.visibility }}</div>
-              <div><strong>计划开始:</strong> {{ selectedProject.startDate || '-' }}</div>
-              <div><strong>计划结束:</strong> {{ selectedProject.targetDate || '-' }}</div>
-              <div><strong>状态:</strong> {{ selectedProject.status }}</div>
-              <div><strong>标签:</strong> {{ selectedProject.tags || '-' }}</div>
+            <div class="section-head">
+              <h3>项目详情</h3>
+              <div class="row compact">
+                <button v-if="!editingProject" class="ghost mini" @click="startEditProject">编辑项目</button>
+                <template v-else>
+                  <button class="primary mini" :disabled="loading || !projectEditForm.projectName" @click="saveProjectEdit">
+                    保存修改
+                  </button>
+                  <button class="ghost mini" :disabled="loading" @click="cancelProjectEdit">取消</button>
+                </template>
+              </div>
             </div>
-            <p class="summary">{{ selectedProject.description || '暂无项目描述' }}</p>
-            <div class="detail-section">
-              <h4>项目背景</h4>
-              <p class="summary">{{ selectedProject.projectBackground || '暂无项目背景' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>类似产品参考</h4>
-              <p class="summary">{{ selectedProject.similarProducts || '暂无类似产品参考' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>目标客户群体</h4>
-              <p class="summary">{{ selectedProject.targetCustomerGroups || '暂无目标客户群体' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>商业价值</h4>
-              <p class="summary">{{ selectedProject.commercialValue || '暂无商业价值描述' }}</p>
-            </div>
-            <div class="detail-section">
-              <h4>产品核心价值</h4>
-              <p class="summary">{{ selectedProject.coreProductValue || '暂无产品核心价值' }}</p>
-            </div>
+
+            <template v-if="!editingProject">
+              <div class="meta-grid">
+                <div><strong>ID:</strong> {{ selectedProject.id }}</div>
+                <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
+                <div><strong>项目名称:</strong> {{ selectedProject.projectName }}</div>
+                <div><strong>项目类型:</strong> {{ selectedProject.projectType || '-' }}</div>
+                <div><strong>优先级:</strong> {{ selectedProject.priority || '-' }}</div>
+                <div><strong>可见性:</strong> {{ selectedProject.visibility }}</div>
+                <div><strong>计划开始:</strong> {{ selectedProject.startDate || '-' }}</div>
+                <div><strong>计划结束:</strong> {{ selectedProject.targetDate || '-' }}</div>
+                <div><strong>状态:</strong> {{ selectedProject.status }}</div>
+                <div><strong>标签:</strong> {{ selectedProject.tags || '-' }}</div>
+              </div>
+              <p class="summary">{{ selectedProject.description || '暂无项目描述' }}</p>
+              <div class="detail-section">
+                <h4>项目背景</h4>
+                <p class="summary">{{ selectedProject.projectBackground || '暂无项目背景' }}</p>
+              </div>
+              <div class="detail-section">
+                <h4>类似产品参考</h4>
+                <p class="summary">{{ selectedProject.similarProducts || '暂无类似产品参考' }}</p>
+              </div>
+              <div class="detail-section">
+                <h4>目标客户群体</h4>
+                <p class="summary">{{ selectedProject.targetCustomerGroups || '暂无目标客户群体' }}</p>
+              </div>
+              <div class="detail-section">
+                <h4>商业价值</h4>
+                <p class="summary">{{ selectedProject.commercialValue || '暂无商业价值描述' }}</p>
+              </div>
+              <div class="detail-section">
+                <h4>产品核心价值</h4>
+                <p class="summary">{{ selectedProject.coreProductValue || '暂无产品核心价值' }}</p>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="meta-grid">
+                <div><strong>ID:</strong> {{ selectedProject.id }}</div>
+                <div><strong>项目Key:</strong> {{ selectedProject.projectKey }}</div>
+              </div>
+
+              <div class="form-grid form-grid-project detail-edit-grid">
+                <input v-model.trim="projectEditForm.projectName" class="input" placeholder="项目名称" />
+                <select v-model="projectEditForm.projectType" class="input">
+                  <option value="">项目类型（可选）</option>
+                  <option value="PRODUCT">产品型</option>
+                  <option value="PLATFORM">平台型</option>
+                  <option value="OPS">运维型</option>
+                  <option value="INTEGRATION">集成型</option>
+                </select>
+                <select v-model="projectEditForm.priority" class="input">
+                  <option value="P0">P0</option>
+                  <option value="P1">P1</option>
+                  <option value="P2">P2</option>
+                  <option value="P3">P3</option>
+                </select>
+                <select v-model="projectEditForm.visibility" class="input">
+                  <option value="PRIVATE">PRIVATE</option>
+                  <option value="ORG">ORG</option>
+                </select>
+                <select v-model="projectEditForm.status" class="input">
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="ARCHIVED">ARCHIVED</option>
+                  <option value="PAUSED">PAUSED</option>
+                </select>
+                <select v-model="projectEditForm.ownerUserId" class="input">
+                  <option value="">负责人（保持不变）</option>
+                  <option v-for="u in userOptions" :key="u.id" :value="String(u.id)">
+                    {{ u.displayName || u.username }} ({{ u.username }})
+                  </option>
+                </select>
+                <input v-model="projectEditForm.startDate" type="date" class="input" />
+                <input v-model="projectEditForm.targetDate" type="date" class="input" />
+                <input v-model.trim="projectEditForm.tags" class="input" placeholder="标签（逗号分隔）" />
+              </div>
+
+              <textarea v-model="projectEditForm.description" class="input" placeholder="项目描述（可选）" />
+
+              <div class="detail-section">
+                <h4>产品信息维护</h4>
+                <textarea v-model="projectEditForm.projectBackground" class="input" placeholder="项目背景（可选）" />
+                <textarea v-model="projectEditForm.similarProducts" class="input" placeholder="类似产品 / 参考产品（可选）" />
+                <textarea v-model="projectEditForm.targetCustomerGroups" class="input" placeholder="目标客户群体（可选）" />
+                <textarea v-model="projectEditForm.commercialValue" class="input" placeholder="商业价值（可选）" />
+                <textarea v-model="projectEditForm.coreProductValue" class="input" placeholder="产品核心价值（可选）" />
+              </div>
+            </template>
           </section>
 
           <section class="card">
@@ -226,7 +293,7 @@
                 <option value="QA">QA</option>
                 <option value="VIEWER">VIEWER</option>
               </select>
-              <button class="primary" :disabled="loading || !memberForm.userId" @click="addProjectMember">
+              <button class="primary" :disabled="loading || !(memberForm.selectedUserId || memberForm.userId)" @click="addProjectMember">
                 添加成员
               </button>
             </div>
@@ -363,6 +430,7 @@ type ProjectItem = {
   tags?: string
   visibility: string
   status: string
+  ownerUserId?: number
 }
 type RequirementItem = {
   id: number
@@ -420,6 +488,8 @@ const userOptions = ref<UserOption[]>([])
 const expandedProjectIds = ref<number[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
+const editingProject = ref(false)
+
 const projectAiLoading = ref(false)
 const projectAiMessage = ref('')
 const projectAiQuestions = ref<string[]>([])
@@ -432,23 +502,8 @@ const projectAiSuggestions = reactive({
   coreProductValue: ''
 })
 
-const projectForm = reactive({
-  projectKey: '',
-  projectName: '',
-  description: '',
-  projectBackground: '',
-  similarProducts: '',
-  targetCustomerGroups: '',
-  commercialValue: '',
-  coreProductValue: '',
-  projectType: '',
-  priority: 'P2',
-  startDate: '',
-  targetDate: '',
-  tags: '',
-  ownerUserId: '',
-  visibility: 'PRIVATE'
-})
+const projectForm = reactive(createProjectFormState())
+const projectEditForm = reactive(createProjectEditFormState())
 
 const reqForm = reactive({
   title: '',
@@ -467,18 +522,90 @@ const selectedRequirement = computed(() => {
   if (!selectedProjectId.value || !selectedRequirementId.value) return null
   return requirementsOf(selectedProjectId.value).find((r) => r.id === selectedRequirementId.value) || null
 })
-const canGuideProjectInfo = computed(() => {
-  return !!(projectForm.projectName || projectForm.description || projectForm.projectBackground)
-})
-const hasProjectAiSuggestions = computed(() => {
-  return !!(
-    projectAiSuggestions.projectBackground ||
-    projectAiSuggestions.similarProducts ||
-    projectAiSuggestions.targetCustomerGroups ||
-    projectAiSuggestions.commercialValue ||
-    projectAiSuggestions.coreProductValue
-  )
-})
+const canGuideProjectInfo = computed(() => !!(projectForm.projectName || projectForm.description || projectForm.projectBackground))
+const hasProjectAiSuggestions = computed(() => !!(
+  projectAiSuggestions.projectBackground ||
+  projectAiSuggestions.similarProducts ||
+  projectAiSuggestions.targetCustomerGroups ||
+  projectAiSuggestions.commercialValue ||
+  projectAiSuggestions.coreProductValue
+))
+
+function createProjectFormState() {
+  return {
+    projectKey: '',
+    projectName: '',
+    description: '',
+    projectBackground: '',
+    similarProducts: '',
+    targetCustomerGroups: '',
+    commercialValue: '',
+    coreProductValue: '',
+    projectType: '',
+    priority: 'P2',
+    startDate: '',
+    targetDate: '',
+    tags: '',
+    ownerUserId: '',
+    visibility: 'PRIVATE'
+  }
+}
+
+function createProjectEditFormState() {
+  return {
+    projectName: '',
+    description: '',
+    projectBackground: '',
+    similarProducts: '',
+    targetCustomerGroups: '',
+    commercialValue: '',
+    coreProductValue: '',
+    projectType: '',
+    priority: 'P2',
+    startDate: '',
+    targetDate: '',
+    tags: '',
+    ownerUserId: '',
+    visibility: 'PRIVATE',
+    status: 'ACTIVE'
+  }
+}
+
+function assignProjectForm(target: ReturnType<typeof createProjectFormState>, source: ReturnType<typeof createProjectFormState>) {
+  Object.assign(target, source)
+}
+
+function assignProjectEditForm(target: ReturnType<typeof createProjectEditFormState>, source: ReturnType<typeof createProjectEditFormState>) {
+  Object.assign(target, source)
+}
+
+function resetCreateProjectForm() {
+  assignProjectForm(projectForm, createProjectFormState())
+}
+
+function resetProjectEditForm() {
+  assignProjectEditForm(projectEditForm, createProjectEditFormState())
+}
+
+function fillProjectEditForm(project: ProjectItem) {
+  assignProjectEditForm(projectEditForm, {
+    projectName: project.projectName || '',
+    description: project.description || '',
+    projectBackground: project.projectBackground || '',
+    similarProducts: project.similarProducts || '',
+    targetCustomerGroups: project.targetCustomerGroups || '',
+    commercialValue: project.commercialValue || '',
+    coreProductValue: project.coreProductValue || '',
+    projectType: project.projectType || '',
+    priority: project.priority || 'P2',
+    startDate: project.startDate || '',
+    targetDate: project.targetDate || '',
+    tags: project.tags || '',
+    ownerUserId: project.ownerUserId ? String(project.ownerUserId) : '',
+    visibility: project.visibility || 'PRIVATE',
+    status: project.status || 'ACTIVE'
+  })
+}
 
 function requirementsOf(projectId: number): RequirementItem[] {
   return requirementsMap.value[projectId] || []
@@ -516,8 +643,19 @@ async function loadProjects() {
       await selectProject(queryProjectId)
       return
     }
-    if (!selectedProjectId.value && projects.value.length > 0) {
+    if (selectedProjectId.value && projects.value.some((p) => p.id === selectedProjectId.value)) {
+      if (editingProject.value && selectedProject.value) {
+        fillProjectEditForm(selectedProject.value)
+      }
+      return
+    }
+    if (projects.value.length > 0) {
       await selectProject(projects.value[0].id)
+    } else {
+      selectedProjectId.value = null
+      selectedRequirementId.value = null
+      editingProject.value = false
+      resetProjectEditForm()
     }
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '加载项目失败'
@@ -531,7 +669,6 @@ async function loadUserOptions() {
     const res = await axios.get<ApiResponse<UserOption[]>>('/api/system/users')
     userOptions.value = (res.data.data || []).filter((u) => u.status !== 'DISABLED')
   } catch {
-    // Not all users have system admin permission; keep manual input fallback.
     userOptions.value = []
   }
 }
@@ -584,21 +721,7 @@ async function createProject() {
     const createdProjectId = res.data.data
 
     success.value = '项目创建成功'
-    projectForm.projectKey = ''
-    projectForm.projectName = ''
-    projectForm.description = ''
-    projectForm.projectBackground = ''
-    projectForm.similarProducts = ''
-    projectForm.targetCustomerGroups = ''
-    projectForm.commercialValue = ''
-    projectForm.coreProductValue = ''
-    projectForm.projectType = ''
-    projectForm.priority = 'P2'
-    projectForm.startDate = ''
-    projectForm.targetDate = ''
-    projectForm.tags = ''
-    projectForm.ownerUserId = ''
-    projectForm.visibility = 'PRIVATE'
+    resetCreateProjectForm()
     resetProjectAiGuide()
     await loadProjects()
     if (createdProjectId) {
@@ -606,6 +729,67 @@ async function createProject() {
     }
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '创建项目失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function startEditProject() {
+  if (!selectedProject.value) return
+  fillProjectEditForm(selectedProject.value)
+  editingProject.value = true
+  error.value = ''
+  success.value = ''
+}
+
+function cancelProjectEdit() {
+  editingProject.value = false
+  if (selectedProject.value) {
+    fillProjectEditForm(selectedProject.value)
+  } else {
+    resetProjectEditForm()
+  }
+}
+
+async function saveProjectEdit() {
+  if (!selectedProject.value) return
+  if (!projectEditForm.projectName) {
+    error.value = '请填写项目名称'
+    return
+  }
+  if (projectEditForm.startDate && projectEditForm.targetDate && projectEditForm.targetDate < projectEditForm.startDate) {
+    error.value = '计划结束日期不能早于计划开始日期'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.put(`/api/projects/${selectedProject.value.id}`, {
+      projectName: projectEditForm.projectName,
+      description: projectEditForm.description || null,
+      projectBackground: projectEditForm.projectBackground || null,
+      similarProducts: projectEditForm.similarProducts || null,
+      targetCustomerGroups: projectEditForm.targetCustomerGroups || null,
+      commercialValue: projectEditForm.commercialValue || null,
+      coreProductValue: projectEditForm.coreProductValue || null,
+      projectType: projectEditForm.projectType || null,
+      priority: projectEditForm.priority || null,
+      startDate: projectEditForm.startDate || null,
+      targetDate: projectEditForm.targetDate || null,
+      tags: projectEditForm.tags || null,
+      visibility: projectEditForm.visibility || null,
+      status: projectEditForm.status || null,
+      ownerUserId: projectEditForm.ownerUserId ? Number(projectEditForm.ownerUserId) : null
+    })
+    success.value = '项目信息更新成功'
+    editingProject.value = false
+    const projectId = selectedProject.value.id
+    await loadProjects()
+    await selectProject(projectId)
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '更新项目信息失败'
   } finally {
     loading.value = false
   }
@@ -704,20 +888,29 @@ async function createRequirement() {
 async function selectProject(projectId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = null
+  editingProject.value = false
+  resetProjectEditForm()
   if (!isExpanded(projectId)) {
     expandedProjectIds.value.push(projectId)
   }
   await Promise.all([loadRequirements(projectId), loadProjectMembers(projectId)])
+  if (selectedProject.value) {
+    fillProjectEditForm(selectedProject.value)
+  }
 }
 
 async function selectRequirement(projectId: number, requirementId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = requirementId
+  editingProject.value = false
   if (!isExpanded(projectId)) {
     expandedProjectIds.value.push(projectId)
   }
   if (!requirementsMap.value[projectId]) {
     await loadRequirements(projectId)
+  }
+  if (selectedProject.value) {
+    fillProjectEditForm(selectedProject.value)
   }
   await loadVersions(requirementId)
 }
@@ -796,6 +989,10 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 12px;
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
 }
 h1 {
   margin: 0;
@@ -895,7 +1092,8 @@ h1 {
   grid-template-columns: 2fr 1fr 1fr;
   gap: 10px;
 }
-.form-grid-project {
+.form-grid-project,
+.detail-edit-grid {
   grid-template-columns: repeat(2, minmax(120px, 1fr));
 }
 .input {
@@ -973,6 +1171,7 @@ textarea.input {
   justify-content: space-between;
   gap: 10px;
 }
+.section-head h3,
 .section-head h4,
 .ai-preview h4,
 .detail-section h4 {
@@ -1055,7 +1254,8 @@ textarea.input {
     grid-template-columns: 1fr;
   }
   .form-grid,
-  .form-grid-project {
+  .form-grid-project,
+  .detail-edit-grid {
     grid-template-columns: 1fr;
   }
 }
