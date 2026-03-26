@@ -145,6 +145,9 @@ $env:HARBOR_PASSWORD = "your-password"
 
 - `harbor.ahtongtu.cn/ai-req-tool/backend:<tag>`
 - `harbor.ahtongtu.cn/ai-req-tool/frontend:<tag>`
+- 默认同时推送：
+  `harbor.ahtongtu.cn/ai-req-tool/backend:latest`
+  `harbor.ahtongtu.cn/ai-req-tool/frontend:latest`
 
 其中 `<tag>` 默认取当前 git 短提交号，也可以显式指定。
 
@@ -163,8 +166,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.
   -Repository ai-req-tool `
   -Username $env:HARBOR_USERNAME `
   -Password $env:HARBOR_PASSWORD `
-  -Tag v0.1.0 `
-  -AlsoPushLatest
+  -Tag v0.1.0
 ```
 
 仅预演：
@@ -176,6 +178,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.
 可参考示例环境文件：
 
 - `harbor.env.example`
+
+如果你只想推版本标签，不推 `latest`：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\docker-build-push.ps1 -SkipLatest
+```
 
 ---
 

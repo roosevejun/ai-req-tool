@@ -7,7 +7,7 @@ param(
     [string]$Tag = "",
     [string]$Username = $env:HARBOR_USERNAME,
     [string]$Password = $env:HARBOR_PASSWORD,
-    [switch]$AlsoPushLatest,
+    [switch]$SkipLatest,
     [switch]$SkipLogin,
     [switch]$DryRun
 )
@@ -113,7 +113,7 @@ function Publish-Image {
     Invoke-Tool -Command ("docker build -t `"$taggedImage`" `"$ContextDir`"") -WorkDir $ContextDir
     Invoke-Tool -Command ("docker push `"$taggedImage`"")
 
-    if ($AlsoPushLatest) {
+    if (-not $SkipLatest) {
         $latestImage = "${ImageBase}:latest"
         Invoke-Tool -Command ("docker tag `"$taggedImage`" `"$latestImage`"")
         Invoke-Tool -Command ("docker push `"$latestImage`"")
