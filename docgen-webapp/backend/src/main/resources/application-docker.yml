@@ -22,6 +22,9 @@ mybatis:
     jdbc-type-for-null: "NULL"
 
 agent:
+  db:
+    autoUpgrade:
+      enabled: ${DB_AUTO_UPGRADE_ENABLED:true}
   template:
     templateDir: /app/templates
     templateGlob: "01-PRD-*.md"

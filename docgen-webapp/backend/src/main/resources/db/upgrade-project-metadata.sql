@@ -1,5 +1,8 @@
 -- Upgrade: extend pm_project with richer metadata fields (PostgreSQL)
 -- Safe to run multiple times.
+-- Use this for existing databases that were initialized before the new project product fields were added.
+-- New databases should still be created from init-project-requirement.sql.
+-- This file is auto-detected and auto-applied by backend startup when DB auto upgrade is enabled.
 
 ALTER TABLE IF EXISTS pm_project
     ADD COLUMN IF NOT EXISTS project_background TEXT;

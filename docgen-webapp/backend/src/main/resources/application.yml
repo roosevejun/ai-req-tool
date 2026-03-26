@@ -8,6 +8,9 @@ spring:
     name: docgen-agent-backend
 
 agent:
+  db:
+    autoUpgrade:
+      enabled: ${DB_AUTO_UPGRADE_ENABLED:true}
   auth:
     token:
       secret: ${AUTH_TOKEN_SECRET:change-me-in-prod}

@@ -61,6 +61,20 @@ npm run build
 
 1. `backend/src/main/resources/db/init-system.sql`
 2. `backend/src/main/resources/db/init-project-requirement.sql`
+3. 对已有数据库执行增量升级：
+   `backend/src/main/resources/db/upgrade-project-metadata.sql`
+
+说明：
+- 新部署的新库，执行两个初始化脚本即可。
+- 已存在的老库，在保留原数据的前提下，需要补执行 `upgrade-project-metadata.sql`。
+- 该升级脚本会补齐项目产品化相关字段：
+  `project_background`
+  `similar_products`
+  `target_customer_groups`
+  `commercial_value`
+  `core_product_value`
+- 后端启动时会自动扫描并执行 `db/upgrade-*.sql`，并把执行记录写入 `sys_schema_upgrade`。
+- 如果升级脚本内容发生变化，系统会根据脚本校验值重新执行，因此升级 SQL 必须保持幂等。
 
 回滚脚本：
 
@@ -79,6 +93,7 @@ npm run build
 - 可以使用 `application-local.yml`
 - 可使用本地数据库
 - 可以较宽松日志级别（INFO/DEBUG）
+- 默认开启数据库自动升级，可通过 `DB_AUTO_UPGRADE_ENABLED=false` 临时关闭
 
 ## TEST
 
@@ -135,7 +150,7 @@ Swagger 地址（默认）：
 
 1. 后端 `mvn test` 通过
 2. 前端 `npm run build` 成功
-3. 数据库初始化脚本已执行
+3. 数据库初始化脚本或升级脚本已执行
 4. 管理员账号已改密（非默认）
 5. 生产密钥已完成注入
 6. Swagger 关键接口验证通过（登录、项目、需求、生成）

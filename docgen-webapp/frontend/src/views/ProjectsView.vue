@@ -573,7 +573,7 @@ async function createProject() {
   error.value = ''
   success.value = ''
   try {
-    await axios.post('/api/projects', {
+    const res = await axios.post<ApiResponse<number>>('/api/projects', {
       ...projectForm,
       ownerUserId: projectForm.ownerUserId ? Number(projectForm.ownerUserId) : null,
       startDate: projectForm.startDate || null,
@@ -581,6 +581,7 @@ async function createProject() {
       projectType: projectForm.projectType || null,
       tags: projectForm.tags || null
     })
+    const createdProjectId = res.data.data
 
     success.value = '项目创建成功'
     projectForm.projectKey = ''
@@ -600,6 +601,9 @@ async function createProject() {
     projectForm.visibility = 'PRIVATE'
     resetProjectAiGuide()
     await loadProjects()
+    if (createdProjectId) {
+      await selectProject(createdProjectId)
+    }
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '创建项目失败'
   } finally {

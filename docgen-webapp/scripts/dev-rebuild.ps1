@@ -4,7 +4,7 @@ param(
     [switch]$SkipCommit,
     [switch]$SkipBackend,
     [switch]$SkipFrontend,
-    [switch]$NoCache = $true,
+    [switch]$NoCache,
     [switch]$DryRun
 )
 
@@ -62,6 +62,17 @@ function Resolve-ProjectContext {
         GitRoot = $gitRoot
         ProjectRel = $projectRel
     }
+}
+
+function Test-DockerRegistryNetworkFailure {
+    param([string]$Message)
+    if ([string]::IsNullOrWhiteSpace($Message)) {
+        return $false
+    }
+    return $Message -match "registry-1\.docker\.io" -or
+           $Message -match "failed to resolve source metadata" -or
+           $Message -match "connectex" -or
+           $Message -match "no HTTPS proxy"
 }
 
 function Test-ProjectRootCandidate {
@@ -204,7 +215,27 @@ function Invoke-ComposeCycle {
     if ($NoCache) {
         $buildCmd += " --no-cache"
     }
-    Invoke-Tool -Command $buildCmd -WorkDir $composeDir
+    try {
+        Invoke-Tool -Command $buildCmd -WorkDir $composeDir
+    }
+    catch {
+        $message = $_.Exception.Message
+        if (Test-DockerRegistryNetworkFailure $message) {
+            throw @"
+Docker build failed because Docker could not reach the upstream image registry.
+This is usually a Docker Desktop network/proxy/mirror issue, not an application code issue.
+
+Recommended actions:
+1. Retry without --no-cache so local base image cache can be reused.
+2. Configure Docker Desktop proxy or registry mirror.
+3. Verify Docker can access docker.io from the current network.
+
+Original error:
+$message
+"@
+        }
+        throw
+    }
 
     Write-Step ("Docker up: " + $ComposeFile)
     if ([string]::IsNullOrWhiteSpace($ServiceName)) {

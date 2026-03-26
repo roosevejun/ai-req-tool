@@ -28,13 +28,34 @@ DocGen WebApp 是一个面向需求管理场景的 AI 工具，支持：
 
 1. `backend/src/main/resources/db/init-system.sql`
 2. `backend/src/main/resources/db/init-project-requirement.sql`
-3. （增量升级）`backend/src/main/resources/db/upgrade-project-metadata.sql`
+3. 如果数据库是老库，再执行增量升级脚本：`backend/src/main/resources/db/upgrade-project-metadata.sql`
+
+说明：
+
+1. 新库初始化：执行前两个 `init-*.sql` 即可。
+2. 老库升级：在原有库结构基础上，额外执行 `upgrade-project-metadata.sql`。
+3. 本次升级会补齐项目产品化相关字段，包括：
+   - `project_background`
+   - `similar_products`
+   - `target_customer_groups`
+   - `commercial_value`
+   - `core_product_value`
+   - 以及已有的 `project_type / priority / start_date / target_date / tags`
+4. 从当前版本开始，后端启动时会自动扫描 `backend/src/main/resources/db/upgrade-*.sql`。
+5. 系统会将已执行脚本及其校验值记录到数据库表 `sys_schema_upgrade`。
+6. 如果升级脚本内容发生变化，系统会重新执行该脚本，因此升级 SQL 必须保持幂等。
 
 ### 2) 启动后端
 
 ```powershell
 cd g:\Agent\docgen-webapp\backend
 mvn spring-boot:run
+```
+
+如需临时关闭自动升级：
+
+```powershell
+$env:DB_AUTO_UPGRADE_ENABLED = "false"
 ```
 
 后端地址：`http://localhost:8080`
@@ -86,9 +107,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -C
 
 1. 脚本默认会自动解析 `ProjectRoot`，优先使用当前目录，其次回退到脚本所在目录的上一级（即 `docgen-webapp`）。
 2. 如果你不是在 `docgen-webapp` 目录下执行，可以显式传入 `-ProjectRoot`。
+3. 脚本默认使用 Docker 缓存构建，避免在网络受限时频繁重新拉取基础镜像。
+4. 如果你确实需要强制全量重建，可以显式加 `-NoCache`。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -ProjectRoot C:\javaDevelop\ai-req-tool\docgen-webapp
+```
+
+强制无缓存构建：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev-rebuild.ps1 -NoCache
 ```
 
 仅预演：
