@@ -47,6 +47,12 @@ public class ProjectAiConversationController {
     ) {
     }
 
+    public record ProjectChatRequest(
+            Long sessionId,
+            @NotBlank @Size(max = 8000) String message
+    ) {
+    }
+
     public record KnowledgePreviewRequest(
             @Size(max = 4000) String query
     ) {
@@ -156,6 +162,57 @@ public class ProjectAiConversationController {
                 req.visibility(),
                 req.ownerUserId(),
                 ctx
+        ));
+    }
+
+    @DeleteMapping("/materials/{materialId}")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Delete project source material from AI conversation")
+    public ApiResponse<Object> deleteMaterial(@PathVariable("materialId") Long materialId) {
+        String traceId = UUID.randomUUID().toString();
+        UserContext ctx = AccessGuard.requireLogin();
+        projectAiConversationService.deleteMaterial(materialId, ctx);
+        return ApiResponse.ok(traceId, "OK");
+    }
+
+    @PostMapping("/projects/{projectId}/resume")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Resume or create project edit AI conversation")
+    public ApiResponse<Object> resumeProjectConversation(@PathVariable("projectId") Long projectId) {
+        String traceId = UUID.randomUUID().toString();
+        UserContext ctx = AccessGuard.requireLogin();
+        return ApiResponse.ok(traceId, projectAiConversationService.resumeProjectConversation(traceId, projectId, ctx));
+    }
+
+    @PostMapping("/projects/{projectId}/chat")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Continue project edit AI conversation")
+    public ApiResponse<Object> chatProjectConversation(@PathVariable("projectId") Long projectId,
+                                                       @RequestBody ProjectChatRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        UserContext ctx = AccessGuard.requireLogin();
+        return ApiResponse.ok(traceId, projectAiConversationService.continueProjectConversation(
+                traceId,
+                projectId,
+                req.sessionId(),
+                req.message(),
+                ctx
+        ));
+    }
+
+    @GetMapping("/projects/{projectId}/knowledge-preview")
+    @RequiredPermission("PROJECT:EDIT")
+    @Operation(summary = "Preview retrieved knowledge context for project edit AI conversation")
+    public ApiResponse<Object> previewProjectKnowledge(@PathVariable("projectId") Long projectId,
+                                                       @RequestParam(value = "sessionId", required = false) Long sessionId,
+                                                       @RequestParam(value = "query", required = false) String query) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        return ApiResponse.ok(traceId, projectAiConversationService.previewProjectKnowledgeContext(
+                traceId,
+                projectId,
+                sessionId,
+                query
         ));
     }
 

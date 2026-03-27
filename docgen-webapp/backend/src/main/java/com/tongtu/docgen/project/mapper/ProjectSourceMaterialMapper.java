@@ -54,4 +54,18 @@ public interface ProjectSourceMaterialMapper {
             WHERE project_id = #{projectId}
             """)
     int deleteByProjectId(@Param("projectId") Long projectId);
+
+    @Delete("""
+            DELETE FROM pm_project_source_material
+            WHERE id = #{id}
+            """)
+    int deleteById(@Param("id") Long id);
+
+    @Update("""
+            UPDATE pm_project_source_material
+            SET project_id = #{projectId},
+                updated_at = NOW()
+            WHERE session_id = #{sessionId}
+            """)
+    int bindProjectIdBySessionId(@Param("sessionId") Long sessionId, @Param("projectId") Long projectId);
 }

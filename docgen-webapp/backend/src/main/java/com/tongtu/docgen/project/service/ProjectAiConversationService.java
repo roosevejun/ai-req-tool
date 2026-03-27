@@ -9,6 +9,7 @@ import com.tongtu.docgen.project.mapper.ProjectSourceMaterialMapper;
 import com.tongtu.docgen.project.model.entity.ProjectChatMessageEntity;
 import com.tongtu.docgen.project.model.entity.ProjectChatSessionEntity;
 import com.tongtu.docgen.project.model.entity.ProjectSourceMaterialEntity;
+import com.tongtu.docgen.project.model.entity.ProjectEntity;
 import com.tongtu.docgen.system.model.UserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -224,16 +225,80 @@ public class ProjectAiConversationService {
     }
 
     @Transactional
+    public void deleteMaterial(Long materialId, UserContext operator) {
+        ProjectSourceMaterialEntity material = materialMapper.findById(materialId);
+        if (material == null) {
+            throw new IllegalArgumentException("Project source material not found.");
+        }
+        requireSession(material.getSessionId());
+        knowledgeDocumentService.deleteBySourceMaterialId(materialId);
+        if (materialMapper.deleteById(materialId) <= 0) {
+            throw new IllegalArgumentException("Project source material not found.");
+        }
+    }
+
+    @Transactional
+    public ConversationView resumeProjectConversation(String traceId, Long projectId, UserContext operator) {
+        ProjectEntity project = projectService.getById(projectId);
+        ProjectChatSessionEntity session = sessionMapper.findLatestByProjectId(projectId);
+        if (session != null) {
+            syncSessionWithProjectSnapshot(session, project);
+            return getConversation(session.getId());
+        }
+
+        session = new ProjectChatSessionEntity();
+        session.setProjectId(projectId);
+        session.setJobId("proj-edit-" + UUID.randomUUID().toString().replace("-", ""));
+        session.setStatus("ACTIVE");
+        session.setAssistantSummary(null);
+        session.setBusinessKnowledgeSummary(normalize(project.getBusinessKnowledgeSummary()));
+        session.setStructuredInfoJson(writeStructuredInfo(toStructuredInfo(project)));
+        session.setReadyToCreate(false);
+        session.setCreatedBy(operator.getUserId());
+        sessionMapper.insert(session);
+
+        int seqNo = 0;
+        String snapshotMessage = buildProjectSnapshotMessage(project);
+        if (!snapshotMessage.isBlank()) {
+            seqNo = appendMessage(session.getId(), ++seqNo, "user", "snapshot", snapshotMessage);
+        }
+
+        StructuredInfo current = readStructuredInfo(session.getStructuredInfoJson());
+        AgentClient.ProjectProductGuideResult aiResult = runGuide(traceId, current, session.getId());
+        StructuredInfo next = mergeStructuredInfo(current, aiResult);
+        updateSessionAfterAi(session, aiResult, next);
+        appendAssistantMessages(session.getId(), seqNo, aiResult);
+        return getConversation(session.getId());
+    }
+
+    public ConversationTurnResult continueProjectConversation(String traceId,
+                                                              Long projectId,
+                                                              Long sessionId,
+                                                              String message,
+                                                              UserContext operator) {
+        ProjectChatSessionEntity session = requireProjectSession(projectId, sessionId);
+        return continueConversation(traceId, session.getId(), message, operator);
+    }
+
+    public KnowledgePreviewView previewProjectKnowledgeContext(String traceId,
+                                                               Long projectId,
+                                                               Long sessionId,
+                                                               String query) {
+        ProjectChatSessionEntity session = requireProjectSession(projectId, sessionId);
+        return previewKnowledgeContext(traceId, session.getId(), query);
+    }
+
+    @Transactional
     public MaterialSaveResult uploadFileMaterial(Long sessionId,
                                                  String title,
                                                  MultipartFile file,
                                                  UserContext operator) {
-        requireSession(sessionId);
+        ProjectChatSessionEntity session = requireSession(sessionId);
         KnowledgeFileStorageService.StoredFile storedFile = knowledgeFileStorageService.storeProjectConversationFile(sessionId, file);
 
         ProjectSourceMaterialEntity entity = new ProjectSourceMaterialEntity();
         entity.setSessionId(sessionId);
-        entity.setProjectId(null);
+        entity.setProjectId(session.getProjectId());
         entity.setMaterialType("FILE");
         entity.setTitle(firstNonBlank(title, storedFile.originalFilename()));
         entity.setSourceUri(storedFile.storageKey());
@@ -329,6 +394,8 @@ public class ProjectAiConversationService {
         session.setBusinessKnowledgeSummary(structuredInfo.businessKnowledgeSummary());
         session.setStructuredInfoJson(writeStructuredInfo(structuredInfo));
         sessionMapper.update(session);
+        materialMapper.bindProjectIdBySessionId(sessionId, projectId);
+        knowledgeDocumentService.bindProjectDocumentsBySessionId(sessionId, projectId);
         return new CreateProjectFromConversationResult(sessionId, projectId);
     }
 
@@ -420,9 +487,10 @@ public class ProjectAiConversationService {
         if (input == null) {
             return;
         }
+        ProjectChatSessionEntity session = requireSession(sessionId);
         ProjectSourceMaterialEntity entity = new ProjectSourceMaterialEntity();
         entity.setSessionId(sessionId);
-        entity.setProjectId(projectId);
+        entity.setProjectId(projectId != null ? projectId : session.getProjectId());
         entity.setMaterialType(normalizeMaterialType(input.materialType()));
         entity.setTitle(normalize(input.title()));
         entity.setSourceUri(normalize(input.sourceUri()));
@@ -633,6 +701,62 @@ public class ProjectAiConversationService {
             parts.add(item.getContent().trim());
         }
         return String.join("\n", parts).trim();
+    }
+
+    private StructuredInfo toStructuredInfo(ProjectEntity project) {
+        return new StructuredInfo(
+                defaultString(project.getProjectName()),
+                defaultString(project.getDescription()),
+                defaultString(project.getProjectBackground()),
+                defaultString(project.getSimilarProducts()),
+                defaultString(project.getTargetCustomerGroups()),
+                defaultString(project.getCommercialValue()),
+                defaultString(project.getCoreProductValue()),
+                defaultString(project.getBusinessKnowledgeSummary())
+        );
+    }
+
+    private void syncSessionWithProjectSnapshot(ProjectChatSessionEntity session, ProjectEntity project) {
+        StructuredInfo current = readStructuredInfo(session.getStructuredInfoJson());
+        StructuredInfo merged = new StructuredInfo(
+                choose(project.getProjectName(), current.projectName()),
+                choose(project.getDescription(), current.description()),
+                choose(project.getProjectBackground(), current.projectBackground()),
+                choose(project.getSimilarProducts(), current.similarProducts()),
+                choose(project.getTargetCustomerGroups(), current.targetCustomerGroups()),
+                choose(project.getCommercialValue(), current.commercialValue()),
+                choose(project.getCoreProductValue(), current.coreProductValue()),
+                choose(project.getBusinessKnowledgeSummary(), current.businessKnowledgeSummary())
+        );
+        session.setProjectId(project.getId());
+        session.setBusinessKnowledgeSummary(blankToNull(merged.businessKnowledgeSummary()));
+        session.setStructuredInfoJson(writeStructuredInfo(merged));
+        sessionMapper.update(session);
+    }
+
+    private ProjectChatSessionEntity requireProjectSession(Long projectId, Long sessionId) {
+        projectService.getById(projectId);
+        ProjectChatSessionEntity session;
+        if (sessionId != null && sessionId > 0) {
+            session = requireSession(sessionId);
+            if (session.getProjectId() == null || !projectId.equals(session.getProjectId())) {
+                throw new IllegalArgumentException("Project AI conversation does not belong to this project.");
+            }
+            return session;
+        }
+        session = sessionMapper.findLatestByProjectId(projectId);
+        if (session == null) {
+            throw new IllegalArgumentException("Project AI conversation not found.");
+        }
+        return session;
+    }
+
+    private String buildProjectSnapshotMessage(ProjectEntity project) {
+        String context = projectService.buildProductContext(project);
+        if (context.isBlank()) {
+            return "";
+        }
+        return "Current project information:\n" + context;
     }
 
     private String summarizeKnowledge(String projectName,

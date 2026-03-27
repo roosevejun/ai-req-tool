@@ -57,6 +57,20 @@ public interface ProjectChatSessionMapper {
             """)
     List<ProjectChatSessionEntity> listByProjectId(@Param("projectId") Long projectId);
 
+    @Select("""
+            SELECT id, project_id AS projectId, job_id AS jobId, status,
+                   assistant_summary AS assistantSummary,
+                   business_knowledge_summary AS businessKnowledgeSummary,
+                   structured_info_json AS structuredInfoJson,
+                   ready_to_create AS readyToCreate,
+                   created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+            FROM pm_project_chat_session
+            WHERE project_id = #{projectId}
+            ORDER BY id DESC
+            LIMIT 1
+            """)
+    ProjectChatSessionEntity findLatestByProjectId(@Param("projectId") Long projectId);
+
     @Update("""
             UPDATE pm_project_chat_session
             SET project_id = #{projectId},

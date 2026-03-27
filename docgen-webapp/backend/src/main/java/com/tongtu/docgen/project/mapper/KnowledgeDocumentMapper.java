@@ -97,4 +97,20 @@ public interface KnowledgeDocumentMapper {
             WHERE id = #{id}
             """)
     int update(KnowledgeDocumentEntity entity);
+
+    @Delete("""
+            DELETE FROM km_document
+            WHERE source_material_id = #{sourceMaterialId}
+            """)
+    int deleteBySourceMaterialId(@Param("sourceMaterialId") Long sourceMaterialId);
+
+    @Update("""
+            UPDATE km_document
+            SET project_id = #{projectId},
+                updated_at = NOW()
+            WHERE source_material_id IN (
+                SELECT id FROM pm_project_source_material WHERE session_id = #{sessionId}
+            )
+            """)
+    int bindProjectIdBySessionId(@Param("sessionId") Long sessionId, @Param("projectId") Long projectId);
 }

@@ -50,6 +50,27 @@
             :editing-project="editingProject"
             :project="selectedProject"
             :project-edit-form="projectEditForm"
+            :project-conversation-loading="projectConversationLoading"
+            :project-conversation="projectConversation"
+            :project-conversation-input="projectConversationInput"
+            :can-send-project-conversation="canSendProjectConversation"
+            :project-url-draft="projectUrlDraft"
+            :project-text-draft="projectTextDraft"
+            :project-file-draft="projectFileDraft"
+            :project-selected-file="projectSelectedFile"
+            :project-pending-materials="projectPendingMaterials"
+            :project-material-knowledge-map="projectMaterialKnowledgeMap"
+            :project-material-filter="projectMaterialFilter"
+            :filtered-project-materials="filteredProjectMaterials"
+            :project-materials-collapsed="projectMaterialsCollapsed"
+            :can-save-project-materials="canSaveProjectMaterials"
+            :can-upload-project-file="canUploadProjectFile"
+            :project-material-preview="projectMaterialPreview"
+            :project-knowledge-status-text="projectKnowledgeStatusText"
+            :project-knowledge-preview-visible="projectKnowledgePreviewVisible"
+            :project-knowledge-preview-loading="projectKnowledgePreviewLoading"
+            :project-knowledge-preview="projectKnowledgePreview"
+            :project-knowledge-preview-query-text="projectKnowledgePreviewQueryText"
             :user-options="userOptions"
             :project-type-label="projectTypeLabel"
             :visibility-label="visibilityLabel"
@@ -58,6 +79,21 @@
             @cancel-edit="cancelProjectEdit"
             @save-edit="saveProjectEdit"
             @delete-project="deleteProject"
+            @refresh-project-ai="ensureProjectConversation"
+            @send-project-ai="sendProjectConversation"
+            @apply-project-ai="applyConversationStructuredInfo"
+            @update-project-ai-input="projectConversationInput = $event"
+            @add-project-url-material="addProjectUrlMaterial"
+            @add-project-text-material="addProjectTextMaterial"
+            @clear-project-pending-materials="clearProjectPendingMaterials"
+            @save-project-materials="saveProjectMaterials"
+            @select-project-file="handleProjectFileSelect"
+            @upload-project-file="uploadProjectFileMaterial"
+            @delete-project-material="deleteProjectMaterial"
+            @open-project-knowledge-detail="openProjectKnowledgeDetail"
+            @load-project-knowledge-preview="loadProjectKnowledgePreview"
+            @update-project-material-filter="projectMaterialFilter = $event"
+            @toggle-project-materials-collapse="projectMaterialsCollapsed = !projectMaterialsCollapsed"
           />
 
           <ProjectMembersCard
@@ -88,6 +124,16 @@
       </main>
     </div>
 
+    <ProjectKnowledgeDetailModal
+      :visible="projectKnowledgeDetailVisible"
+      :loading="projectKnowledgeDetailLoading"
+      :detail="projectKnowledgeDetail"
+      :chunk-expanded="projectKnowledgeChunkExpanded"
+      :visible-chunks="visibleProjectKnowledgeChunks"
+      @close="closeProjectKnowledgeDetail"
+      @toggle-chunks="projectKnowledgeChunkExpanded = !projectKnowledgeChunkExpanded"
+    />
+
     <p v-if="error" class="error">{{ error }}</p>
     <p v-if="success" class="success">{{ success }}</p>
   </div>
@@ -98,6 +144,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
 import ProjectDetailsCard from '../components/projects/ProjectDetailsCard.vue'
+import ProjectKnowledgeDetailModal from '../components/projects/ProjectKnowledgeDetailModal.vue'
 import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
 import ProjectRequirementsCard from '../components/projects/ProjectRequirementsCard.vue'
 import ProjectsSidebar from '../components/projects/ProjectsSidebar.vue'
@@ -112,17 +159,26 @@ import {
 } from '../components/projects/labels'
 import type {
   ApiResponse,
+  FileDraftState,
   MemberFormState,
+  ProjectConversationView,
   ProjectAiSuggestions,
+  ProjectKnowledgeDocumentChunk,
+  ProjectKnowledgeDocumentDetail,
+  ProjectKnowledgePreview,
   ProjectEditFormState,
   ProjectFormState,
+  ProjectKnowledgeDocumentListItem,
   ProjectItem,
+  ProjectSourceMaterial,
   ProjectMemberItem,
   ProjectProductGuideAnswer,
   ProjectProductGuideResult,
   RequirementFormState,
+  TextDraftState,
   RequirementItem,
   UserOption,
+  UrlDraftState,
   VersionItem
 } from '../components/projects/types'
 
@@ -147,6 +203,21 @@ const projectAiLoading = ref(false)
 const projectAiMessage = ref('')
 const projectAiQuestions = ref<string[]>([])
 const projectAiAnswers = ref<string[]>([])
+const projectConversationLoading = ref(false)
+const projectConversationInput = ref('')
+const projectConversation = ref<ProjectConversationView | null>(null)
+const projectMaterialKnowledgeMap = ref<Record<number, ProjectKnowledgeDocumentListItem[]>>({})
+const projectPendingMaterials = ref<ProjectSourceMaterial[]>([])
+const projectSelectedFile = ref<File | null>(null)
+const projectMaterialFilter = ref<'ALL' | 'URL' | 'TEXT' | 'FILE'>('ALL')
+const projectMaterialsCollapsed = ref(false)
+const projectKnowledgeDetailVisible = ref(false)
+const projectKnowledgeDetailLoading = ref(false)
+const projectKnowledgeDetail = ref<ProjectKnowledgeDocumentDetail | null>(null)
+const projectKnowledgeChunkExpanded = ref(false)
+const projectKnowledgePreviewVisible = ref(false)
+const projectKnowledgePreviewLoading = ref(false)
+const projectKnowledgePreview = ref<ProjectKnowledgePreview | null>(null)
 const projectAiSuggestions = reactive<ProjectAiSuggestions>({
   projectBackground: '',
   similarProducts: '',
@@ -168,6 +239,9 @@ const memberForm = reactive<MemberFormState>({
   userId: '',
   projectRole: 'DEV'
 })
+const projectUrlDraft = reactive<UrlDraftState>({ title: '', sourceUri: '' })
+const projectTextDraft = reactive<TextDraftState>({ title: '', rawContent: '' })
+const projectFileDraft = reactive<FileDraftState>({ title: '' })
 
 const selectedProject = computed(() => projects.value.find((project) => project.id === selectedProjectId.value) || null)
 const selectedRequirement = computed(() => {
@@ -178,6 +252,23 @@ const selectedRequirement = computed(() => {
 })
 const canGuideProjectInfo = computed(() => !!(projectForm.projectName || projectForm.description || projectForm.projectBackground))
 const hasProjectAiSuggestions = computed(() => Object.values(projectAiSuggestions).some(Boolean))
+const canSendProjectConversation = computed(() => !!projectConversationInput.value.trim())
+const canSaveProjectMaterials = computed(() => !!projectConversation.value?.sessionId && projectPendingMaterials.value.length > 0)
+const canUploadProjectFile = computed(() => !!projectConversation.value?.sessionId && !!projectSelectedFile.value)
+const filteredProjectMaterials = computed(() => {
+  const materials = projectConversation.value?.materials || []
+  if (projectMaterialFilter.value === 'ALL') {
+    return materials
+  }
+  return materials.filter((item) => item.materialType === projectMaterialFilter.value)
+})
+const visibleProjectKnowledgeChunks = computed<ProjectKnowledgeDocumentChunk[]>(() => {
+  const chunks = projectKnowledgeDetail.value?.chunks || []
+  return projectKnowledgeChunkExpanded.value ? chunks : chunks.slice(0, 3)
+})
+const projectKnowledgePreviewQueryText = computed(() => {
+  return projectKnowledgePreview.value?.query || projectConversationInput.value.trim() || projectEditForm.projectName || selectedProject.value?.projectName || ''
+})
 
 function createProjectFormState(): ProjectFormState {
   return {
@@ -244,6 +335,42 @@ function resetProjectAiGuide() {
   projectAiSuggestions.targetCustomerGroups = ''
   projectAiSuggestions.commercialValue = ''
   projectAiSuggestions.coreProductValue = ''
+}
+
+function resetProjectConversation() {
+  projectConversation.value = null
+  projectConversationInput.value = ''
+  projectMaterialKnowledgeMap.value = {}
+  projectPendingMaterials.value = []
+  projectSelectedFile.value = null
+  projectMaterialFilter.value = 'ALL'
+  projectMaterialsCollapsed.value = false
+  projectKnowledgeDetailVisible.value = false
+  projectKnowledgeDetailLoading.value = false
+  projectKnowledgeDetail.value = null
+  projectKnowledgeChunkExpanded.value = false
+  projectKnowledgePreviewVisible.value = false
+  projectKnowledgePreviewLoading.value = false
+  projectKnowledgePreview.value = null
+  projectUrlDraft.title = ''
+  projectUrlDraft.sourceUri = ''
+  projectTextDraft.title = ''
+  projectTextDraft.rawContent = ''
+  projectFileDraft.title = ''
+}
+
+function projectMaterialPreview(value?: string) {
+  if (!value) return '-'
+  return value.length > 80 ? `${value.slice(0, 80)}...` : value
+}
+
+function projectKnowledgeStatusText(status?: string) {
+  if (!status) return '未知'
+  if (status === 'READY' || status === 'SUCCESS') return '处理完成'
+  if (status === 'FAILED') return '处理失败'
+  if (status === 'PROCESSING' || status === 'RUNNING') return '处理中'
+  if (status === 'PENDING') return '待处理'
+  return status
 }
 
 function fillProjectEditForm(project: ProjectItem) {
@@ -401,7 +528,7 @@ async function createProject() {
   }
 }
 
-function startEditProject() {
+async function startEditProject() {
   if (!selectedProject.value) {
     return
   }
@@ -409,6 +536,7 @@ function startEditProject() {
   editingProject.value = true
   error.value = ''
   success.value = ''
+  await ensureProjectConversation()
 }
 
 function cancelProjectEdit() {
@@ -418,6 +546,231 @@ function cancelProjectEdit() {
     return
   }
   resetProjectEditForm()
+}
+
+async function ensureProjectConversation() {
+  if (!selectedProject.value) {
+    return
+  }
+  projectConversationLoading.value = true
+  error.value = ''
+  try {
+    const res = await axios.post<ApiResponse<ProjectConversationView>>(
+      `/api/projects/ai/conversations/projects/${selectedProject.value.id}/resume`
+    )
+    projectConversation.value = res.data.data || null
+    await refreshProjectMaterialKnowledgeStatuses()
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '加载项目 AI 会话失败'
+  } finally {
+    projectConversationLoading.value = false
+  }
+}
+
+async function refreshProjectMaterialKnowledgeStatuses() {
+  const targets = (projectConversation.value?.materials || []).filter((item) => typeof item.id === 'number')
+  if (targets.length === 0) {
+    projectMaterialKnowledgeMap.value = {}
+    return
+  }
+  const entries = await Promise.all(
+    targets.map(async (item) => {
+      const res = await axios.get<ApiResponse<ProjectKnowledgeDocumentListItem[]>>(
+        `/api/knowledge-documents/source-materials/${item.id}`
+      )
+      return [item.id as number, res.data.data || []] as const
+    })
+  )
+  projectMaterialKnowledgeMap.value = Object.fromEntries(entries)
+}
+
+async function openProjectKnowledgeDetail(documentId: number) {
+  projectKnowledgeDetailVisible.value = true
+  projectKnowledgeDetailLoading.value = true
+  projectKnowledgeDetail.value = null
+  try {
+    const res = await axios.get<ApiResponse<ProjectKnowledgeDocumentDetail>>(`/api/knowledge-documents/${documentId}`)
+    projectKnowledgeDetail.value = res.data.data
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '加载知识文档详情失败'
+  } finally {
+    projectKnowledgeDetailLoading.value = false
+  }
+}
+
+function closeProjectKnowledgeDetail() {
+  projectKnowledgeDetailVisible.value = false
+  projectKnowledgeDetail.value = null
+  projectKnowledgeChunkExpanded.value = false
+}
+
+async function loadProjectKnowledgePreview() {
+  if (!selectedProject.value || !projectConversation.value) {
+    return
+  }
+  projectKnowledgePreviewVisible.value = true
+  projectKnowledgePreviewLoading.value = true
+  try {
+    const query = projectConversationInput.value.trim()
+    const res = await axios.get<ApiResponse<ProjectKnowledgePreview>>(
+      `/api/projects/ai/conversations/projects/${selectedProject.value.id}/knowledge-preview`,
+      {
+        params: {
+          sessionId: projectConversation.value.sessionId,
+          query: query || undefined
+        }
+      }
+    )
+    projectKnowledgePreview.value = res.data.data
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '加载项目检索上下文失败'
+  } finally {
+    projectKnowledgePreviewLoading.value = false
+  }
+}
+
+async function sendProjectConversation() {
+  if (!selectedProject.value || !projectConversation.value || !projectConversationInput.value.trim()) {
+    return
+  }
+  projectConversationLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/projects/ai/conversations/projects/${selectedProject.value.id}/chat`, {
+      sessionId: projectConversation.value.sessionId,
+      message: projectConversationInput.value.trim()
+    })
+    projectConversationInput.value = ''
+    await ensureProjectConversation()
+    success.value = '项目 AI 已生成新的优化建议'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '发送项目 AI 消息失败'
+  } finally {
+    projectConversationLoading.value = false
+  }
+}
+
+function applyConversationStructuredInfo() {
+  const structured = projectConversation.value?.structuredInfo
+  if (!structured) {
+    error.value = '当前没有可应用的 AI 结果'
+    return
+  }
+  projectEditForm.projectName = structured.projectName || projectEditForm.projectName
+  projectEditForm.description = structured.description || projectEditForm.description
+  projectEditForm.projectBackground = structured.projectBackground || projectEditForm.projectBackground
+  projectEditForm.similarProducts = structured.similarProducts || projectEditForm.similarProducts
+  projectEditForm.targetCustomerGroups = structured.targetCustomerGroups || projectEditForm.targetCustomerGroups
+  projectEditForm.commercialValue = structured.commercialValue || projectEditForm.commercialValue
+  projectEditForm.coreProductValue = structured.coreProductValue || projectEditForm.coreProductValue
+  success.value = 'AI 优化结果已回填到项目编辑表单'
+}
+
+function handleProjectFileSelect(file: File | null) {
+  projectSelectedFile.value = file
+}
+
+function addProjectUrlMaterial() {
+  if (!projectUrlDraft.sourceUri.trim()) {
+    error.value = '请先填写网站链接'
+    return
+  }
+  projectPendingMaterials.value.push({
+    materialType: 'URL',
+    title: projectUrlDraft.title.trim() || undefined,
+    sourceUri: projectUrlDraft.sourceUri.trim()
+  })
+  projectUrlDraft.title = ''
+  projectUrlDraft.sourceUri = ''
+  error.value = ''
+}
+
+function addProjectTextMaterial() {
+  if (!projectTextDraft.rawContent.trim()) {
+    error.value = '请先填写文本资料内容'
+    return
+  }
+  projectPendingMaterials.value.push({
+    materialType: 'TEXT',
+    title: projectTextDraft.title.trim() || undefined,
+    rawContent: projectTextDraft.rawContent.trim()
+  })
+  projectTextDraft.title = ''
+  projectTextDraft.rawContent = ''
+  error.value = ''
+}
+
+function clearProjectPendingMaterials() {
+  projectPendingMaterials.value = []
+}
+
+async function saveProjectMaterials() {
+  if (!projectConversation.value?.sessionId || projectPendingMaterials.value.length === 0) {
+    return
+  }
+  projectConversationLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/projects/ai/conversations/${projectConversation.value.sessionId}/materials`, {
+      materials: projectPendingMaterials.value
+    })
+    projectPendingMaterials.value = []
+    await ensureProjectConversation()
+    success.value = '项目资料已保存到当前 AI 会话'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '保存项目资料失败'
+  } finally {
+    projectConversationLoading.value = false
+  }
+}
+
+async function uploadProjectFileMaterial() {
+  if (!projectConversation.value?.sessionId || !projectSelectedFile.value) {
+    return
+  }
+  projectConversationLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('file', projectSelectedFile.value)
+    if (projectFileDraft.title.trim()) {
+      formData.append('title', projectFileDraft.title.trim())
+    }
+    await axios.post(`/api/projects/ai/conversations/${projectConversation.value.sessionId}/materials/upload`, formData)
+    projectSelectedFile.value = null
+    projectFileDraft.title = ''
+    await ensureProjectConversation()
+    success.value = '项目文件资料已上传，AI 会自动继续学习'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '上传项目文件资料失败'
+  } finally {
+    projectConversationLoading.value = false
+  }
+}
+
+async function deleteProjectMaterial(materialId?: number) {
+  if (!materialId) {
+    return
+  }
+  const confirmed = window.confirm('确认删除这条资料吗？删除后，对应知识文档也会一并清理。')
+  if (!confirmed) {
+    return
+  }
+  projectConversationLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.delete(`/api/projects/ai/conversations/materials/${materialId}`)
+    await ensureProjectConversation()
+    success.value = '项目资料已删除'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '删除项目资料失败'
+  } finally {
+    projectConversationLoading.value = false
+  }
 }
 
 function findProjectFallbackId(projectId: number): number | null {
@@ -610,6 +963,7 @@ async function selectProject(projectId: number) {
   selectedRequirementId.value = null
   editingProject.value = false
   resetProjectEditForm()
+  resetProjectConversation()
 
   if (!isExpanded(projectId)) {
     expandedProjectIds.value.push(projectId)
@@ -625,6 +979,7 @@ async function selectRequirement(projectId: number, requirementId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = requirementId
   editingProject.value = false
+  resetProjectConversation()
 
   if (!isExpanded(projectId)) {
     expandedProjectIds.value.push(projectId)

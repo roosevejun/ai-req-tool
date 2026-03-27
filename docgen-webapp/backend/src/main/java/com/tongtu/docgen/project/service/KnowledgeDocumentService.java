@@ -118,6 +118,22 @@ public class KnowledgeDocumentService {
         return knowledgeDocumentMapper.listBySourceMaterialId(sourceMaterialId);
     }
 
+    public void bindProjectDocumentsBySessionId(Long sessionId, Long projectId) {
+        if (sessionId == null || sessionId <= 0 || projectId == null || projectId <= 0) {
+            return;
+        }
+        ensureProject(projectId);
+        knowledgeDocumentMapper.bindProjectIdBySessionId(sessionId, projectId);
+    }
+
+    public void deleteBySourceMaterialId(Long sourceMaterialId) {
+        if (sourceMaterialId == null || sourceMaterialId <= 0) {
+            return;
+        }
+        ensureSourceMaterial(sourceMaterialId);
+        knowledgeDocumentMapper.deleteBySourceMaterialId(sourceMaterialId);
+    }
+
     public KnowledgeDocumentEntity getById(Long id) {
         KnowledgeDocumentEntity document = knowledgeDocumentMapper.findById(id);
         if (document == null) {
