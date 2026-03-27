@@ -7,6 +7,7 @@ metadata:
     app: ai-req-tool-backend
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: ai-req-tool-backend
@@ -81,14 +82,69 @@ spec:
                 configMapKeyRef:
                   name: ai-req-tool-backend-config
                   key: OPENAI_TIMEOUT_MS
+            - name: STORAGE_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: STORAGE_PROVIDER
+            - name: STORAGE_LOCAL_BASE_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: STORAGE_LOCAL_BASE_DIR
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: MINIO_ENDPOINT
+            - name: MINIO_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: ai-req-tool-backend-config
+                  key: MINIO_BUCKET
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-req-tool-backend-secret
+                  key: MINIO_SECRET_KEY
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
           volumeMounts:
             - name: templates-vol
               mountPath: /app/templates
               readOnly: true
+            - name: knowledge-data-vol
+              mountPath: /app/data
       volumes:
         - name: templates-vol
           configMap:
             name: ai-req-tool-templates
+        - name: knowledge-data-vol
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
