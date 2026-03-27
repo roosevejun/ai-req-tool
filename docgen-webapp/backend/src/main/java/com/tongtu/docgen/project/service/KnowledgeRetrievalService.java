@@ -82,6 +82,23 @@ public class KnowledgeRetrievalService {
         return true;
     }
 
+    @Transactional
+    public int embedDocumentChunks(String traceId, Long documentId) {
+        if (documentId == null) {
+            return 0;
+        }
+        int successCount = 0;
+        for (KnowledgeDocumentChunkEntity chunk : knowledgeDocumentChunkMapper.listByDocumentId(documentId)) {
+            if (chunk == null || chunk.getId() == null || !"PENDING".equalsIgnoreCase(chunk.getEmbeddingStatus())) {
+                continue;
+            }
+            if (embedChunk(traceId, chunk.getId())) {
+                successCount++;
+            }
+        }
+        return successCount;
+    }
+
     public RetrievalContext searchProjectKnowledge(String traceId, Long projectId, String query, int topK) {
         String normalizedQuery = normalizeQuery(query);
         if (projectId == null || normalizedQuery == null) {
@@ -104,6 +121,21 @@ public class KnowledgeRetrievalService {
         String queryVector = toVectorLiteral(agentClient.embedText(traceId, normalizedQuery));
         List<KnowledgeDocumentChunkEntity> rows = knowledgeDocumentChunkMapper.searchRequirementChunks(
                 requirementId,
+                queryVector,
+                topK <= 0 ? DEFAULT_TOP_K : topK
+        );
+        return buildContext(normalizedQuery, rows);
+    }
+
+    public RetrievalContext searchSourceMaterialKnowledge(String traceId, List<Long> sourceMaterialIds, String query, int topK) {
+        String normalizedQuery = normalizeQuery(query);
+        List<Long> normalizedIds = normalizeIds(sourceMaterialIds);
+        if (normalizedIds.isEmpty() || normalizedQuery == null) {
+            return new RetrievalContext(query, List.of(), "");
+        }
+        String queryVector = toVectorLiteral(agentClient.embedText(traceId, normalizedQuery));
+        List<KnowledgeDocumentChunkEntity> rows = knowledgeDocumentChunkMapper.searchSourceMaterialChunks(
+                normalizedIds,
                 queryVector,
                 topK <= 0 ? DEFAULT_TOP_K : topK
         );
@@ -146,6 +178,19 @@ public class KnowledgeRetrievalService {
         }
         String trimmed = query.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private List<Long> normalizeIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> normalized = new LinkedHashSet<>();
+        for (Long id : ids) {
+            if (id != null && id > 0) {
+                normalized.add(id);
+            }
+        }
+        return new ArrayList<>(normalized);
     }
 
     private String trimContextText(String text) {

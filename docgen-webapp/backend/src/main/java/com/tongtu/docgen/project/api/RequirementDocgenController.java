@@ -38,6 +38,14 @@ public class RequirementDocgenController {
     public record ChatRequest(@NotBlank @Size(max = 4000) String message) {
     }
 
+    public record KnowledgePreviewResponse(
+            String query,
+            Object requirementKnowledge,
+            Object projectKnowledge,
+            String mergedContext
+    ) {
+    }
+
     @PostMapping("/jobs")
     @RequiredPermission("REQUIREMENT:AI_CHAT")
     @Operation(summary = "Create requirement workbench session")
@@ -105,5 +113,21 @@ public class RequirementDocgenController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                 .contentType(MediaType.parseMediaType("text/markdown;charset=UTF-8"))
                 .body(markdown);
+    }
+
+    @GetMapping("/knowledge-preview")
+    @RequiredPermission("REQUIREMENT:AI_CHAT")
+    @Operation(summary = "Preview retrieved knowledge context for requirement workbench")
+    public ApiResponse<Object> previewKnowledge(@PathVariable("requirementId") Long requirementId,
+                                                @RequestParam(value = "query", required = false) String query) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        RequirementDocgenService.KnowledgePreviewView data = requirementDocgenService.previewKnowledgeContext(traceId, requirementId, query);
+        return ApiResponse.ok(traceId, new KnowledgePreviewResponse(
+                data.query(),
+                data.requirementKnowledge(),
+                data.projectKnowledge(),
+                data.mergedContext()
+        ));
     }
 }

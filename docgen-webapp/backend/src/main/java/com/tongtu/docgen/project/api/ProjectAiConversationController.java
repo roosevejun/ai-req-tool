@@ -47,6 +47,11 @@ public class ProjectAiConversationController {
     ) {
     }
 
+    public record KnowledgePreviewRequest(
+            @Size(max = 4000) String query
+    ) {
+    }
+
     public record SaveMaterialsRequest(
             List<SourceMaterialRequest> materials
     ) {
@@ -123,6 +128,16 @@ public class ProjectAiConversationController {
         String traceId = UUID.randomUUID().toString();
         AccessGuard.requireLogin();
         return ApiResponse.ok(traceId, projectAiConversationService.getConversation(sessionId));
+    }
+
+    @GetMapping("/{sessionId}/knowledge-preview")
+    @RequiredPermission("PROJECT:CREATE")
+    @Operation(summary = "Preview retrieved knowledge context for current conversation")
+    public ApiResponse<Object> previewKnowledge(@PathVariable("sessionId") Long sessionId,
+                                                @RequestParam(value = "query", required = false) String query) {
+        String traceId = UUID.randomUUID().toString();
+        AccessGuard.requireLogin();
+        return ApiResponse.ok(traceId, projectAiConversationService.previewKnowledgeContext(traceId, sessionId, query));
     }
 
     @PostMapping("/{sessionId}/create-project")

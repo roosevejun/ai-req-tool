@@ -20,12 +20,21 @@ import java.util.List;
 
 @Service
 public class RequirementDocgenService {
+    public record KnowledgePreviewView(
+            String query,
+            KnowledgeRetrievalService.RetrievalContext requirementKnowledge,
+            KnowledgeRetrievalService.RetrievalContext projectKnowledge,
+            String mergedContext
+    ) {
+    }
+
     private final DocGenControllerDelegate docGenDelegate;
     private final RequirementChatMessageMapper requirementChatMessageMapper;
     private final RequirementDocgenMapper requirementDocgenMapper;
     private final RequirementService requirementService;
     private final ProjectService projectService;
     private final AgentClient agentClient;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RequirementDocgenService(DocGenControllerDelegate docGenDelegate,
@@ -33,13 +42,15 @@ public class RequirementDocgenService {
                                     RequirementDocgenMapper requirementDocgenMapper,
                                     RequirementService requirementService,
                                     ProjectService projectService,
-                                    AgentClient agentClient) {
+                                    AgentClient agentClient,
+                                    KnowledgeRetrievalService knowledgeRetrievalService) {
         this.docGenDelegate = docGenDelegate;
         this.requirementChatMessageMapper = requirementChatMessageMapper;
         this.requirementDocgenMapper = requirementDocgenMapper;
         this.requirementService = requirementService;
         this.projectService = projectService;
         this.agentClient = agentClient;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     @Transactional
@@ -147,6 +158,34 @@ public class RequirementDocgenService {
         return docGenDelegate.exportMarkdown(jobId);
     }
 
+    public KnowledgePreviewView previewKnowledgeContext(String traceId, Long requirementId, String query) {
+        RequirementEntity requirement = requirementService.getById(requirementId);
+        String retrievalQuery = query == null || query.isBlank()
+                ? buildRetrievalQuery(
+                requirement,
+                requirement.getTitle() + "\n\n" + (requirement.getSummary() == null ? "" : requirement.getSummary()),
+                null
+        )
+                : query.trim();
+        KnowledgeRetrievalService.RetrievalContext requirementKnowledge = knowledgeRetrievalService.searchRequirementKnowledge(
+                traceId,
+                requirementId,
+                retrievalQuery,
+                3
+        );
+        KnowledgeRetrievalService.RetrievalContext projectKnowledge = knowledgeRetrievalService.searchProjectKnowledge(
+                traceId,
+                requirement.getProjectId(),
+                retrievalQuery,
+                4
+        );
+        String mergedContext = appendKnowledgeContext(
+                joinKnowledgeContexts(requirementKnowledge.contextText(), projectKnowledge.contextText()),
+                ""
+        );
+        return new KnowledgePreviewView(retrievalQuery, requirementKnowledge, projectKnowledge, mergedContext);
+    }
+
     private RequirementChatSessionEntity ensureSession(Long requirementId, String jobId) {
         requirementService.getById(requirementId);
         RequirementChatSessionEntity session = requirementDocgenMapper.findByRequirementIdAndJobId(requirementId, jobId);
@@ -245,23 +284,36 @@ public class RequirementDocgenService {
                 ? businessDescription
                 : requirement.getTitle() + "\n\n" + (requirement.getSummary() == null ? "" : requirement.getSummary());
         ProjectEntity project = projectService.getById(requirement.getProjectId());
-        return mergeProjectContext(projectService.buildProductContext(project), requirementText);
+        String baseDescription = mergeProjectContext(projectService.buildProductContext(project), requirementText);
+        return appendKnowledgeContext(
+                buildKnowledgeContext("requirement-init-" + requirement.getId(), requirement, requirementText, null),
+                baseDescription
+        );
     }
 
     private String resolveBusinessDescription(RequirementEntity requirement, List<RequirementChatMessageEntity> messages) {
         ProjectEntity project = projectService.getById(requirement.getProjectId());
         String projectContext = projectService.buildProductContext(project);
+        String latestUserMessage = "";
         if (messages != null) {
             for (RequirementChatMessageEntity message : messages) {
                 if (message != null
                         && "user".equalsIgnoreCase(message.getRole())
                         && message.getContent() != null
                         && !message.getContent().isBlank()) {
-                    return mergeProjectContext(projectContext, message.getContent());
+                    latestUserMessage = message.getContent().trim();
+                    break;
                 }
             }
         }
-        return resolveInitialBusinessDescription(requirement, null);
+        String requirementText = latestUserMessage.isBlank()
+                ? requirement.getTitle() + "\n\n" + (requirement.getSummary() == null ? "" : requirement.getSummary())
+                : latestUserMessage;
+        String baseDescription = mergeProjectContext(projectContext, requirementText);
+        return appendKnowledgeContext(
+                buildKnowledgeContext("requirement-chat-" + requirement.getId(), requirement, requirementText, messages),
+                baseDescription
+        );
     }
 
     private String resolveBasePrdMarkdown(RequirementEntity requirement) {
@@ -358,4 +410,79 @@ public class RequirementDocgenService {
         return ctx + "\n\n【当前需求】\n" + req;
     }
 
+    private String buildKnowledgeContext(String traceId,
+                                         RequirementEntity requirement,
+                                         String requirementText,
+                                         List<RequirementChatMessageEntity> messages) {
+        String retrievalQuery = buildRetrievalQuery(requirement, requirementText, messages);
+        if (retrievalQuery.isBlank()) {
+            return "";
+        }
+
+        String requirementKnowledge = knowledgeRetrievalService.searchRequirementKnowledge(
+                traceId,
+                requirement.getId(),
+                retrievalQuery,
+                3
+        ).contextText();
+        String projectKnowledge = knowledgeRetrievalService.searchProjectKnowledge(
+                traceId,
+                requirement.getProjectId(),
+                retrievalQuery,
+                4
+        ).contextText();
+        return joinKnowledgeContexts(requirementKnowledge, projectKnowledge);
+    }
+
+    private String buildRetrievalQuery(RequirementEntity requirement,
+                                       String requirementText,
+                                       List<RequirementChatMessageEntity> messages) {
+        List<String> parts = new ArrayList<>();
+        if (requirement != null) {
+            if (requirement.getTitle() != null && !requirement.getTitle().isBlank()) {
+                parts.add(requirement.getTitle().trim());
+            }
+            if (requirement.getSummary() != null && !requirement.getSummary().isBlank()) {
+                parts.add(requirement.getSummary().trim());
+            }
+        }
+        if (requirementText != null && !requirementText.isBlank()) {
+            parts.add(requirementText.trim());
+        }
+        if (messages != null) {
+            for (RequirementChatMessageEntity message : messages) {
+                if (message == null || message.getContent() == null || message.getContent().isBlank()) {
+                    continue;
+                }
+                if (!"user".equalsIgnoreCase(message.getRole())) {
+                    continue;
+                }
+                parts.add(message.getContent().trim());
+            }
+        }
+        return String.join("\n", parts).trim();
+    }
+
+    private String appendKnowledgeContext(String knowledgeContext, String baseDescription) {
+        String base = baseDescription == null ? "" : baseDescription.trim();
+        String knowledge = knowledgeContext == null ? "" : knowledgeContext.trim();
+        if (knowledge.isEmpty()) {
+            return base;
+        }
+        if (base.isEmpty()) {
+            return "Knowledge Context:\n" + knowledge;
+        }
+        return base + "\n\nKnowledge Context:\n" + knowledge;
+    }
+
+    private String joinKnowledgeContexts(String requirementKnowledge, String projectKnowledge) {
+        List<String> sections = new ArrayList<>();
+        if (requirementKnowledge != null && !requirementKnowledge.isBlank()) {
+            sections.add("Requirement Knowledge:\n" + requirementKnowledge.trim());
+        }
+        if (projectKnowledge != null && !projectKnowledge.isBlank()) {
+            sections.add("Project Knowledge:\n" + projectKnowledge.trim());
+        }
+        return String.join("\n\n", sections).trim();
+    }
 }

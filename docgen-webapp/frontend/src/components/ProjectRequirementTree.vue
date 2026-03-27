@@ -8,40 +8,19 @@
     <div v-if="projects.length === 0" class="empty">暂无项目</div>
 
     <ul v-else class="tree-list">
-      <li v-for="p in projects" :key="p.id" class="tree-project">
-        <div class="tree-row">
-          <button class="toggle" @click="toggleProject(p.id)">{{ isExpanded(p.id) ? '-' : '+' }}</button>
-          <button
-            class="tree-label"
-            :class="{ active: selectedProjectId === p.id }"
-            @click="selectProject(p.id)"
-            :title="p.projectName"
-          >
-            {{ p.projectKey }} / {{ p.projectName }}
-          </button>
-        </div>
-
-        <ul v-if="isExpanded(p.id)" class="tree-children">
-          <li v-if="requirementsOf(p.id).length === 0" class="empty small">暂无需求</li>
-          <li v-for="(r, idx) in requirementsOf(p.id)" :key="r.id">
-            <div class="tree-row req-row">
-              <button
-                class="tree-label req"
-                :class="{ active: selectedRequirementId === r.id }"
-                @click="selectRequirement(p.id, r.id)"
-              >
-                需求 {{ idx + 1 }}：{{ r.title }}
-              </button>
-            </div>
-
-            <ul v-if="selectedRequirementId === r.id && versionsOf(r.id).length > 0" class="tree-children ver">
-              <li v-for="v in versionsOf(r.id)" :key="v.id" class="ver-item">
-                {{ v.versionNo }} <span v-if="v.isCurrent" class="current">当前版本</span>
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </li>
+      <ProjectTreeNode
+        v-for="project in projects"
+        :key="project.id"
+        :project="project"
+        :expanded="isExpanded(project.id)"
+        :requirements="requirementsOf(project.id)"
+        :selected-project-id="selectedProjectId"
+        :selected-requirement-id="selectedRequirementId"
+        :versions-of="versionsOf"
+        @toggle-project="toggleProject"
+        @select-project="selectProject"
+        @select-requirement="selectRequirement"
+      />
     </ul>
   </section>
 </template>
@@ -49,11 +28,13 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { onMounted, ref, watch } from 'vue'
-
-type ApiResponse<T> = { code: number; message: string; data: T; traceId: string }
-type ProjectItem = { id: number; projectKey: string; projectName: string }
-type RequirementItem = { id: number; title: string }
-type VersionItem = { id: number; versionNo: string; isCurrent: boolean }
+import ProjectTreeNode from './project-tree/ProjectTreeNode.vue'
+import type {
+  ApiResponse,
+  ProjectTreeProjectItem,
+  ProjectTreeRequirementItem,
+  ProjectTreeVersionItem
+} from './project-tree/types'
 
 const props = defineProps<{
   selectedProjectId: number | null
@@ -61,22 +42,22 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-project', projectId: number): void
-  (e: 'select-requirement', payload: { projectId: number; requirementId: number }): void
-  (e: 'error', message: string): void
+  (event: 'select-project', projectId: number): void
+  (event: 'select-requirement', payload: { projectId: number; requirementId: number }): void
+  (event: 'error', message: string): void
 }>()
 
 const loading = ref(false)
-const projects = ref<ProjectItem[]>([])
-const requirementsMap = ref<Record<number, RequirementItem[]>>({})
-const versionsMap = ref<Record<number, VersionItem[]>>({})
+const projects = ref<ProjectTreeProjectItem[]>([])
+const requirementsMap = ref<Record<number, ProjectTreeRequirementItem[]>>({})
+const versionsMap = ref<Record<number, ProjectTreeVersionItem[]>>({})
 const expandedProjectIds = ref<number[]>([])
 
-function requirementsOf(projectId: number): RequirementItem[] {
+function requirementsOf(projectId: number): ProjectTreeRequirementItem[] {
   return requirementsMap.value[projectId] || []
 }
 
-function versionsOf(requirementId: number): VersionItem[] {
+function versionsOf(requirementId: number): ProjectTreeVersionItem[] {
   return versionsMap.value[requirementId] || []
 }
 
@@ -84,17 +65,27 @@ function isExpanded(projectId: number): boolean {
   return expandedProjectIds.value.includes(projectId)
 }
 
+function ensureExpanded(projectId: number) {
+  if (!isExpanded(projectId)) {
+    expandedProjectIds.value.push(projectId)
+  }
+}
+
+function emitError(e: any, fallback: string) {
+  emit('error', e?.response?.data?.message || e?.message || fallback)
+}
+
 async function loadProjects() {
   loading.value = true
   try {
-    const res = await axios.get<ApiResponse<ProjectItem[]>>('/api/projects')
+    const res = await axios.get<ApiResponse<ProjectTreeProjectItem[]>>('/api/projects')
     projects.value = res.data.data || []
-    if (props.selectedProjectId && !isExpanded(props.selectedProjectId)) {
-      expandedProjectIds.value.push(props.selectedProjectId)
+    if (props.selectedProjectId) {
+      ensureExpanded(props.selectedProjectId)
       await loadRequirements(props.selectedProjectId)
     }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || '加载项目失败。')
+    emitError(e, '加载项目失败。')
   } finally {
     loading.value = false
   }
@@ -102,19 +93,19 @@ async function loadProjects() {
 
 async function loadRequirements(projectId: number) {
   try {
-    const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId}/requirements`)
+    const res = await axios.get<ApiResponse<ProjectTreeRequirementItem[]>>(`/api/projects/${projectId}/requirements`)
     requirementsMap.value = { ...requirementsMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || '加载需求失败。')
+    emitError(e, '加载需求失败。')
   }
 }
 
 async function loadVersions(requirementId: number) {
   try {
-    const res = await axios.get<ApiResponse<VersionItem[]>>(`/api/requirements/${requirementId}/versions`)
+    const res = await axios.get<ApiResponse<ProjectTreeVersionItem[]>>(`/api/requirements/${requirementId}/versions`)
     versionsMap.value = { ...versionsMap.value, [requirementId]: res.data.data || [] }
   } catch (e: any) {
-    emit('error', e?.response?.data?.message || e?.message || '加载版本失败。')
+    emitError(e, '加载版本失败。')
   }
 }
 
@@ -128,28 +119,24 @@ async function toggleProject(projectId: number) {
 }
 
 async function selectProject(projectId: number) {
-  if (!isExpanded(projectId)) {
-    expandedProjectIds.value.push(projectId)
-    await loadRequirements(projectId)
-  }
+  ensureExpanded(projectId)
+  await loadRequirements(projectId)
   emit('select-project', projectId)
 }
 
 async function selectRequirement(projectId: number, requirementId: number) {
-  if (!isExpanded(projectId)) {
-    expandedProjectIds.value.push(projectId)
-    await loadRequirements(projectId)
-  }
+  ensureExpanded(projectId)
+  await loadRequirements(projectId)
   await loadVersions(requirementId)
   emit('select-requirement', { projectId, requirementId })
 }
 
 watch(
   () => props.selectedProjectId,
-  async (pid) => {
-    if (pid && !isExpanded(pid)) {
-      expandedProjectIds.value.push(pid)
-      await loadRequirements(pid)
+  async (projectId) => {
+    if (projectId) {
+      ensureExpanded(projectId)
+      await loadRequirements(projectId)
     }
   },
   { immediate: true }
@@ -157,9 +144,9 @@ watch(
 
 watch(
   () => props.selectedRequirementId,
-  async (rid) => {
-    if (rid) {
-      await loadVersions(rid)
+  async (requirementId) => {
+    if (requirementId) {
+      await loadVersions(requirementId)
     }
   },
   { immediate: true }
@@ -183,64 +170,13 @@ onMounted(loadProjects)
   align-items: center;
   justify-content: space-between;
 }
-.tree-list,
-.tree-children {
+.tree-list {
   list-style: none;
   margin: 10px 0 0;
   padding: 0;
 }
-.tree-children {
-  padding-left: 18px;
-  border-left: 1px dashed #c7d2e0;
-}
-.tree-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0;
-}
-.toggle {
-  width: 22px;
-  height: 22px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #f8fafc;
-  cursor: pointer;
-}
-.tree-label {
-  flex: 1;
-  text-align: left;
-  border: 1px solid transparent;
-  background: transparent;
-  padding: 4px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #1f2937;
-}
-.tree-label:hover {
-  background: #eef4ff;
-}
-.tree-label.active {
-  background: #2563eb;
-  color: #fff;
-}
-.tree-label.req {
-  font-size: 13px;
-}
-.ver-item {
-  color: #4b5563;
-  font-size: 12px;
-  margin: 5px 0;
-}
-.current {
-  color: #2563eb;
-  font-weight: 600;
-}
 .empty {
   color: #6b7280;
-}
-.small {
-  font-size: 12px;
 }
 .ghost,
 .mini {

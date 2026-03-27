@@ -27,14 +27,17 @@ public class KnowledgeDocumentProcessingService {
 
     private final KnowledgeDocumentService knowledgeDocumentService;
     private final KnowledgeFileStorageService knowledgeFileStorageService;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
     public KnowledgeDocumentProcessingService(KnowledgeDocumentService knowledgeDocumentService,
-                                              KnowledgeFileStorageService knowledgeFileStorageService) {
+                                              KnowledgeFileStorageService knowledgeFileStorageService,
+                                              KnowledgeRetrievalService knowledgeRetrievalService) {
         this.knowledgeDocumentService = knowledgeDocumentService;
         this.knowledgeFileStorageService = knowledgeFileStorageService;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     @Transactional
@@ -86,6 +89,7 @@ public class KnowledgeDocumentProcessingService {
                     operator
             );
             knowledgeDocumentService.replaceChunks(document.getId(), toChunkCommands(payload.cleanText()));
+            knowledgeRetrievalService.embedDocumentChunks(buildTraceId(document.getId()), document.getId());
             knowledgeDocumentService.updateTaskStatus(
                     taskId,
                     "SUCCESS",
@@ -233,6 +237,10 @@ public class KnowledgeDocumentProcessingService {
             return "Unknown processing error.";
         }
         return message.length() <= 1000 ? message : message.substring(0, 1000);
+    }
+
+    private String buildTraceId(Long documentId) {
+        return documentId == null ? "knowledge-doc" : "knowledge-doc-" + documentId;
     }
 
     private boolean isTextLike(KnowledgeDocumentAssetEntity asset) {

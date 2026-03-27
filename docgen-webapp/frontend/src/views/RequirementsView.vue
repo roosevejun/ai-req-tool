@@ -33,39 +33,11 @@
       </div>
     </section>
 
-    <section class="panel">
-      <div class="section-head">
-        <h3>需求列表</h3>
-      </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>编号</th>
-            <th>标题</th>
-            <th>优先级</th>
-            <th>状态</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in requirements" :key="r.id">
-            <td>{{ r.id }}</td>
-            <td>{{ r.requirementNo }}</td>
-            <td>{{ r.title }}</td>
-            <td>{{ priorityLabel(r.priority) }}</td>
-            <td>{{ statusLabel(r.status) }}</td>
-            <td class="ops">
-              <button class="mini" @click="openWorkbench(r.id)">AI 工作台</button>
-              <button class="mini" @click="openVersions(r.id)">版本页</button>
-            </td>
-          </tr>
-          <tr v-if="requirements.length === 0">
-            <td colspan="6" class="muted">暂无需求</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
+    <RequirementsTableCard
+      :requirements="requirements"
+      @open-workbench="openWorkbench"
+      @open-versions="openVersions"
+    />
 
     <p v-if="error" class="error">{{ error }}</p>
     <p v-if="success" class="success">{{ success }}</p>
@@ -76,16 +48,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
-
-type ApiResponse<T> = { code: number; message: string; data: T; traceId: string }
-type RequirementItem = {
-  id: number
-  requirementNo: string
-  title: string
-  summary: string
-  priority: string
-  status: string
-}
+import RequirementsTableCard from '../components/requirements/RequirementsTableCard.vue'
+import type { ApiResponse, RequirementItem } from '../components/requirements/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -100,22 +64,6 @@ const form = reactive({
   priority: 'P2',
   status: 'DRAFT'
 })
-
-function priorityLabel(value?: string) {
-  if (value === 'P0') return 'P0 - 紧急'
-  if (value === 'P1') return 'P1 - 高'
-  if (value === 'P2') return 'P2 - 中'
-  if (value === 'P3') return 'P3 - 低'
-  return value || '-'
-}
-
-function statusLabel(value?: string) {
-  if (value === 'DRAFT') return '草稿'
-  if (value === 'CLARIFYING') return '澄清中'
-  if (value === 'READY_REVIEW') return '待评审'
-  if (value === 'DONE') return '已完成'
-  return value || '-'
-}
 
 async function loadRequirements() {
   loading.value = true
@@ -150,11 +98,11 @@ async function createRequirement() {
 }
 
 function openWorkbench(requirementId: number) {
-  router.push(`/requirements/${requirementId}/workbench?projectId=${projectId.value}`)
+  void router.push(`/requirements/${requirementId}/workbench?projectId=${projectId.value}`)
 }
 
 function openVersions(requirementId: number) {
-  router.push(`/requirements/${requirementId}/versions?projectId=${projectId.value}`)
+  void router.push(`/requirements/${requirementId}/versions?projectId=${projectId.value}`)
 }
 
 onMounted(loadRequirements)
@@ -168,12 +116,11 @@ onMounted(loadRequirements)
 .form-grid { display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px; }
 .input { width:100%; box-sizing:border-box; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-top:8px; }
 .row { display:flex; gap:10px; margin-top:10px; }
-.primary,.ghost,.mini { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; cursor:pointer; }
+.primary,.ghost { border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; cursor:pointer; }
 .primary { background:#2563eb; border-color:#2563eb; color:#fff; }
-.table { width:100%; border-collapse:collapse; margin-top:8px; }
-.table th,.table td { border:1px solid #e5e7eb; padding:8px; font-size:13px; }
-.ops { display:flex; gap:8px; }
+.ghost { background:#f3f4f6; }
 .muted { color:#6b7280; }
 .error { color:#b91c1c; margin-top:10px; }
 .success { color:#166534; margin-top:10px; }
+@media (max-width: 980px) { .form-grid { grid-template-columns: 1fr; } }
 </style>

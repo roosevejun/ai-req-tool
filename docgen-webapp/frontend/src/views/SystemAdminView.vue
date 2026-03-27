@@ -1,202 +1,57 @@
 <template>
   <div class="container">
-    <section class="panel">
-      <div class="panel-head">
-        <h3>快捷入口</h3>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="goCreateAi">AI 创建项目</button>
-        <button class="ghost" :disabled="loading" @click="goAiDocgen">进入 AI 需求整理</button>
-      </div>
-    </section>
+    <SystemQuickActionsCard :loading="loading" @go-create-ai="goCreateAi" @go-ai-docgen="goAiDocgen" />
 
-    <section class="panel">
-      <div class="panel-head">
-        <h3>用户管理</h3>
-        <button class="ghost" :disabled="loading" @click="loadAll">刷新</button>
-      </div>
+    <UserManagementCard
+      :loading="loading"
+      :new-user="newUser"
+      :roles="roles"
+      :users="users"
+      @refresh="loadAll"
+      @create-user="createUser"
+      @open-user-edit="openUserEdit"
+      @open-user-roles="openUserRoles"
+      @reset-password="resetPassword"
+    />
 
-      <div class="form-grid">
-        <input v-model.trim="newUser.username" class="input" placeholder="用户名" />
-        <input v-model="newUser.password" type="password" class="input" placeholder="密码" />
-        <input v-model.trim="newUser.displayName" class="input" placeholder="显示名称" />
-        <select v-model="newUser.status" class="input">
-          <option value="ENABLED">启用</option>
-          <option value="DISABLED">禁用</option>
-        </select>
-      </div>
-      <div class="checkbox-row">
-        <label v-for="r in roles" :key="`nu-${r.id}`" class="check-item">
-          <input v-model="newUser.roleIds" type="checkbox" :value="r.id" />
-          {{ r.roleCode }}
-        </label>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading || !newUser.username || !newUser.password" @click="createUser">
-          创建用户
-        </button>
-      </div>
+    <RolePermissionCards
+      :loading="loading"
+      :new-role="newRole"
+      :new-perm="newPerm"
+      :roles="roles"
+      :permissions="permissions"
+      @create-role="createRole"
+      @create-permission="createPermission"
+      @open-role-edit="openRoleEdit"
+      @open-role-perms="openRolePerms"
+      @open-perm-edit="openPermEdit"
+    />
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>用户名</th>
-            <th>显示名称</th>
-            <th>状态</th>
-            <th>角色</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="u in users" :key="u.id">
-            <td>{{ u.id }}</td>
-            <td>{{ u.username }}</td>
-            <td>{{ u.displayName }}</td>
-            <td>{{ statusLabel(u.status) }}</td>
-            <td>{{ (u.roleCodes || []).join(', ') }}</td>
-            <td>
-              <button class="mini" @click="openUserEdit(u)">编辑</button>
-              <button class="mini" @click="openUserRoles(u)">角色</button>
-              <button class="mini" @click="resetPassword(u)">重置密码</button>
-            </td>
-          </tr>
-          <tr v-if="users.length === 0">
-            <td colspan="6" class="muted">暂无用户</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="grid">
-      <div class="panel">
-        <h3>角色管理</h3>
-        <div class="form-grid">
-          <input v-model.trim="newRole.roleCode" class="input" placeholder="角色编码，例如 ADMIN" />
-          <input v-model.trim="newRole.roleName" class="input" placeholder="角色名称" />
-          <select v-model="newRole.status" class="input">
-            <option value="ENABLED">启用</option>
-            <option value="DISABLED">禁用</option>
-          </select>
-        </div>
-        <div class="row">
-          <button class="primary" :disabled="loading || !newRole.roleCode || !newRole.roleName" @click="createRole">
-            创建角色
-          </button>
-        </div>
-        <ul class="list">
-          <li v-for="r in roles" :key="r.id">
-            <span>{{ r.roleCode }} - {{ r.roleName }} ({{ statusLabel(r.status) }})</span>
-            <span class="inline-actions">
-              <button class="mini" @click="openRoleEdit(r)">编辑</button>
-              <button class="mini" @click="openRolePerms(r)">权限</button>
-            </span>
-          </li>
-          <li v-if="roles.length === 0" class="muted">暂无角色</li>
-        </ul>
-      </div>
-
-      <div class="panel">
-        <h3>权限管理</h3>
-        <div class="form-grid">
-          <input v-model.trim="newPerm.permCode" class="input" placeholder="权限编码，例如 SYSTEM:MANAGE" />
-          <input v-model.trim="newPerm.permName" class="input" placeholder="权限名称" />
-          <select v-model="newPerm.status" class="input">
-            <option value="ENABLED">启用</option>
-            <option value="DISABLED">禁用</option>
-          </select>
-        </div>
-        <div class="row">
-          <button
-            class="primary"
-            :disabled="loading || !newPerm.permCode || !newPerm.permName"
-            @click="createPermission"
-          >
-            创建权限
-          </button>
-        </div>
-        <ul class="list">
-          <li v-for="p in permissions" :key="p.id">
-            <span>{{ p.permCode }} - {{ p.permName }} ({{ statusLabel(p.status) }})</span>
-            <button class="mini" @click="openPermEdit(p)">编辑</button>
-          </li>
-          <li v-if="permissions.length === 0" class="muted">暂无权限</li>
-        </ul>
-      </div>
-    </section>
-
-    <section v-if="editingUser" class="panel">
-      <h3>编辑用户 {{ editingUser.username }}</h3>
-      <div class="form-grid">
-        <input v-model.trim="editUserForm.displayName" class="input" placeholder="显示名称" />
-        <select v-model="editUserForm.status" class="input">
-          <option value="ENABLED">启用</option>
-          <option value="DISABLED">禁用</option>
-        </select>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="saveUserEdit">保存</button>
-        <button class="ghost" :disabled="loading" @click="editingUser = null">取消</button>
-      </div>
-    </section>
-
-    <section v-if="bindingUser" class="panel">
-      <h3>为 {{ bindingUser.username }} 绑定角色</h3>
-      <div class="checkbox-row">
-        <label v-for="r in roles" :key="`bur-${r.id}`" class="check-item">
-          <input v-model="bindUserRoleIds" type="checkbox" :value="r.id" />
-          {{ r.roleCode }} - {{ r.roleName }}
-        </label>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="saveUserRoles">保存角色</button>
-        <button class="ghost" :disabled="loading" @click="bindingUser = null">取消</button>
-      </div>
-    </section>
-
-    <section v-if="editingRole" class="panel">
-      <h3>编辑角色 {{ editingRole.roleCode }}</h3>
-      <div class="form-grid">
-        <input v-model.trim="editRoleForm.roleName" class="input" placeholder="角色名称" />
-        <select v-model="editRoleForm.status" class="input">
-          <option value="ENABLED">启用</option>
-          <option value="DISABLED">禁用</option>
-        </select>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="saveRoleEdit">保存</button>
-        <button class="ghost" :disabled="loading" @click="editingRole = null">取消</button>
-      </div>
-    </section>
-
-    <section v-if="bindingRole" class="panel">
-      <h3>为 {{ bindingRole.roleCode }} 绑定权限</h3>
-      <div class="checkbox-row">
-        <label v-for="p in permissions" :key="`brp-${p.id}`" class="check-item">
-          <input v-model="bindRolePermIds" type="checkbox" :value="p.id" />
-          {{ p.permCode }} - {{ p.permName }}
-        </label>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="saveRolePerms">保存权限</button>
-        <button class="ghost" :disabled="loading" @click="bindingRole = null">取消</button>
-      </div>
-    </section>
-
-    <section v-if="editingPerm" class="panel">
-      <h3>编辑权限 {{ editingPerm.permCode }}</h3>
-      <div class="form-grid">
-        <input v-model.trim="editPermForm.permName" class="input" placeholder="权限名称" />
-        <select v-model="editPermForm.status" class="input">
-          <option value="ENABLED">启用</option>
-          <option value="DISABLED">禁用</option>
-        </select>
-      </div>
-      <div class="row">
-        <button class="primary" :disabled="loading" @click="savePermEdit">保存</button>
-        <button class="ghost" :disabled="loading" @click="editingPerm = null">取消</button>
-      </div>
-    </section>
+    <BindingPanels
+      :loading="loading"
+      :editing-user="editingUser"
+      :edit-user-form="editUserForm"
+      :binding-user="bindingUser"
+      v-model:bind-user-role-ids="bindUserRoleIds"
+      :editing-role="editingRole"
+      :edit-role-form="editRoleForm"
+      :binding-role="bindingRole"
+      v-model:bind-role-perm-ids="bindRolePermIds"
+      :editing-perm="editingPerm"
+      :edit-perm-form="editPermForm"
+      :roles="roles"
+      :permissions="permissions"
+      @save-user-edit="saveUserEdit"
+      @close-user-edit="editingUser = null"
+      @save-user-roles="saveUserRoles"
+      @close-user-roles="bindingUser = null"
+      @save-role-edit="saveRoleEdit"
+      @close-role-edit="editingRole = null"
+      @save-role-perms="saveRolePerms"
+      @close-role-perms="bindingRole = null"
+      @save-perm-edit="savePermEdit"
+      @close-perm-edit="editingPerm = null"
+    />
 
     <p v-if="error" class="error">{{ error }}</p>
     <p v-if="success" class="success">{{ success }}</p>
@@ -207,17 +62,22 @@
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-
-type ApiResponse<T> = {
-  code: number
-  message: string
-  data: T
-  traceId: string
-}
-
-type UserItem = { id: number; username: string; displayName: string; status: string; roleCodes: string[] }
-type RoleItem = { id: number; roleCode: string; roleName: string; status: string }
-type PermItem = { id: number; permCode: string; permName: string; status: string }
+import BindingPanels from '../components/system-admin/BindingPanels.vue'
+import RolePermissionCards from '../components/system-admin/RolePermissionCards.vue'
+import SystemQuickActionsCard from '../components/system-admin/SystemQuickActionsCard.vue'
+import UserManagementCard from '../components/system-admin/UserManagementCard.vue'
+import type {
+  ApiResponse,
+  EditPermForm,
+  EditRoleForm,
+  EditUserForm,
+  NewPermForm,
+  NewRoleForm,
+  NewUserForm,
+  PermItem,
+  RoleItem,
+  UserItem
+} from '../components/system-admin/types'
 
 const router = useRouter()
 const loading = ref(false)
@@ -227,28 +87,28 @@ const users = ref<UserItem[]>([])
 const roles = ref<RoleItem[]>([])
 const permissions = ref<PermItem[]>([])
 
-const newUser = ref({
+const newUser = ref<NewUserForm>({
   username: '',
   password: '',
   displayName: '',
   status: 'ENABLED',
-  roleIds: [] as number[]
+  roleIds: []
 })
 
-const newRole = ref({
+const newRole = ref<NewRoleForm>({
   roleCode: '',
   roleName: '',
   status: 'ENABLED'
 })
 
-const newPerm = ref({
+const newPerm = ref<NewPermForm>({
   permCode: '',
   permName: '',
   status: 'ENABLED'
 })
 
 const editingUser = ref<UserItem | null>(null)
-const editUserForm = ref({
+const editUserForm = ref<EditUserForm>({
   displayName: '',
   status: 'ENABLED'
 })
@@ -257,7 +117,7 @@ const bindingUser = ref<UserItem | null>(null)
 const bindUserRoleIds = ref<number[]>([])
 
 const editingRole = ref<RoleItem | null>(null)
-const editRoleForm = ref({
+const editRoleForm = ref<EditRoleForm>({
   roleName: '',
   status: 'ENABLED'
 })
@@ -266,16 +126,10 @@ const bindingRole = ref<RoleItem | null>(null)
 const bindRolePermIds = ref<number[]>([])
 
 const editingPerm = ref<PermItem | null>(null)
-const editPermForm = ref({
+const editPermForm = ref<EditPermForm>({
   permName: '',
   status: 'ENABLED'
 })
-
-function statusLabel(value?: string) {
-  if (value === 'ENABLED') return '启用'
-  if (value === 'DISABLED') return '禁用'
-  return value || '-'
-}
 
 function clearTips() {
   error.value = ''
@@ -290,14 +144,14 @@ async function loadAll() {
   loading.value = true
   clearTips()
   try {
-    const [u, r, p] = await Promise.all([
+    const [userRes, roleRes, permRes] = await Promise.all([
       axios.get<ApiResponse<UserItem[]>>('/api/system/users'),
       axios.get<ApiResponse<RoleItem[]>>('/api/system/roles'),
       axios.get<ApiResponse<PermItem[]>>('/api/system/permissions')
     ])
-    users.value = u.data.data || []
-    roles.value = r.data.data || []
-    permissions.value = p.data.data || []
+    users.value = userRes.data.data || []
+    roles.value = roleRes.data.data || []
+    permissions.value = permRes.data.data || []
   } catch (e: any) {
     showError(e, '加载系统管理数据失败。')
   } finally {
@@ -311,7 +165,13 @@ async function createUser() {
   try {
     await axios.post('/api/system/users', newUser.value)
     success.value = '用户创建成功。'
-    newUser.value = { username: '', password: '', displayName: '', status: 'ENABLED', roleIds: [] }
+    newUser.value = {
+      username: '',
+      password: '',
+      displayName: '',
+      status: 'ENABLED',
+      roleIds: []
+    }
     await loadAll()
   } catch (e: any) {
     showError(e, '创建用户失败。')
@@ -319,11 +179,11 @@ async function createUser() {
   }
 }
 
-function openUserEdit(u: UserItem) {
-  editingUser.value = u
+function openUserEdit(user: UserItem) {
+  editingUser.value = user
   editUserForm.value = {
-    displayName: u.displayName || '',
-    status: u.status || 'ENABLED'
+    displayName: user.displayName || '',
+    status: user.status || 'ENABLED'
   }
 }
 
@@ -342,10 +202,10 @@ async function saveUserEdit() {
   }
 }
 
-function openUserRoles(u: UserItem) {
-  bindingUser.value = u
-  const roleCodes = new Set(u.roleCodes || [])
-  bindUserRoleIds.value = roles.value.filter((r) => roleCodes.has(r.roleCode)).map((r) => r.id)
+function openUserRoles(user: UserItem) {
+  bindingUser.value = user
+  const roleCodes = new Set(user.roleCodes || [])
+  bindUserRoleIds.value = roles.value.filter((role) => roleCodes.has(role.roleCode)).map((role) => role.id)
 }
 
 async function saveUserRoles() {
@@ -365,13 +225,13 @@ async function saveUserRoles() {
   }
 }
 
-async function resetPassword(u: UserItem) {
-  const pwd = window.prompt(`请为 ${u.username} 输入新密码`)
-  if (!pwd) return
+async function resetPassword(user: UserItem) {
+  const password = window.prompt(`请为 ${user.username} 输入新密码`)
+  if (!password) return
   loading.value = true
   clearTips()
   try {
-    await axios.put(`/api/system/users/${u.id}/password`, { newPassword: pwd })
+    await axios.put(`/api/system/users/${user.id}/password`, { newPassword: password })
     success.value = '密码重置成功。'
   } catch (e: any) {
     showError(e, '重置密码失败。')
@@ -386,7 +246,11 @@ async function createRole() {
   try {
     await axios.post('/api/system/roles', newRole.value)
     success.value = '角色创建成功。'
-    newRole.value = { roleCode: '', roleName: '', status: 'ENABLED' }
+    newRole.value = {
+      roleCode: '',
+      roleName: '',
+      status: 'ENABLED'
+    }
     await loadAll()
   } catch (e: any) {
     showError(e, '创建角色失败。')
@@ -394,11 +258,11 @@ async function createRole() {
   }
 }
 
-function openRoleEdit(r: RoleItem) {
-  editingRole.value = r
+function openRoleEdit(role: RoleItem) {
+  editingRole.value = role
   editRoleForm.value = {
-    roleName: r.roleName || '',
-    status: r.status || 'ENABLED'
+    roleName: role.roleName || '',
+    status: role.status || 'ENABLED'
   }
 }
 
@@ -417,8 +281,8 @@ async function saveRoleEdit() {
   }
 }
 
-function openRolePerms(r: RoleItem) {
-  bindingRole.value = r
+function openRolePerms(role: RoleItem) {
+  bindingRole.value = role
   bindRolePermIds.value = []
 }
 
@@ -445,7 +309,11 @@ async function createPermission() {
   try {
     await axios.post('/api/system/permissions', newPerm.value)
     success.value = '权限创建成功。'
-    newPerm.value = { permCode: '', permName: '', status: 'ENABLED' }
+    newPerm.value = {
+      permCode: '',
+      permName: '',
+      status: 'ENABLED'
+    }
     await loadAll()
   } catch (e: any) {
     showError(e, '创建权限失败。')
@@ -453,11 +321,11 @@ async function createPermission() {
   }
 }
 
-function openPermEdit(p: PermItem) {
-  editingPerm.value = p
+function openPermEdit(permission: PermItem) {
+  editingPerm.value = permission
   editPermForm.value = {
-    permName: p.permName || '',
-    status: p.status || 'ENABLED'
+    permName: permission.permName || '',
+    status: permission.status || 'ENABLED'
   }
 }
 
@@ -477,11 +345,11 @@ async function savePermEdit() {
 }
 
 function goCreateAi() {
-  router.push('/projects/create-ai')
+  void router.push('/projects/create-ai')
 }
 
 function goAiDocgen() {
-  router.push('/docgen')
+  void router.push('/docgen')
 }
 
 onMounted(loadAll)
@@ -495,140 +363,12 @@ onMounted(loadAll)
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", sans-serif;
 }
-
-.row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.checkbox-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.check-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 13px;
-}
-
-.input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-}
-
-.panel {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 14px;
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.panel-head h3,
-.panel h3 {
-  margin: 0;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-}
-
-.table th,
-.table td {
-  border: 1px solid #e5e7eb;
-  padding: 8px;
-  font-size: 13px;
-}
-
-.list {
-  margin: 12px 0 0;
-  padding-left: 18px;
-}
-
-.list li {
-  margin-bottom: 8px;
-}
-
-.inline-actions {
-  margin-left: 8px;
-  display: inline-flex;
-  gap: 8px;
-}
-
-.primary,
-.ghost,
-.mini {
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-
-.ghost,
-.mini {
-  background: #f3f4f6;
-}
-
-.mini {
-  padding: 5px 9px;
-  font-size: 12px;
-}
-
-.muted {
-  color: #6b7280;
-}
-
 .error {
   color: #b91c1c;
   margin-top: 10px;
 }
-
 .success {
   color: #166534;
   margin-top: 10px;
-}
-
-@media (max-width: 980px) {
-  .grid,
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

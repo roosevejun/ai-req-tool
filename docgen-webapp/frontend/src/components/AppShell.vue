@@ -1,49 +1,20 @@
 <template>
   <div class="shell">
-    <header class="shell-header">
-      <div class="brand" @click="goDefault">
-        <div class="brand-mark">AI</div>
-        <div>
-          <div class="brand-title">AI 需求工具</div>
-          <div class="brand-sub">项目、需求与 AI 协同工作台</div>
-        </div>
-      </div>
+    <ShellHeader
+      :nav-items="navItems"
+      :active-section="activeSection"
+      :login-user="loginUser"
+      @go-default="goDefault"
+      @navigate="navigate"
+      @logout="handleLogout"
+    />
 
-      <nav class="main-nav">
-        <button
-          v-for="item in navItems"
-          :key="item.to"
-          class="nav-btn"
-          :class="{ active: activeSection === item.section }"
-          @click="router.push(item.to)"
-        >
-          {{ item.label }}
-        </button>
-      </nav>
-
-      <div class="user-area" v-if="loginUser">
-        <span class="user-name">{{ loginUser.displayName || loginUser.username }}</span>
-        <button class="ghost" @click="handleLogout">退出登录</button>
-      </div>
-    </header>
-
-    <div v-if="!isLoginPage" class="context-bar">
-      <div class="breadcrumbs">
-        <button
-          v-for="(item, idx) in breadcrumbs"
-          :key="`${item.label}-${idx}`"
-          class="crumb"
-          :class="{ current: idx === breadcrumbs.length - 1, clickable: !!item.to }"
-          @click="item.to && router.push(item.to)"
-        >
-          {{ item.label }}
-        </button>
-      </div>
-
-      <div class="context-actions">
-        <button v-if="backTarget" class="ghost" @click="router.push(backTarget)">返回上一层</button>
-      </div>
-    </div>
+    <ShellContextBar
+      v-if="!isLoginPage"
+      :breadcrumbs="breadcrumbs"
+      :back-target="backTarget"
+      @navigate="navigate"
+    />
 
     <main class="shell-body">
       <router-view />
@@ -55,17 +26,9 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getLoginUser, logout } from '../auth'
-
-type NavItem = {
-  label: string
-  to: string
-  section: string
-}
-
-type Crumb = {
-  label: string
-  to?: string
-}
+import ShellContextBar from './shell/ShellContextBar.vue'
+import ShellHeader from './shell/ShellHeader.vue'
+import type { Crumb, NavItem } from './shell/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,6 +41,7 @@ const navItems: NavItem[] = [
 
 const loginUser = computed(() => getLoginUser())
 const isLoginPage = computed(() => route.path === '/login')
+
 const activeSection = computed(() => {
   const section = String(route.meta.section || '')
   if (section) return section
@@ -159,14 +123,18 @@ const backTarget = computed(() => {
   return ''
 })
 
+function navigate(to: string) {
+  void router.push(to)
+}
+
 function goDefault() {
   if (isLoginPage.value) return
-  router.push('/projects')
+  navigate('/projects')
 }
 
 function handleLogout() {
   logout()
-  router.push('/login')
+  navigate('/login')
 }
 </script>
 
@@ -177,114 +145,7 @@ function handleLogout() {
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
     linear-gradient(180deg, #f6f9fd 0%, #eef4fb 100%);
 }
-.shell-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px;
-  border-bottom: 1px solid #dbe2ea;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-.brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #1d4ed8, #0f766e);
-  color: #fff;
-  font-weight: 700;
-}
-.brand-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #0f172a;
-}
-.brand-sub {
-  font-size: 12px;
-  color: #64748b;
-}
-.main-nav {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-  justify-content: center;
-}
-.nav-btn,
-.ghost,
-.crumb {
-  border: 1px solid #d1d5db;
-  background: #fff;
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-.nav-btn.active {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-.user-area {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.user-name {
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 600;
-}
-.context-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 18px 0;
-}
-.breadcrumbs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.crumb {
-  color: #334155;
-}
-.crumb.current {
-  background: #e0ecff;
-  border-color: #b6d0ff;
-  color: #1d4ed8;
-}
-.crumb.clickable:hover,
-.ghost:hover,
-.nav-btn:hover {
-  border-color: #94a3b8;
-}
 .shell-body {
   padding: 12px 0 28px;
-}
-@media (max-width: 980px) {
-  .shell-header,
-  .context-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .main-nav {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-  .user-area {
-    justify-content: space-between;
-  }
 }
 </style>

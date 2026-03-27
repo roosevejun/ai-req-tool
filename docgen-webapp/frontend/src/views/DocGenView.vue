@@ -12,72 +12,22 @@
       </aside>
 
       <main class="content">
-        <section class="card">
-          <h3>当前上下文</h3>
-          <div class="meta-grid">
-            <div><strong>项目 ID：</strong> {{ selectedProjectId || '-' }}</div>
-            <div><strong>需求 ID：</strong> {{ selectedRequirementId || '-' }}</div>
-          </div>
-        </section>
+        <RequirementComposerCard
+          :loading="loading"
+          :selected-project-id="selectedProjectId"
+          :selected-requirement-id="selectedRequirementId"
+          :req-form="reqForm"
+          @create-requirement="createRequirement"
+          @refresh-requirements="loadRequirements"
+        />
 
-        <section v-if="selectedProjectId" class="card">
-          <h3>为项目 {{ selectedProjectId }} 创建需求</h3>
-          <div class="form-grid">
-            <input v-model.trim="reqForm.title" class="input" placeholder="需求标题" />
-            <select v-model="reqForm.priority" class="input">
-              <option value="P0">P0 - 紧急</option>
-              <option value="P1">P1 - 高</option>
-              <option value="P2">P2 - 中</option>
-              <option value="P3">P3 - 低</option>
-            </select>
-            <select v-model="reqForm.status" class="input">
-              <option value="DRAFT">草稿</option>
-              <option value="CLARIFYING">澄清中</option>
-              <option value="READY_REVIEW">待评审</option>
-              <option value="DONE">已完成</option>
-            </select>
-          </div>
-          <textarea v-model="reqForm.summary" class="input" placeholder="需求摘要" />
-          <div class="row">
-            <button class="primary" :disabled="loading || !reqForm.title" @click="createRequirement">创建需求</button>
-            <button class="ghost" :disabled="loading" @click="loadRequirements">刷新列表</button>
-          </div>
-        </section>
-
-        <section v-if="selectedProjectId" class="card">
-          <h3>项目 {{ selectedProjectId }} 的需求</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>编号</th>
-                <th>标题</th>
-                <th>优先级</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in requirements" :key="r.id">
-                <td>{{ r.id }}</td>
-                <td>{{ r.requirementNo }}</td>
-                <td>{{ r.title }}</td>
-                <td>{{ priorityLabel(r.priority) }}</td>
-                <td>{{ statusLabel(r.status) }}</td>
-                <td class="ops">
-                  <button class="mini" @click="onSelectRequirement({ projectId: selectedProjectId!, requirementId: r.id })">
-                    查看
-                  </button>
-                  <button class="mini" @click="goWorkbench(r.id)">工作台</button>
-                  <button class="mini" @click="goVersions(r.id)">版本页</button>
-                </td>
-              </tr>
-              <tr v-if="requirements.length === 0">
-                <td colspan="6" class="empty small">当前项目下暂无需求</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+        <RequirementListCard
+          :selected-project-id="selectedProjectId"
+          :requirements="requirements"
+          @select-requirement="onSelectRequirement"
+          @open-workbench="goWorkbench"
+          @open-versions="goVersions"
+        />
 
         <section v-if="selectedRequirementId" class="card">
           <div class="row between">
@@ -111,16 +61,9 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import DocGenPage from '../components/DocGenPage.vue'
 import ProjectRequirementTree from '../components/ProjectRequirementTree.vue'
-
-type ApiResponse<T> = { code: number; message: string; data: T; traceId: string }
-type RequirementItem = {
-  id: number
-  requirementNo: string
-  title: string
-  summary: string
-  priority: string
-  status: string
-}
+import RequirementComposerCard from '../components/docgen-view/RequirementComposerCard.vue'
+import RequirementListCard from '../components/docgen-view/RequirementListCard.vue'
+import type { ApiResponse, RequirementItem } from '../components/docgen-view/types'
 
 const router = useRouter()
 const loading = ref(false)
@@ -138,34 +81,18 @@ const reqForm = reactive({
   status: 'DRAFT'
 })
 
-function showError(msg: string) {
-  error.value = msg
-}
-
-function priorityLabel(value?: string) {
-  if (value === 'P0') return 'P0 - 紧急'
-  if (value === 'P1') return 'P1 - 高'
-  if (value === 'P2') return 'P2 - 中'
-  if (value === 'P3') return 'P3 - 低'
-  return value || '-'
-}
-
-function statusLabel(value?: string) {
-  if (value === 'DRAFT') return '草稿'
-  if (value === 'CLARIFYING') return '澄清中'
-  if (value === 'READY_REVIEW') return '待评审'
-  if (value === 'DONE') return '已完成'
-  return value || '-'
+function showError(message: string) {
+  error.value = message
 }
 
 function goWorkbench(requirementId: number) {
   if (!selectedProjectId.value) return
-  router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
+  void router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
 }
 
 function goVersions(requirementId: number) {
   if (!selectedProjectId.value) return
-  router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`)
+  void router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`)
 }
 
 async function loadRequirements() {
@@ -211,16 +138,16 @@ async function onSelectProject(projectId: number) {
   await loadRequirements()
 }
 
-async function onSelectRequirement(payload: { projectId: number; requirementId: number }) {
-  selectedProjectId.value = payload.projectId
-  selectedRequirementId.value = payload.requirementId
-  if (requirements.value.length === 0 || !requirements.value.some((r) => r.id === payload.requirementId)) {
+async function onSelectRequirement(projectId: number, requirementId: number) {
+  selectedProjectId.value = projectId
+  selectedRequirementId.value = requirementId
+  if (requirements.value.length === 0 || !requirements.value.some((item) => item.id === requirementId)) {
     await loadRequirements()
   }
 }
 
-watch(selectedProjectId, async (pid) => {
-  if (pid) {
+watch(selectedProjectId, async (projectId) => {
+  if (projectId) {
     await loadRequirements()
   } else {
     requirements.value = []
@@ -235,13 +162,11 @@ watch(selectedProjectId, async (pid) => {
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-
 .layout {
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 14px;
 }
-
 .card {
   background: #fff;
   border: 1px solid #dbe2ea;
@@ -249,129 +174,48 @@ watch(selectedProjectId, async (pid) => {
   padding: 12px;
   margin-bottom: 12px;
 }
-
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
-  gap: 10px;
-  font-size: 14px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 10px;
-}
-
-.input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin-top: 8px;
-  background: #fff;
-}
-
-textarea.input {
-  min-height: 72px;
-  resize: vertical;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-}
-
-.table th,
-.table td {
-  border: 1px solid #e5e7eb;
-  padding: 8px;
-  font-size: 13px;
-}
-
-.ops {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .row {
   display: flex;
   gap: 10px;
   margin-top: 10px;
   flex-wrap: wrap;
 }
-
 .between {
   justify-content: space-between;
   align-items: center;
 }
-
-.primary,
 .ghost,
 .mini {
   border-radius: 8px;
   border: 1px solid #d1d5db;
   padding: 8px 12px;
   cursor: pointer;
-}
-
-.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-
-.ghost,
-.mini {
   background: #f3f4f6;
 }
-
 .mini {
   padding: 5px 9px;
   font-size: 12px;
 }
-
-.empty,
-.muted {
-  color: #6b7280;
-}
-
-.small {
-  font-size: 12px;
-}
-
 .empty-state h3,
 .empty-state p {
   margin: 0;
 }
-
 .empty-state p {
   margin-top: 8px;
+  color: #6b7280;
 }
-
 .error {
   margin-top: 8px;
   color: #b91c1c;
 }
-
 .success {
   margin-top: 8px;
   color: #166534;
 }
-
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
   }
-
-  .form-grid,
-  .meta-grid {
-    grid-template-columns: 1fr;
-  }
-
   .between {
     align-items: flex-start;
   }

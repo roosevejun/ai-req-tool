@@ -114,6 +114,32 @@ public interface KnowledgeDocumentChunkMapper {
                                                                @Param("queryVectorLiteral") String queryVectorLiteral,
                                                                @Param("topK") int topK);
 
+    @Select("""
+            <script>
+            SELECT c.id, c.document_id AS documentId, c.chunk_no AS chunkNo, c.chunk_text AS chunkText,
+                   c.token_count AS tokenCount, c.summary, c.embedding_status AS embeddingStatus,
+                   c.vector_ref AS vectorRef, c.embedding_model AS embeddingModel,
+                   c.embedding_vector::text AS embeddingVectorLiteral,
+                   c.embedded_at AS embeddedAt, c.created_at AS createdAt,
+                   1 - (c.embedding_vector &lt;=&gt; CAST(#{queryVectorLiteral} AS vector)) AS score
+            FROM km_document_chunk c
+            JOIN km_document d ON d.id = c.document_id
+            WHERE d.source_material_id IN
+            <foreach collection="sourceMaterialIds" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+              AND d.retrievable = TRUE
+              AND d.status = 'READY'
+              AND c.embedding_status = 'READY'
+              AND c.embedding_vector IS NOT NULL
+            ORDER BY c.embedding_vector &lt;=&gt; CAST(#{queryVectorLiteral} AS vector)
+            LIMIT #{topK}
+            </script>
+            """)
+    List<KnowledgeDocumentChunkEntity> searchSourceMaterialChunks(@Param("sourceMaterialIds") List<Long> sourceMaterialIds,
+                                                                  @Param("queryVectorLiteral") String queryVectorLiteral,
+                                                                  @Param("topK") int topK);
+
     @Delete("""
             DELETE FROM km_document_chunk
             WHERE document_id = #{documentId}

@@ -31,6 +31,7 @@ public class ProjectAiConversationService {
     private final KnowledgeDocumentService knowledgeDocumentService;
     private final KnowledgeDocumentProcessingService knowledgeDocumentProcessingService;
     private final KnowledgeFileStorageService knowledgeFileStorageService;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
 
     public ProjectAiConversationService(ProjectChatSessionMapper sessionMapper,
                                         ProjectChatMessageMapper messageMapper,
@@ -40,7 +41,8 @@ public class ProjectAiConversationService {
                                         ProjectService projectService,
                                         KnowledgeDocumentService knowledgeDocumentService,
                                         KnowledgeDocumentProcessingService knowledgeDocumentProcessingService,
-                                        KnowledgeFileStorageService knowledgeFileStorageService) {
+                                        KnowledgeFileStorageService knowledgeFileStorageService,
+                                        KnowledgeRetrievalService knowledgeRetrievalService) {
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.materialMapper = materialMapper;
@@ -50,6 +52,7 @@ public class ProjectAiConversationService {
         this.knowledgeDocumentService = knowledgeDocumentService;
         this.knowledgeDocumentProcessingService = knowledgeDocumentProcessingService;
         this.knowledgeFileStorageService = knowledgeFileStorageService;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
     }
 
     public record SourceMaterialInput(
@@ -123,6 +126,13 @@ public class ProjectAiConversationService {
     public record CreateProjectFromConversationResult(
             Long sessionId,
             Long projectId
+    ) {
+    }
+
+    public record KnowledgePreviewView(
+            String query,
+            List<KnowledgeRetrievalService.RetrievalItem> items,
+            String contextText
     ) {
     }
 
@@ -260,6 +270,26 @@ public class ProjectAiConversationService {
         );
     }
 
+    public KnowledgePreviewView previewKnowledgeContext(String traceId, Long sessionId, String query) {
+        ProjectChatSessionEntity session = requireSession(sessionId);
+        StructuredInfo current = readStructuredInfo(session.getStructuredInfoJson());
+        List<ProjectSourceMaterialEntity> materials = materialMapper.listBySessionId(sessionId);
+        List<Long> sourceMaterialIds = materials.stream()
+                .map(ProjectSourceMaterialEntity::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+        String retrievalQuery = query == null || query.isBlank()
+                ? buildKnowledgeQuery(current, sessionId)
+                : query.trim();
+        KnowledgeRetrievalService.RetrievalContext context = knowledgeRetrievalService.searchSourceMaterialKnowledge(
+                traceId,
+                sourceMaterialIds,
+                retrievalQuery,
+                5
+        );
+        return new KnowledgePreviewView(context.query(), context.items(), context.contextText());
+    }
+
     public CreateProjectFromConversationResult createProjectFromConversation(Long sessionId,
                                                                             String projectKey,
                                                                             String projectName,
@@ -303,7 +333,8 @@ public class ProjectAiConversationService {
     }
 
     private AgentClient.ProjectProductGuideResult runGuide(String traceId, StructuredInfo current, Long sessionId) {
-        String descriptionWithMaterials = mergeDescriptionAndMaterials(current.description(), sessionId);
+        String retrievalContext = loadKnowledgeContext(traceId, current, sessionId);
+        String descriptionWithMaterials = mergeDescriptionAndMaterials(current.description(), sessionId, retrievalContext);
         return agentClient.guideProjectProductInfo(
                 traceId,
                 current.projectName(),
@@ -520,7 +551,7 @@ public class ProjectAiConversationService {
         return String.join("\n", parts);
     }
 
-    private String mergeDescriptionAndMaterials(String description, Long sessionId) {
+    private String mergeDescriptionAndMaterials(String description, Long sessionId, String retrievalContext) {
         StringBuilder sb = new StringBuilder(defaultString(description));
         List<ProjectSourceMaterialEntity> materials = materialMapper.listBySessionId(sessionId);
         if (!materials.isEmpty()) {
@@ -543,7 +574,65 @@ public class ProjectAiConversationService {
                 sb.append("\n");
             }
         }
+        if (retrievalContext != null && !retrievalContext.isBlank()) {
+            if (sb.length() > 0) {
+                sb.append("\n\n");
+            }
+            sb.append("Retrieved Knowledge Context:\n")
+                    .append(retrievalContext.trim());
+        }
         return sb.toString().trim();
+    }
+
+    private String loadKnowledgeContext(String traceId, StructuredInfo current, Long sessionId) {
+        List<ProjectSourceMaterialEntity> materials = materialMapper.listBySessionId(sessionId);
+        if (materials.isEmpty()) {
+            return "";
+        }
+        List<Long> sourceMaterialIds = materials.stream()
+                .map(ProjectSourceMaterialEntity::getId)
+                .filter(id -> id != null && id > 0)
+                .toList();
+        if (sourceMaterialIds.isEmpty()) {
+            return "";
+        }
+        String retrievalQuery = buildKnowledgeQuery(current, sessionId);
+        if (retrievalQuery.isBlank()) {
+            return "";
+        }
+        return knowledgeRetrievalService.searchSourceMaterialKnowledge(traceId, sourceMaterialIds, retrievalQuery, 5)
+                .contextText();
+    }
+
+    private String buildKnowledgeQuery(StructuredInfo current, Long sessionId) {
+        List<String> parts = new ArrayList<>();
+        if (current != null) {
+            if (current.projectName() != null && !current.projectName().isBlank()) {
+                parts.add(current.projectName().trim());
+            }
+            if (current.description() != null && !current.description().isBlank()) {
+                parts.add(current.description().trim());
+            }
+            if (current.projectBackground() != null && !current.projectBackground().isBlank()) {
+                parts.add(current.projectBackground().trim());
+            }
+            if (current.targetCustomerGroups() != null && !current.targetCustomerGroups().isBlank()) {
+                parts.add(current.targetCustomerGroups().trim());
+            }
+            if (current.commercialValue() != null && !current.commercialValue().isBlank()) {
+                parts.add(current.commercialValue().trim());
+            }
+        }
+        for (ProjectChatMessageEntity item : messageMapper.listBySessionId(sessionId)) {
+            if (item == null || item.getContent() == null || item.getContent().isBlank()) {
+                continue;
+            }
+            if (!"user".equalsIgnoreCase(item.getRole())) {
+                continue;
+            }
+            parts.add(item.getContent().trim());
+        }
+        return String.join("\n", parts).trim();
     }
 
     private String summarizeKnowledge(String projectName,
@@ -649,7 +738,7 @@ public class ProjectAiConversationService {
             return "TEXT";
         }
         String normalized = value.trim().toUpperCase();
-        return ("URL".equals(normalized) || "TEXT".equals(normalized)) ? normalized : "TEXT";
+        return ("URL".equals(normalized) || "TEXT".equals(normalized) || "FILE".equals(normalized)) ? normalized : "TEXT";
     }
 
     private String choose(String preferred, String fallback) {
