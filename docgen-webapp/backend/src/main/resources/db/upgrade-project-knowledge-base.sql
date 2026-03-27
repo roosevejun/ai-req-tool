@@ -4,6 +4,8 @@
 -- existing pm_project_source_material usage.
 -- New runtime services can migrate to km_* tables incrementally.
 
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS km_document (
     id                 BIGSERIAL PRIMARY KEY,
     project_id         BIGINT       NULL REFERENCES pm_project (id) ON DELETE CASCADE,
@@ -64,6 +66,9 @@ CREATE TABLE IF NOT EXISTS km_document_chunk (
     summary          TEXT         NULL,
     embedding_status VARCHAR(32)  NOT NULL DEFAULT 'PENDING',
     vector_ref       VARCHAR(128) NULL,
+    embedding_model  VARCHAR(64)  NULL,
+    embedding_vector vector(1536) NULL,
+    embedded_at      TIMESTAMP    NULL,
     created_at       TIMESTAMP    NOT NULL DEFAULT NOW(),
     UNIQUE (document_id, chunk_no)
 );
@@ -71,6 +76,10 @@ CREATE TABLE IF NOT EXISTS km_document_chunk (
 CREATE INDEX IF NOT EXISTS idx_km_doc_chunk_document ON km_document_chunk (document_id);
 CREATE INDEX IF NOT EXISTS idx_km_doc_chunk_embedding_status ON km_document_chunk (embedding_status);
 CREATE INDEX IF NOT EXISTS idx_km_doc_chunk_vector_ref ON km_document_chunk (vector_ref);
+CREATE INDEX IF NOT EXISTS idx_km_doc_chunk_doc_status ON km_document_chunk (document_id, embedding_status);
+CREATE INDEX IF NOT EXISTS idx_km_doc_chunk_vector_ivfflat
+    ON km_document_chunk USING ivfflat (embedding_vector vector_cosine_ops)
+    WITH (lists = 100);
 
 CREATE TABLE IF NOT EXISTS km_document_task (
     id            BIGSERIAL PRIMARY KEY,
@@ -88,3 +97,12 @@ CREATE INDEX IF NOT EXISTS idx_km_doc_task_document ON km_document_task (documen
 CREATE INDEX IF NOT EXISTS idx_km_doc_task_status ON km_document_task (status);
 CREATE INDEX IF NOT EXISTS idx_km_doc_task_type ON km_document_task (task_type);
 CREATE INDEX IF NOT EXISTS idx_km_doc_task_doc_status ON km_document_task (document_id, status);
+
+ALTER TABLE IF EXISTS km_document_chunk
+    ADD COLUMN IF NOT EXISTS embedding_model VARCHAR(64) NULL;
+
+ALTER TABLE IF EXISTS km_document_chunk
+    ADD COLUMN IF NOT EXISTS embedding_vector vector(1536) NULL;
+
+ALTER TABLE IF EXISTS km_document_chunk
+    ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMP NULL;

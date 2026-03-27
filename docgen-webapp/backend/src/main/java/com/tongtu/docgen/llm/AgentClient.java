@@ -35,6 +35,8 @@ public class AgentClient {
     private String openaiBaseUrl;
     @Value("${agent.llm.openai.model:gpt-4o-mini}")
     private String openaiModel;
+    @Value("${agent.llm.openai.embeddingModel:text-embedding-3-small}")
+    private String openaiEmbeddingModel;
     @Value("${agent.llm.openai.apiKey:}")
     private String openaiApiKey;
     @Value("${agent.llm.openai.timeoutMs:30000}")
@@ -72,6 +74,57 @@ public class AgentClient {
             String commercialValue,
             String coreProductValue
     ) {}
+
+    public List<Float> embedText(String traceId, String text) {
+        String normalized = text == null ? "" : text.trim();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+        if (mockOnly || getApiKey().isEmpty()) {
+            return mockEmbedding(normalized, 1536);
+        }
+
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("model", openaiEmbeddingModel);
+            body.put("input", normalized);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(trimTrailingSlash(openaiBaseUrl) + "/embeddings"))
+                    .timeout(Duration.ofMillis(openaiTimeoutMs))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + getApiKey())
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("Embedding request failed with status " + response.statusCode());
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            JsonNode items = root.path("data");
+            if (!items.isArray() || items.isEmpty()) {
+                throw new IllegalStateException("Embedding response data is empty");
+            }
+            JsonNode embeddingNode = items.get(0).path("embedding");
+            if (!embeddingNode.isArray() || embeddingNode.isEmpty()) {
+                throw new IllegalStateException("Embedding array is empty");
+            }
+
+            List<Float> out = new ArrayList<>();
+            for (JsonNode item : embeddingNode) {
+                out.add((float) item.asDouble());
+            }
+            return out;
+        } catch (Exception e) {
+            log.warn("Embedding fallback activated, traceId={}, reason={}", traceId, e.getMessage());
+            return mockEmbedding(normalized, 1536);
+        }
+    }
+
+    public String embeddingModel() {
+        return openaiEmbeddingModel;
+    }
 
     public List<DocGenService.ClarifyQuestion> generateClarifyQuestions(String traceId, String prdTemplate, String businessDescription) {
         return List.of(
@@ -479,6 +532,46 @@ Rules:
             tags.add("PRD");
         }
         return normalizeTags(tags);
+    }
+
+    private List<Float> mockEmbedding(String text, int dimensions) {
+        int safeDimensions = Math.max(8, dimensions);
+        List<Float> vector = new ArrayList<>(safeDimensions);
+        int seed = text.hashCode();
+        for (int i = 0; i < safeDimensions; i++) {
+            seed = 31 * seed + i + 17;
+            float value = ((seed & 0x7fffffff) % 2000) / 1000.0f - 1.0f;
+            vector.add(value);
+        }
+        return normalizeVector(vector);
+    }
+
+    private List<Float> normalizeVector(List<Float> vector) {
+        double norm = 0.0d;
+        for (Float item : vector) {
+            if (item == null) continue;
+            norm += item * item;
+        }
+        if (norm <= 0.0d) {
+            return vector;
+        }
+        double divisor = Math.sqrt(norm);
+        List<Float> normalized = new ArrayList<>(vector.size());
+        for (Float item : vector) {
+            normalized.add(item == null ? 0.0f : (float) (item / divisor));
+        }
+        return normalized;
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String trimmed = value.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private ProjectProductGuideResult fallbackProjectProductGuide(String projectName,

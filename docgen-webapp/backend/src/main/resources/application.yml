@@ -24,6 +24,7 @@ agent:
     openai:
       baseUrl: https://api.openai.com/v1
       model: gpt-4o-mini
+      embeddingModel: text-embedding-3-small
       # Recommended: inject via env variable instead of hard-coding.
       apiKey: ${OPENAI_API_KEY:}
       timeoutMs: 30000

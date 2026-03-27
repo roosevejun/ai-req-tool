@@ -14,5 +14,9 @@ public class KnowledgeDocumentChunkEntity {
     private String summary;
     private String embeddingStatus;
     private String vectorRef;
+    private String embeddingModel;
+    private String embeddingVectorLiteral;
+    private LocalDateTime embeddedAt;
+    private Double score;
     private LocalDateTime createdAt;
 }
