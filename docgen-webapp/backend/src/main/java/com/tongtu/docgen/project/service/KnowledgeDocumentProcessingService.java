@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -154,11 +152,7 @@ public class KnowledgeDocumentProcessingService {
         if (!isTextLike(asset)) {
             throw new IllegalStateException("Current file parser only supports text and markdown files.");
         }
-        Path path = knowledgeFileStorageService.resolvePath(asset.getStorageKey());
-        if (!Files.exists(path)) {
-            throw new IllegalStateException("Stored file does not exist.");
-        }
-        String cleanText = normalizeBlank(Files.readString(path, StandardCharsets.UTF_8));
+        String cleanText = normalizeBlank(knowledgeFileStorageService.readUtf8(asset.getStorageBucket(), asset.getStorageKey()));
         if (cleanText == null) {
             throw new IllegalStateException("Uploaded file content is empty.");
         }
