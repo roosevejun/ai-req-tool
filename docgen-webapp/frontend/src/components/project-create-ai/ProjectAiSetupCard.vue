@@ -1,8 +1,8 @@
 ﻿<template>
   <WorkspaceSection
-    eyebrow="项目启动"
-    title="通过 AI 创建项目"
-    description="先描述你的项目想法，再补充资料，让 AI 和你一起梳理出可落地的项目信息。"
+    eyebrow="辅助输入"
+    title="项目起点与佐证资料"
+    description="这里负责给 AI 一个起点，并补充能帮助 AI 校准理解的资料。主工作区仍以对话和框架提炼为主。"
   >
     <div class="grid two">
       <input v-model.trim="startForm.projectName" class="input" placeholder="先写下项目名称，或一个临时工作名" />
@@ -16,7 +16,7 @@
     <div class="materials-header">
       <div>
         <p class="section-label">知识输入</p>
-        <h4>补充资料</h4>
+        <h4>补充佐证资料</h4>
       </div>
       <StatusBadge :label="sessionId ? '会话已启动' : '等待启动会话'" :variant="sessionId ? 'success' : 'warning'" small />
     </div>

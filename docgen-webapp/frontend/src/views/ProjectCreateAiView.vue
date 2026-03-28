@@ -2,15 +2,15 @@
   <div class="page">
     <section class="page-hero">
       <div>
-        <p class="eyebrow">AI 项目工作台</p>
-        <h1>AI 创建项目</h1>
-        <p class="hero-copy">以对话为主，把你的项目想法持续提炼成准确的项目信息。资料和知识输入只作为 AI 校准理解的辅助依据。</p>
+        <p class="eyebrow">AI 项目孵化</p>
+        <h1>先提炼项目框架，再决定是否立项</h1>
+        <p class="hero-copy">这里的入口不是立项，而是通过 AI 对话持续整理、校准并保留当前阶段的项目框架。立项只是提炼后的结果选项之一。</p>
       </div>
       <div class="hero-badges">
         <button class="hero-switch" type="button" @click="goFormMode">切换到传统创建</button>
         <StatusBadge :label="sessionId ? `会话 #${sessionId}` : '未启动会话'" :variant="sessionId ? 'success' : 'warning'" />
-        <StatusBadge :label="readyToCreate ? '信息已基本准确' : '仍需继续校准'" :variant="readyToCreate ? 'success' : 'ai'" />
-        <StatusBadge :label="`${confirmedItems.length} 项已提炼`" variant="info" />
+        <StatusBadge :label="readyToCreate ? '框架已接近立项标准' : '仍在项目孵化中'" :variant="readyToCreate ? 'success' : 'ai'" />
+        <StatusBadge :label="`${confirmedItems.length} 项已形成`" variant="info" />
       </div>
     </section>
 
@@ -71,6 +71,7 @@
           :session-id="sessionId"
           :ready-to-create="readyToCreate"
           :create-form="createForm"
+          @save-framework="saveFramework"
           @create-project="createProject"
         />
 
@@ -95,9 +96,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import KnowledgeDetailModal from '../components/project-create-ai/KnowledgeDetailModal.vue'
@@ -126,6 +127,7 @@ import type {
 } from '../components/project-create-ai/types'
 
 const router = useRouter()
+const route = useRoute()
 const setupCardRef = ref<InstanceType<typeof ProjectAiSetupCard> | null>(null)
 
 const loading = ref(false)
@@ -205,29 +207,29 @@ const accuracyAdvice = computed(() => {
     return '先让 AI 听懂你的项目想法。建议输入项目名称和一段背景描述，再启动会话。'
   }
   if (followUpQuestions.value.length > 0) {
-    return `当前还有 ${followUpQuestions.value.length} 个关键问题待确认。优先回答这些问题，能最快提升项目信息准确性。`
+    return `当前还有 ${followUpQuestions.value.length} 个关键问题待确认。优先回答这些问题，能最快提升项目框架准确性。`
   }
   if (missingItems.value.length > 0) {
-    return `AI 已经提炼出主体信息，但 ${missingItems.value.map((item) => item.label).join('、')} 仍不够明确。建议继续补充业务事实，而不是只给结论。`
+    return `AI 已经提炼出主体框架，但 ${missingItems.value.map((item) => item.label).join('、')} 仍不够明确。建议继续补充业务事实，而不是只给结论。`
   }
   if (!readyToCreate.value) {
-    return '当前信息已经比较完整，建议再检查项目背景、目标客户和核心价值是否表达准确，确认后再创建项目。'
+    return '当前框架已经比较完整，建议先判断这份框架是否值得保留，再决定是否继续孵化或正式立项。'
   }
-  return '当前关键项目信息已基本形成闭环，可以检查项目 Key、负责人和可见性后正式创建项目。'
+  return '当前关键项目信息已基本形成闭环。你可以先保留这份项目框架，或在确认准确后正式立项。'
 })
 const workspaceAdvice = computed(() => {
   if (!sessionId.value) {
     if (!canStartConversation.value) return '先写下项目名称或补充一段背景描述，再启动 AI 会话。'
     if (pendingMaterials.value.length > 0) return '当前已有待保存资料，建议启动会话后先把资料沉淀进去，再开始和 AI 对话。'
-    return '先启动 AI 会话，让项目想法进入可持续澄清和结构化整理流程。'
+    return '先启动 AI 会话，让项目想法进入可持续澄清和项目孵化流程。'
   }
   if (savedMaterials.value.length === 0) {
-    return '当前会话已启动，建议继续补充网址、文本或文件资料，让 AI 有足够上下文参与项目梳理。'
+    return '当前会话已启动，建议继续补充网址、文本或文件资料，让 AI 有足够上下文参与项目框架梳理。'
   }
   if (!readyToCreate.value) {
-    return '当前资料和会话已经建立，建议继续追问、补充信息并让 AI 把结果沉淀成结构化项目内容。'
+    return '当前资料和会话已经建立，建议继续追问、补充信息并让 AI 把结果沉淀成可保留的项目框架。'
   }
-  return '当前已经具备创建条件，建议检查结构化结果和创建表单后，正式创建项目。'
+  return '当前已经形成一份较成熟的项目框架。你可以先保留它，也可以在确认无误后正式立项。'
 })
 
 function resetFileDraft() {
@@ -294,6 +296,28 @@ function goKnowledgeLibrary(documentId: number) {
 
 function goFormMode() {
   void router.push('/projects/create/form')
+}
+
+async function restoreConversation(targetSessionId: number) {
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await axios.get<ApiResponse<ConversationView>>(`/api/projects/ai/conversations/${targetSessionId}`)
+    const data = res.data.data
+    sessionId.value = data.sessionId
+    status.value = data.status || 'ACTIVE'
+    readyToCreate.value = data.readyToCreate
+    messages.value = data.messages || []
+    savedMaterials.value = data.materials || []
+    followUpQuestions.value = latestQuestions(data.messages || [])
+    applyStructuredInfo(data.structuredInfo)
+    await refreshKnowledgeStatuses()
+    success.value = '已恢复当前项目框架，你可以继续孵化或决定是否立项。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '恢复项目框架失败。'
+  } finally {
+    loading.value = false
+  }
 }
 
 async function retryKnowledgeDocument(documentId: number) {
@@ -433,7 +457,8 @@ async function startConversation() {
     pendingMaterials.value = []
     applyStructuredInfo(data.structuredInfo)
     await refreshKnowledgeStatuses()
-    success.value = 'AI 会话已启动。'
+    await router.replace({ path: '/projects/create-ai', query: { sessionId: String(data.sessionId) } })
+    success.value = 'AI 项目孵化会话已启动。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '启动 AI 会话失败。'
   } finally {
@@ -455,6 +480,24 @@ async function saveMaterials() {
     success.value = '资料已保存到当前会话。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '保存资料失败。'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveFramework() {
+  if (!sessionId.value) {
+    return
+  }
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await refreshConversation()
+    await router.replace({ path: '/projects/create-ai', query: { sessionId: String(sessionId.value) } })
+    success.value = `当前项目框架已保留。后续可通过此页面继续孵化，当前会话编号 #${sessionId.value}。`
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '保留当前项目框架失败。'
   } finally {
     loading.value = false
   }
@@ -533,6 +576,13 @@ async function createProject() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  const querySessionId = Number(route.query.sessionId || 0)
+  if (querySessionId > 0) {
+    await restoreConversation(querySessionId)
+  }
+})
 </script>
 
 <style scoped>

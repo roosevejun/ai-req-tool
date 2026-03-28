@@ -100,6 +100,12 @@ export type StructuredInfo = {
   businessKnowledgeSummary: string
 }
 
+export type StructuredFieldItem = {
+  key: keyof StructuredInfo | string
+  label: string
+  value: string
+}
+
 export type ConversationTurnResult = {
   sessionId: number
   jobId: string

@@ -1,8 +1,8 @@
 ﻿<template>
   <WorkspaceSection
-    eyebrow="AI 对话"
-    title="AI 对话"
-    description="在这里持续补充上下文、回答 AI 追问，并查看每轮会话参考到的知识内容。"
+    eyebrow="主工作区"
+    title="AI 对话与项目孵化"
+    description="围绕你的项目想法持续对话。AI 会边追问、边整理、边校准理解，目标是提炼出一个值得保留的项目框架。"
     tint
   >
     <template #actions>
@@ -21,7 +21,7 @@
     </div>
 
     <div v-if="followUpQuestions.length > 0" class="questions">
-      <h4>AI 当前追问的问题</h4>
+      <h4>AI 当前需要确认的问题</h4>
       <div v-for="(question, idx) in followUpQuestions" :key="`${question}-${idx}`" class="question-item">
         {{ idx + 1 }}. {{ question }}
       </div>
@@ -35,7 +35,7 @@
     />
     <div class="row">
       <button class="primary" type="button" :disabled="loading || !sessionId || !chatMessage.trim()" @click="$emit('send-message')">
-        发送消息
+        发送并继续提炼
       </button>
       <button class="ghost" type="button" :disabled="loading || !sessionId" @click="$emit('refresh-conversation')">刷新会话</button>
       <button class="ghost" type="button" :disabled="loading || !sessionId" @click="$emit('load-knowledge-preview')">查看检索上下文</button>
