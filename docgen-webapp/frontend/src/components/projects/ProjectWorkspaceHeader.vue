@@ -1,6 +1,7 @@
 ﻿<template>
   <section class="workspace-shell workspace-header">
     <div class="project-summary">
+      <p class="eyebrow">当前项目</p>
       <div class="title-row">
         <h3>{{ project.projectName }}</h3>
         <StatusBadge :label="projectStatusLabel(project.status)" variant="info" />
@@ -12,14 +13,11 @@
         <StatusBadge :label="project.priority || '-'" variant="warning" small />
         <StatusBadge v-if="project.tags" :label="project.tags" variant="ai" small />
       </div>
-      <p class="summary">{{ project.description || '当前项目还没有补充描述信息。' }}</p>
+      <p class="summary">{{ project.description || '当前项目还没有补充描述信息，建议先进入 AI 协同把项目框架整理完整。' }}</p>
     </div>
 
     <div class="header-actions">
-      <button class="ghost" type="button" @click="$emit('change-tab', 'overview')">概览</button>
-      <button class="ghost" type="button" @click="$emit('change-tab', 'ai')">AI 协同</button>
-      <button class="ghost" type="button" @click="$emit('change-tab', 'requirements')">需求管理</button>
-      <button class="primary" type="button" @click="$emit('enter-ai')">进入 AI 协同</button>
+      <button class="primary" type="button" @click="$emit('enter-ai')">继续用 AI 校准项目框架</button>
     </div>
 
     <div class="tabs">
@@ -73,6 +71,14 @@ const tabs: Array<{ value: 'overview' | 'ai' | 'requirements'; label: string }> 
   gap: 14px;
   margin-bottom: 14px;
 }
+.eyebrow {
+  margin: 0 0 6px;
+  color: #0f766e;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
 .title-row {
   display: flex;
   align-items: center;
@@ -98,6 +104,7 @@ h3 {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-start;
 }
 .tabs {
   display: flex;

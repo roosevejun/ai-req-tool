@@ -1,9 +1,15 @@
-﻿<template>
+<template>
   <section class="workspace-shell page-header">
     <div>
-      <p class="eyebrow">项目工作台</p>
-      <h2>项目工作台</h2>
-      <p class="summary">统一查看项目、需求、AI 协同与知识状态，围绕当前选中的项目持续推进。</p>
+      <p class="eyebrow">项目管理中心</p>
+      <h2>项目管理中心</h2>
+      <p class="summary">先定位项目，再围绕项目框架、需求沉淀、知识状态和协同动作持续推进。这里不是只看信息，而是帮助你判断当前项目下一步该做什么。</p>
+      <div class="workflow-hint">
+        <span>1. 选项目</span>
+        <span>2. 校准项目框架</span>
+        <span>3. 沉淀需求</span>
+        <span>4. 跟进知识状态</span>
+      </div>
     </div>
 
     <div class="header-stats">
@@ -12,19 +18,19 @@
         <strong>{{ projectCount }}</strong>
       </div>
       <div class="metric-card">
-        <span class="metric-label">当前需求数</span>
+        <span class="metric-label">当前项目需求</span>
         <strong>{{ requirementCount }}</strong>
       </div>
       <div class="metric-card">
-        <span class="metric-label">待处理知识</span>
+        <span class="metric-label">待处理知识任务</span>
         <strong>{{ pendingKnowledgeCount }}</strong>
       </div>
     </div>
 
     <div class="header-actions">
-      <button class="ghost" type="button" @click="$emit('create-project')">新建项目</button>
-      <button class="primary" type="button" @click="$emit('create-ai')">AI 创建项目</button>
-      <button class="ghost" type="button" @click="$emit('go-docgen')">进入 AI 需求整理</button>
+      <button class="ghost" type="button" @click="$emit('create-project')">选择创建方式</button>
+      <button class="primary" type="button" @click="$emit('create-ai')">进入 AI 项目孵化</button>
+      <button class="ghost" type="button" @click="$emit('go-docgen')">进入需求管理中心</button>
     </div>
   </section>
 </template>
@@ -73,10 +79,25 @@ h2 {
 }
 .summary {
   margin: 10px 0 0;
-  max-width: 680px;
+  max-width: 720px;
   font-size: 14px;
   line-height: 1.6;
   color: #475569;
+}
+.workflow-hint {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.workflow-hint span {
+  border-radius: 999px;
+  border: 1px solid #d9e6f7;
+  background: rgba(255, 255, 255, 0.82);
+  color: #1e3a8a;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
 }
 .header-stats {
   display: flex;
@@ -84,7 +105,7 @@ h2 {
   flex-wrap: wrap;
 }
 .metric-card {
-  min-width: 110px;
+  min-width: 118px;
   padding: 10px 12px;
   border-radius: 14px;
   background: #ffffff;

@@ -2,12 +2,12 @@
   <aside class="workspace-shell sidebar">
     <section class="insight-card insight-card--health">
       <div class="section-head">
-        <h4>项目健康</h4>
+        <h4>项目健康中心</h4>
         <span class="muted">{{ healthLabel }}</span>
       </div>
       <div class="stat-grid">
         <div class="stat-item">
-          <span>需求资产</span>
+          <span>需求数量</span>
           <strong>{{ requirementCount }}</strong>
         </div>
         <div class="stat-item">
@@ -37,7 +37,7 @@
           <span>{{ projectRoleLabel(member.projectRole) }}</span>
         </li>
       </ul>
-      <p v-else class="empty-text">当前项目还没有成员，建议先补充负责人和协作角色。</p>
+      <p v-else class="empty-text">当前项目还没有成员，建议先补充负责人和核心协作角色。</p>
     </section>
 
     <section class="insight-card">
@@ -93,26 +93,26 @@ const conversationLabel = computed(() => {
 const healthLabel = computed(() => {
   if (props.failedKnowledgeCount > 0) return '需要优先处理失败任务'
   if (props.pendingKnowledgeCount > 0) return '知识任务处理中'
-  if (props.requirementCount === 0) return '项目资料已就绪，待沉淀需求'
+  if (props.requirementCount === 0) return '项目就绪，等待沉淀需求'
   return '主链路运行正常'
 })
 
 const healthTip = computed(() => {
-  if (props.failedKnowledgeCount > 0) return `当前有 ${props.failedKnowledgeCount} 个失败知识任务，建议优先进入 AI 协同或知识库页面处理。`
-  if (props.pendingKnowledgeCount > 0) return `当前有 ${props.pendingKnowledgeCount} 个知识任务仍在处理中，稍后可刷新状态确认结果。`
+  if (props.failedKnowledgeCount > 0) return `当前有 ${props.failedKnowledgeCount} 个失败知识任务，建议先进入 AI 协同或知识库处理，避免后续需求整理缺关键上下文。`
+  if (props.pendingKnowledgeCount > 0) return `当前有 ${props.pendingKnowledgeCount} 个知识任务仍在处理中，可以稍后刷新状态确认结果。`
   if (props.knowledgeCount === 0) return '当前还没有知识文档，建议尽快补充网址、文本或文件资料。'
   if (props.requirementCount === 0) return '项目信息和知识资料已基本具备，下一步建议开始创建需求。'
-  return '当前项目的项目、知识和需求主链路已经打通，可以继续深化需求生产。'
+  return '当前项目、知识和需求主链路已经打通，可以继续深入推进需求生产。'
 })
 
 const nextActions = computed(() => {
   const actions: string[] = []
-  if (props.knowledgeCount === 0) actions.push('补充资料，让 AI 后续协同建立在真实上下文之上。')
+  if (props.knowledgeCount === 0) actions.push('补充项目资料，让 AI 后续协同建立在真实上下文之上。')
   if (!props.projectConversationStatus) actions.push('进入 AI 协同，先完成一轮项目优化和结构化回填。')
-  if (props.failedKnowledgeCount > 0) actions.push('先处理失败知识任务，避免后续需求整理引用不到关键上下文。')
+  if (props.failedKnowledgeCount > 0) actions.push('优先处理失败知识任务，避免需求整理阶段引用不到关键上下文。')
   if (props.requirementCount === 0) actions.push('从需求管理标签页创建第一条需求，开始进入需求生产流程。')
-  if (props.memberCount === 0) actions.push('为项目分配负责人或核心协作者，避免后续资产无人维护。')
-  if (!actions.length) actions.push('继续选择一条需求，进入 AI 需求整理工作台，推进文档生产。')
+  if (props.memberCount === 0) actions.push('为项目补齐负责人或核心协作者，避免后续资产无人维护。')
+  if (!actions.length) actions.push('继续选择一条需求，进入 AI 需求工作台推进文档生产。')
   return actions.slice(0, 3)
 })
 </script>
