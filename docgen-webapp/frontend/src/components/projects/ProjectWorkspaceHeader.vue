@@ -57,21 +57,20 @@ import type { ProjectItem } from './types'
 
 defineProps<{
   project: ProjectItem
-  activeTab: 'overview' | 'ai' | 'requirements'
+  activeTab: 'overview' | 'ai'
   projectTypeLabel: (value?: string) => string
   visibilityLabel: (value?: string) => string
   projectStatusLabel: (value?: string) => string
 }>()
 
 defineEmits<{
-  (event: 'change-tab', tab: 'overview' | 'ai' | 'requirements'): void
+  (event: 'change-tab', tab: 'overview' | 'ai'): void
   (event: 'enter-ai'): void
 }>()
 
-const tabs: Array<{ value: 'overview' | 'ai' | 'requirements'; label: string; description: string }> = [
-  { value: 'overview', label: '项目概况', description: '查看项目基础信息、进度摘要与健康状态。' },
-  { value: 'ai', label: 'AI 协同', description: '继续校准项目框架，补充资料并修正理解偏差。' },
-  { value: 'requirements', label: '需求管理', description: '维护当前项目需求，进入需求整理和版本链路。' }
+const tabs: Array<{ value: 'overview' | 'ai'; label: string; description: string }> = [
+  { value: 'overview', label: '项目信息', description: '查看并维护项目基础信息、成员和关键属性。' },
+  { value: 'ai', label: 'AI 协同', description: '继续校准项目框架，补充资料并修正理解偏差。' }
 ]
 </script>
 

@@ -14,17 +14,8 @@
         :loading="loading"
         :projects="projects"
         :selected-project-id="selectedProjectId"
-        :selected-requirement-id="selectedRequirementId"
-        :is-expanded="isExpanded"
-        :requirements-of="requirementsOf"
-        :versions-of="versionsOf"
         @reload-projects="loadProjects"
-        @toggle-project="toggleProject"
         @select-project="selectProject"
-        @select-requirement="selectRequirement"
-        @create-project="startCreateProject"
-        @create-ai="goCreateAi"
-        @go-docgen="goAiDocgen"
       />
 
       <main class="content">
@@ -44,31 +35,6 @@
             @change-tab="handleWorkspaceTabChange"
             @enter-ai="ensureAiWorkspace"
           />
-
-          <section class="content-briefing">
-            <ProjectJourneyPanel
-              :project="selectedProject"
-              :member-count="membersOf(selectedProject.id).length"
-              :requirement-count="requirementsOf(selectedProject.id).length"
-              :knowledge-count="knowledgeCount"
-              :pending-knowledge-count="pendingKnowledgeCount"
-              :failed-knowledge-count="failedKnowledgeCount"
-              :has-conversation="!!projectConversation?.sessionId"
-            />
-
-            <ProjectInsightsSidebar
-              :project="selectedProject"
-              :selected-requirement="selectedRequirement"
-              :members="membersOf(selectedProject.id)"
-              :member-count="membersOf(selectedProject.id).length"
-              :requirement-count="requirementsOf(selectedProject.id).length"
-              :knowledge-count="knowledgeCount"
-              :pending-knowledge-count="pendingKnowledgeCount"
-              :failed-knowledge-count="failedKnowledgeCount"
-              :project-conversation-status="projectConversation?.status || ''"
-              :project-role-label="projectRoleLabel"
-            />
-          </section>
 
           <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
             <ProjectOverviewPanel
@@ -94,7 +60,7 @@
             />
           </section>
 
-          <section v-else-if="activeWorkspaceTab === 'ai'" class="workspace-stack">
+          <section v-else class="workspace-stack">
             <ProjectAiWorkspacePanel
               :loading="loading"
               :project="selectedProject"
@@ -142,22 +108,6 @@
               @toggle-project-materials-collapse="projectMaterialsCollapsed = !projectMaterialsCollapsed"
             />
           </section>
-
-          <section v-else class="workspace-stack">
-            <ProjectRequirementsPanel
-              :loading="loading"
-              :project="selectedProject"
-              :req-form="reqForm"
-              :requirements="requirementsOf(selectedProject.id)"
-              :selected-requirement="selectedRequirement"
-              :priority-label="priorityLabel"
-              :requirement-status-label="requirementStatusLabel"
-              @create-requirement="createRequirement"
-              @select-requirement="selectRequirement"
-              @open-workbench="openWorkbench"
-              @open-versions="openVersions"
-            />
-          </section>
         </template>
       </main>
     </div>
@@ -189,12 +139,9 @@ import { useRoute, useRouter } from 'vue-router'
 import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import ProjectAiWorkspacePanel from '../components/projects/ProjectAiWorkspacePanel.vue'
-import ProjectJourneyPanel from '../components/projects/ProjectJourneyPanel.vue'
 import ProjectKnowledgeDetailModal from '../components/projects/ProjectKnowledgeDetailModal.vue'
-import ProjectInsightsSidebar from '../components/projects/ProjectInsightsSidebar.vue'
 import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
 import ProjectOverviewPanel from '../components/projects/ProjectOverviewPanel.vue'
-import ProjectRequirementsPanel from '../components/projects/ProjectRequirementsPanel.vue'
 import ProjectsPageHeader from '../components/projects/ProjectsPageHeader.vue'
 import ProjectsSidebar from '../components/projects/ProjectsSidebar.vue'
 import ProjectWorkspaceHeader from '../components/projects/ProjectWorkspaceHeader.vue'
@@ -248,7 +195,7 @@ const expandedProjectIds = ref<number[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
 const editingProject = ref(false)
-const activeWorkspaceTab = ref<'overview' | 'ai' | 'requirements'>('overview')
+const activeWorkspaceTab = ref<'overview' | 'ai'>('overview')
 
 const projectAiLoading = ref(false)
 const projectAiMessage = ref('')
@@ -336,18 +283,15 @@ const pendingKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filt
 const failedKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filter((doc) => doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED').length)
 const workspaceAdvice = computed(() => {
   if (!selectedProject.value) {
-    return '先在左侧选择一个项目，项目概览、AI 协同和需求管理工作区会随之切换。'
+    return '先在左侧选择一个项目，右侧将切换到项目对象信息与维护区域。'
   }
   if (failedKnowledgeCount.value > 0) {
-    return `当前有 ${failedKnowledgeCount.value} 个知识任务失败，建议先进入 AI 协同或知识库页重试，避免后续需求整理缺少上下文。`
+    return `当前有 ${failedKnowledgeCount.value} 个知识任务失败，建议先进入 AI 协同处理异常，再继续维护项目。`
   }
   if (!projectConversation.value?.sessionId) {
-    return '建议先进入 AI 协同标签页，建立项目会话并完成一轮结构化优化。'
+    return '建议先进入 AI 协同页，建立项目会话并完成一轮项目框架优化。'
   }
-  if (requirementsOf(selectedProject.value.id).length === 0) {
-    return '当前项目主信息已基本就绪，下一步建议在需求管理标签页创建第一条需求。'
-  }
-  return '当前项目主链路已打通，可以继续选择一条需求，进入需求工作台推进文档生产。'
+  return '当前项目基础信息已经就绪，可以继续维护项目资料、补充成员或使用 AI 校准项目框架。'
 })
 
 function createProjectFormState(): ProjectFormState {
@@ -613,7 +557,7 @@ function startCreateProject() {
   void router.push('/projects/create')
 }
 
-function handleWorkspaceTabChange(tab: 'overview' | 'ai' | 'requirements') {
+function handleWorkspaceTabChange(tab: 'overview' | 'ai') {
   if (tab === 'ai') {
     void ensureAiWorkspace()
     return
@@ -1264,12 +1208,6 @@ onMounted(async () => {
   display: grid;
   gap: 14px;
 }
-.content-briefing {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) 360px;
-  gap: 14px;
-  align-items: start;
-}
 .workspace-stack {
   display: grid;
   gap: 14px;
@@ -1305,15 +1243,9 @@ onMounted(async () => {
   .layout {
     grid-template-columns: 320px minmax(0, 1fr);
   }
-  .content-briefing {
-    grid-template-columns: 1fr;
-  }
 }
 @media (max-width: 980px) {
   .layout {
-    grid-template-columns: 1fr;
-  }
-  .content-briefing {
     grid-template-columns: 1fr;
   }
   .overview-grid {
