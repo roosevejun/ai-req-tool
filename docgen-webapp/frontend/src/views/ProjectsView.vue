@@ -1,21 +1,17 @@
 ﻿<template>
   <div class="page">
-    <ProjectsPageHeader
-      :project-count="projects.length"
-      :requirement-count="selectedProject ? requirementsOf(selectedProject.id).length : 0"
-      :pending-knowledge-count="pendingKnowledgeCount"
-      @create-project="startCreateProject"
-      @create-ai="goCreateAi"
-      @go-docgen="goAiDocgen"
-    />
-
     <div class="layout">
       <ProjectsSidebar
         :loading="loading"
         :projects="projects"
         :selected-project-id="selectedProjectId"
+        :project-count="projects.length"
+        :requirement-count="selectedProject ? requirementsOf(selectedProject.id).length : 0"
+        :pending-knowledge-count="pendingKnowledgeCount"
         @reload-projects="loadProjects"
         @select-project="selectProject"
+        @create-project="startCreateProject"
+        @create-ai="goCreateAi"
       />
 
       <main class="content">
@@ -142,7 +138,6 @@ import ProjectAiWorkspacePanel from '../components/projects/ProjectAiWorkspacePa
 import ProjectKnowledgeDetailModal from '../components/projects/ProjectKnowledgeDetailModal.vue'
 import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
 import ProjectOverviewPanel from '../components/projects/ProjectOverviewPanel.vue'
-import ProjectsPageHeader from '../components/projects/ProjectsPageHeader.vue'
 import ProjectsSidebar from '../components/projects/ProjectsSidebar.vue'
 import ProjectWorkspaceHeader from '../components/projects/ProjectWorkspaceHeader.vue'
 import {
