@@ -5,6 +5,7 @@ import DocGenView from './views/DocGenView.vue'
 import KnowledgeLibraryView from './views/KnowledgeLibraryView.vue'
 import SystemAdminView from './views/SystemAdminView.vue'
 import TemplateCenterView from './views/TemplateCenterView.vue'
+import ProjectManagementCenterView from './views/ProjectManagementCenterView.vue'
 import ProjectsView from './views/ProjectsView.vue'
 import ProjectCreateEntryView from './views/ProjectCreateEntryView.vue'
 import ProjectCreateFormView from './views/ProjectCreateFormView.vue'
@@ -17,12 +18,13 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: LoginPage, meta: { public: true } },
-    { path: '/', redirect: '/docgen' },
+    { path: '/', redirect: '/projects' },
     { path: '/docgen', component: DocGenView, meta: { section: 'requirements' } },
     { path: '/knowledge', component: KnowledgeLibraryView, meta: { section: 'knowledge' } },
     { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
     { path: '/templates', component: TemplateCenterView, meta: { section: 'templates' } },
-    { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
+    { path: '/projects', component: ProjectManagementCenterView, meta: { section: 'projects' } },
+    { path: '/projects/manage', component: ProjectsView, meta: { section: 'projects' } },
     { path: '/projects/create', component: ProjectCreateEntryView, meta: { section: 'projects' } },
     { path: '/projects/create/form', component: ProjectCreateFormView, meta: { section: 'projects' } },
     { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },

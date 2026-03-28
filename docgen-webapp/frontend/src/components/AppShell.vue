@@ -112,6 +112,11 @@ const breadcrumbs = computed<Crumb[]>(() => {
     return items
   }
 
+  if (route.path === '/projects/manage') {
+    items.push({ label: '项目管理页' })
+    return items
+  }
+
   if (route.path === '/projects/create') {
     items.push({ label: '选择创建方式' })
     return items
@@ -137,6 +142,7 @@ const breadcrumbs = computed<Crumb[]>(() => {
 })
 
 const backTarget = computed(() => {
+  if (route.path === '/projects/manage') return '/projects'
   if (route.path === '/projects/create' || route.path === '/projects/create/form' || route.path === '/projects/create-ai') return '/projects'
   if (route.path.startsWith('/templates')) return '/system'
   if (route.path.startsWith('/requirements/')) return '/docgen'
