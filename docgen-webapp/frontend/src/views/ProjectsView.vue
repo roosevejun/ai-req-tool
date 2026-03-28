@@ -12,24 +12,12 @@
     <div class="layout">
       <ProjectsSidebar
         :loading="loading"
-        :project-ai-loading="projectAiLoading"
-        :can-guide-project-info="canGuideProjectInfo"
-        :has-project-ai-suggestions="hasProjectAiSuggestions"
-        :project-ai-message="projectAiMessage"
-        :project-ai-questions="projectAiQuestions"
-        :project-ai-answers="projectAiAnswers"
-        :project-ai-suggestions="projectAiSuggestions"
-        :project-form="projectForm"
         :projects="projects"
-        :user-options="userOptions"
         :selected-project-id="selectedProjectId"
         :selected-requirement-id="selectedRequirementId"
         :is-expanded="isExpanded"
         :requirements-of="requirementsOf"
         :versions-of="versionsOf"
-        @guide-project-info="guideProjectProductInfo"
-        @apply-ai-suggestions="applyProjectAiSuggestions"
-        @create-project="createProject"
         @reload-projects="loadProjects"
         @toggle-project="toggleProject"
         @select-project="selectProject"
@@ -618,13 +606,7 @@ async function createProject() {
 }
 
 function startCreateProject() {
-  selectedProjectId.value = null
-  selectedRequirementId.value = null
-  editingProject.value = false
-  activeWorkspaceTab.value = 'overview'
-  resetProjectEditForm()
-  resetProjectConversation()
-  success.value = '请在左侧填写新项目表单。'
+  void router.push('/projects/create')
 }
 
 function handleWorkspaceTabChange(tab: 'overview' | 'ai' | 'requirements') {

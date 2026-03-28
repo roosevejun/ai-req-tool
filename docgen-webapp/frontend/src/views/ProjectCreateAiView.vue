@@ -7,6 +7,7 @@
         <p class="hero-copy">从项目想法、资料沉淀到结构化结果和正式创建，整个过程都在一个工作台里完成。</p>
       </div>
       <div class="hero-badges">
+        <button class="hero-switch" type="button" @click="goFormMode">切换到传统创建</button>
         <StatusBadge :label="sessionId ? `会话 #${sessionId}` : '未启动会话'" :variant="sessionId ? 'success' : 'warning'" />
         <StatusBadge :label="readyToCreate ? '已具备创建条件' : '仍需补充信息'" :variant="readyToCreate ? 'success' : 'ai'" />
         <StatusBadge :label="`${savedMaterials.length} 条资料`" variant="info" />
@@ -245,6 +246,10 @@ function goKnowledgeLibrary(documentId: number) {
       documentId: String(documentId)
     }
   })
+}
+
+function goFormMode() {
+  void router.push('/projects/create/form')
 }
 
 async function retryKnowledgeDocument(documentId: number) {
@@ -528,6 +533,14 @@ h1 {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+.hero-switch {
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 .layout {
   display: grid;

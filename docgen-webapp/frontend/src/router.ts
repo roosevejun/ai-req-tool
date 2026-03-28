@@ -6,6 +6,8 @@ import KnowledgeLibraryView from './views/KnowledgeLibraryView.vue'
 import SystemAdminView from './views/SystemAdminView.vue'
 import TemplateCenterView from './views/TemplateCenterView.vue'
 import ProjectsView from './views/ProjectsView.vue'
+import ProjectCreateEntryView from './views/ProjectCreateEntryView.vue'
+import ProjectCreateFormView from './views/ProjectCreateFormView.vue'
 import ProjectCreateAiView from './views/ProjectCreateAiView.vue'
 import RequirementsView from './views/RequirementsView.vue'
 import RequirementWorkbenchView from './views/RequirementWorkbenchView.vue'
@@ -21,6 +23,8 @@ const router = createRouter({
     { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
     { path: '/templates', component: TemplateCenterView, meta: { section: 'system' } },
     { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
+    { path: '/projects/create', component: ProjectCreateEntryView, meta: { section: 'projects' } },
+    { path: '/projects/create/form', component: ProjectCreateFormView, meta: { section: 'projects' } },
     { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },
     { path: '/projects/:projectId/requirements', component: RequirementsView, meta: { section: 'projects' } },
     { path: '/requirements/:requirementId/workbench', component: RequirementWorkbenchView, meta: { section: 'projects' } },
