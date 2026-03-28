@@ -42,6 +42,25 @@
       </label>
     </div>
 
+    <div class="template-hint">
+      <div class="template-hint__head">
+        <strong>模板使用说明</strong>
+        <span class="hint-badge">{{ selectedTemplate ? selectedTemplate.templateCode : '默认模板' }}</span>
+      </div>
+      <p class="hint-copy">{{ templateReasonText(!!selectedTemplate, !!selectedVersion) }}</p>
+      <ul class="hint-list">
+        <li v-if="selectedTemplate">
+          当前模板：{{ selectedTemplate.templateName }}（{{ selectedTemplate.templateCode }}）
+        </li>
+        <li v-if="selectedVersion">
+          当前版本：{{ selectedVersion.versionLabel || `v${selectedVersion.versionNo}` }}{{ selectedVersion.isPublished ? '，已发布' : '，草稿版' }}
+        </li>
+        <li v-else>
+          未指定版本时，系统会优先使用已发布版本，保证输出更稳定。
+        </li>
+      </ul>
+    </div>
+
     <div class="row">
       <button class="primary" :disabled="loading" @click="$emit('create-job')">
         {{ loading ? '处理中...' : '启动 AI 整理' }}
@@ -52,18 +71,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import WorkspaceSection from '../projects/WorkspaceSection.vue'
+import { templateReasonText } from './helpers'
 import type { TemplateOption, TemplateVersionOption } from './types'
 const businessDescription = defineModel<string>('businessDescription', { required: true })
 const previousPrdMarkdown = defineModel<string>('previousPrdMarkdown', { required: true })
 const selectedTemplateId = defineModel<number>('selectedTemplateId', { required: true })
 const selectedTemplateVersionId = defineModel<number>('selectedTemplateVersionId', { required: true })
 
-defineProps<{
+const props = defineProps<{
   loading: boolean
   templates: TemplateOption[]
   templateVersions: TemplateVersionOption[]
 }>()
+
+const selectedTemplate = computed(() => props.templates.find((item) => item.id === selectedTemplateId.value) || null)
+const selectedVersion = computed(() => props.templateVersions.find((item) => item.id === selectedTemplateVersionId.value) || null)
 
 defineEmits<{
   (event: 'create-job'): void
@@ -80,6 +104,11 @@ defineEmits<{
 .select { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; }
 .textarea { width: 100%; min-height: 140px; resize: vertical; padding: 10px; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; line-height: 1.4; }
 .row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.template-hint { margin-bottom: 12px; border: 1px solid #dbe2ea; border-radius: 14px; padding: 14px; background: linear-gradient(180deg, #f8fcff 0%, #ffffff 100%); }
+.template-hint__head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.hint-badge { font-size: 12px; color: #0f766e; font-weight: 700; }
+.hint-copy { margin: 10px 0 0; color: #475569; line-height: 1.7; }
+.hint-list { margin: 10px 0 0; padding-left: 18px; color: #64748b; line-height: 1.8; }
 button { border-radius: 10px; padding: 10px 14px; border: 1px solid transparent; cursor: pointer; font-size: 14px; }
 .primary { background: #2563eb; color: #fff; }
 .ghost { background: #f3f4f6; color: #111827; border-color: #e5e7eb; }

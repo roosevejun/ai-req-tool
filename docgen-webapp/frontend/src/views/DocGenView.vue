@@ -34,6 +34,12 @@
           @refresh-requirements="loadRequirements"
         />
 
+        <DocGenStagePanel
+          :selected-project-id="selectedProjectId"
+          :selected-requirement-id="selectedRequirementId"
+          :requirements-count="requirements.length"
+        />
+
         <RequirementListCard
           :selected-project-id="selectedProjectId"
           :requirements="requirements"
@@ -65,6 +71,7 @@
     </div>
 
     <div class="feedback-stack">
+      <FeedbackPanel title="下一步建议" :message="docgenAdvice" tone="warning" />
       <FeedbackPanel title="处理提示" :message="error" tone="danger" />
       <FeedbackPanel title="最新进展" :message="success" tone="success" />
     </div>
@@ -72,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
@@ -80,6 +87,7 @@ import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import DocGenPage from '../components/DocGenPage.vue'
 import ProjectRequirementTree from '../components/ProjectRequirementTree.vue'
+import DocGenStagePanel from '../components/docgen-view/DocGenStagePanel.vue'
 import RequirementComposerCard from '../components/docgen-view/RequirementComposerCard.vue'
 import RequirementListCard from '../components/docgen-view/RequirementListCard.vue'
 import type { ApiResponse, RequirementItem } from '../components/docgen-view/types'
@@ -92,6 +100,15 @@ const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
 const requirements = ref<RequirementItem[]>([])
 const reqForm = reactive({ title: '', summary: '', priority: 'P2', status: 'DRAFT' })
+const docgenAdvice = computed(() => {
+  if (!selectedProjectId.value) return '先在左侧树中选择项目，需求生产流程会基于当前项目范围展开。'
+  if (!selectedRequirementId.value) {
+    return requirements.value.length > 0
+      ? '当前项目已有需求，建议选择一条需求并进入下方 AI 整理面板。'
+      : '当前项目还没有需求，建议先创建一条需求，再进入 AI 整理。'
+  }
+  return '当前已经进入需求整理主流程，建议优先完成澄清和结构化补充，再生成 PRD。'
+})
 
 function showError(message: string) { error.value = message }
 function goWorkbench(requirementId: number) { if (!selectedProjectId.value) return; void router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`) }

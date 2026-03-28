@@ -16,3 +16,13 @@ export function buildGuidanceText(items: string[]): string {
 export function getPlaceholderForItem(item: string) {
   return `请补充：${item}`
 }
+
+export function templateReasonText(hasTemplate: boolean, hasVersion: boolean) {
+  if (!hasTemplate) {
+    return '当前会优先使用系统默认模板，适合先快速启动需求整理。'
+  }
+  if (!hasVersion) {
+    return '当前已选择模板，但未指定版本，系统会优先采用该模板的已发布版本。'
+  }
+  return '当前已明确模板和版本，后续澄清、生成和导出都会基于这份模板快照执行。'
+}

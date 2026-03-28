@@ -10,7 +10,7 @@ withDefaults(
   defineProps<{
     title: string
     message?: string
-    tone?: 'info' | 'success' | 'danger'
+    tone?: 'info' | 'success' | 'danger' | 'warning'
   }>(),
   {
     message: '',
@@ -40,6 +40,11 @@ withDefaults(
 .feedback-panel--danger {
   border-color: #fecaca;
   background: #fff5f5;
+}
+
+.feedback-panel--warning {
+  border-color: #fde68a;
+  background: #fffbeb;
 }
 
 .feedback-title {

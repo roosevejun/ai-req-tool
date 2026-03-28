@@ -67,6 +67,13 @@
       </main>
 
       <aside class="sidebar">
+        <SystemHealthPanel
+          :users-count="users.length"
+          :roles-count="roles.length"
+          :permissions-count="permissions.length"
+          :pending-forms-count="hasBindingPanels ? 1 : 0"
+        />
+
         <SystemQuickActionsCard
           :loading="loading"
           @go-create-ai="goCreateAi"
@@ -114,6 +121,7 @@
         </WorkspaceSection>
 
         <div class="feedback-stack">
+          <FeedbackPanel title="下一步建议" :message="systemAdvice" tone="warning" />
           <FeedbackPanel title="处理提示" :message="error" tone="danger" />
           <FeedbackPanel title="最新进展" :message="success" tone="success" />
         </div>
@@ -132,6 +140,7 @@ import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
 import BindingPanels from '../components/system-admin/BindingPanels.vue'
 import RolePermissionCards from '../components/system-admin/RolePermissionCards.vue'
+import SystemHealthPanel from '../components/system-admin/SystemHealthPanel.vue'
 import SystemQuickActionsCard from '../components/system-admin/SystemQuickActionsCard.vue'
 import UserManagementCard from '../components/system-admin/UserManagementCard.vue'
 import type {
@@ -176,6 +185,13 @@ const editingPerm = ref<PermItem | null>(null)
 const editPermForm = ref<EditPermForm>({ permName: '', status: 'ENABLED' })
 
 const hasBindingPanels = computed(() => !!(editingUser.value || bindingUser.value || editingRole.value || bindingRole.value || editingPerm.value))
+const systemAdvice = computed(() => {
+  if (users.value.length === 0) return '先创建一个系统用户，保证后续权限、模板和项目资产都有明确归属。'
+  if (roles.value.length === 0) return '当前还没有角色，建议先建立角色体系，再给用户分配职责。'
+  if (permissions.value.length === 0) return '当前还没有权限项，建议先补充权限，再推进模板和知识能力治理。'
+  if (hasBindingPanels.value) return '当前有待处理表单，建议先完成保存或绑定，避免系统配置上下文丢失。'
+  return '当前治理基础链路已具备，可以继续进入模板中心或业务工作台推进标准化。'
+})
 
 function clearTips() { error.value = ''; success.value = '' }
 function showError(e: any, fallback: string) { error.value = e?.response?.data?.message || e?.message || fallback }

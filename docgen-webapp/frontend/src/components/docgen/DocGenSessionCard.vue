@@ -17,6 +17,22 @@
       />
     </template>
 
+    <DocGenProgressPanel
+      :status="status"
+      :confirmed-count="confirmedItems.length"
+      :pending-count="unconfirmedItems.length"
+      :has-template="!!templateSelection?.templateId"
+    />
+
+    <div class="snapshot-tip" v-if="templateSelection?.templateId">
+      <p class="snapshot-title">当前模板快照正在生效</p>
+      <p class="snapshot-copy">
+        当前会话已经绑定模板
+        <strong>{{ templateSelection.templateVersionLabel || '已选择版本' }}</strong>
+        ，后续澄清、生成和导出都会继续基于这份模板快照执行。
+      </p>
+    </div>
+
     <div class="checklists">
       <div class="list">
         <h3>已确认信息</h3>
@@ -139,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+import DocGenProgressPanel from './DocGenProgressPanel.vue'
 import WorkspaceSection from '../projects/WorkspaceSection.vue'
 import StatusBadge from '../projects/StatusBadge.vue'
 import { buildGuidanceText, getPlaceholderForItem, statusLabel } from './helpers'
@@ -184,6 +201,9 @@ defineEmits<{
 
 <style scoped>
 .hint, .muted { color: #6b7280; }
+.snapshot-tip { border: 1px solid #bbf7d0; border-radius: 14px; padding: 12px; background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%); margin-bottom: 12px; }
+.snapshot-title { margin: 0 0 6px; color: #166534; font-weight: 700; }
+.snapshot-copy { margin: 0; color: #475569; line-height: 1.7; }
 .checklists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
 .list { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #fafafa; }
 .list h3 { margin-top: 0; margin-bottom: 8px; font-size: 15px; }

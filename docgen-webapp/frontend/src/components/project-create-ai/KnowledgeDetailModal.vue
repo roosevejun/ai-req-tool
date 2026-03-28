@@ -15,8 +15,8 @@
       <div v-else-if="detail">
         <div class="meta-grid">
           <div><strong>ID:</strong> {{ detail.document.id }}</div>
-          <div><strong>类型:</strong> {{ detail.document.documentType }}</div>
-          <div><strong>状态:</strong> {{ detail.document.status }}</div>
+          <div><strong>类型：</strong> {{ detail.document.documentType }}</div>
+          <div><strong>状态：</strong> {{ detail.document.status }}</div>
         </div>
 
         <div class="block">

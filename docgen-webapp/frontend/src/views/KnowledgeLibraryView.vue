@@ -58,6 +58,7 @@
         </WorkspaceSection>
 
         <div class="feedback-stack">
+          <FeedbackPanel title="下一步建议" :message="knowledgeAdvice" tone="warning" />
           <FeedbackPanel title="处理提示" :message="error" tone="danger" />
           <FeedbackPanel title="最新进展" :message="success" tone="success" />
         </div>
@@ -67,6 +68,13 @@
         <EmptyWorkspaceState v-if="!selectedProject" eyebrow="知识就绪" title="先选择一个项目" description="知识库会按项目或需求范围展示文档状态、摘要、资源和重跑能力。" />
 
         <template v-else>
+          <KnowledgeLifecyclePanel
+            :document-count="documents.length"
+            :ready-count="readyCount"
+            :pending-count="pendingCount"
+            :failed-count="failedCount"
+          />
+
           <WorkspaceSection eyebrow="知识概览" title="知识文档列表" :description="selectedRequirement ? `当前展示需求 #${selectedRequirement.id} 的知识文档。` : '当前展示项目级知识文档。'">
             <template #actions>
               <div class="metrics">
@@ -93,6 +101,8 @@
                 </div>
 
                 <div class="document-meta">
+                  <span v-if="doc.requirementId" class="meta-item">需求 #{{ doc.requirementId }}</span>
+                  <span v-else-if="doc.projectId" class="meta-item">项目 #{{ doc.projectId }}</span>
                   <span v-if="doc.sourceUri" class="meta-item">{{ doc.sourceUri }}</span>
                   <span v-if="doc.sourceMaterialId" class="meta-item">资料 #{{ doc.sourceMaterialId }}</span>
                 </div>
@@ -120,6 +130,7 @@ import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
 import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import KnowledgeLifecyclePanel from '../components/knowledge/KnowledgeLifecyclePanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
 import KnowledgeLibraryDetailModal from '../components/knowledge/KnowledgeLibraryDetailModal.vue'
@@ -162,6 +173,13 @@ const filteredDocuments = computed(() => {
 const readyCount = computed(() => documents.value.filter((doc) => normalizeStatus(doc.status || doc.latestTaskStatus || '') === 'READY').length)
 const pendingCount = computed(() => documents.value.filter((doc) => ['PENDING', 'PROCESSING'].includes(normalizeStatus(doc.status || doc.latestTaskStatus || ''))).length)
 const failedCount = computed(() => documents.value.filter((doc) => normalizeStatus(doc.status || doc.latestTaskStatus || '') === 'FAILED').length)
+const knowledgeAdvice = computed(() => {
+  if (!selectedProject.value) return '先选择一个项目，再查看该项目或某条需求范围内的知识文档。'
+  if (failedCount.value > 0) return `当前有 ${failedCount.value} 份知识文档处理失败，建议优先查看失败原因并重新处理。`
+  if (pendingCount.value > 0) return `当前有 ${pendingCount.value} 份知识文档仍在处理中，可稍后刷新状态确认是否已可检索。`
+  if (documents.value.length === 0) return '当前范围还没有知识文档，建议回到项目页或 AI 创建页补充资料。'
+  return '当前知识链路运行正常，可以继续查看详情、资源预览和检索上下文。'
+})
 const visibleChunks = computed<KnowledgeDocumentChunk[]>(() => toVisibleChunks(detail.value, chunkExpanded.value))
 
 function normalizeStatus(value?: string) { if (!value) return ''; if (value === 'SUCCESS') return 'READY'; if (value === 'RUNNING') return 'PROCESSING'; return value }

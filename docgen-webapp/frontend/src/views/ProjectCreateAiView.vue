@@ -67,6 +67,7 @@
           @create-project="createProject"
         />
 
+        <FeedbackPanel title="下一步建议" :message="workspaceAdvice" tone="warning" />
         <FeedbackPanel title="处理提示" :message="error" tone="danger" />
         <FeedbackPanel title="最新进展" :message="success" tone="success" />
       </section>
@@ -169,6 +170,20 @@ const knowledgePreviewQueryText = computed(
   () => knowledgePreview.value?.query || chatMessage.value.trim() || structuredInfo.projectName || startForm.projectName.trim()
 )
 const visibleChunks = computed(() => toVisibleChunks(knowledgeDetail.value, chunkExpanded.value))
+const workspaceAdvice = computed(() => {
+  if (!sessionId.value) {
+    if (!canStartConversation.value) return '先写下项目名称或补充一段背景描述，再启动 AI 会话。'
+    if (pendingMaterials.value.length > 0) return '当前已有待保存资料，建议启动会话后先把资料沉淀进去，再开始和 AI 对话。'
+    return '先启动 AI 会话，让项目想法进入可持续澄清和结构化整理流程。'
+  }
+  if (savedMaterials.value.length === 0) {
+    return '当前会话已启动，建议继续补充网址、文本或文件资料，让 AI 有足够上下文参与项目梳理。'
+  }
+  if (!readyToCreate.value) {
+    return '当前资料和会话已经建立，建议继续追问、补充信息并让 AI 把结果沉淀成结构化项目内容。'
+  }
+  return '当前已经具备创建条件，建议检查结构化结果和创建表单后，正式创建项目。'
+})
 
 function resetFileDraft() {
   selectedFile.value = null

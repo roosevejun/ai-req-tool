@@ -55,6 +55,16 @@
           />
 
           <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
+            <ProjectJourneyPanel
+              :project="selectedProject"
+              :member-count="membersOf(selectedProject.id).length"
+              :requirement-count="requirementsOf(selectedProject.id).length"
+              :knowledge-count="knowledgeCount"
+              :pending-knowledge-count="pendingKnowledgeCount"
+              :failed-knowledge-count="failedKnowledgeCount"
+              :has-conversation="!!projectConversation?.sessionId"
+            />
+
             <ProjectOverviewPanel
               :loading="loading"
               :project="selectedProject"
@@ -173,6 +183,7 @@
     />
 
     <div class="feedback-stack">
+      <FeedbackPanel title="下一步建议" :message="workspaceAdvice" tone="warning" />
       <FeedbackPanel title="处理提示" :message="error" tone="danger" />
       <FeedbackPanel title="最新进展" :message="success" tone="success" />
     </div>
@@ -186,6 +197,7 @@ import { useRoute, useRouter } from 'vue-router'
 import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import ProjectAiWorkspacePanel from '../components/projects/ProjectAiWorkspacePanel.vue'
+import ProjectJourneyPanel from '../components/projects/ProjectJourneyPanel.vue'
 import ProjectKnowledgeDetailModal from '../components/projects/ProjectKnowledgeDetailModal.vue'
 import ProjectInsightsSidebar from '../components/projects/ProjectInsightsSidebar.vue'
 import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
@@ -330,6 +342,21 @@ const uniqueKnowledgeDocuments = computed(() => {
 const knowledgeCount = computed(() => uniqueKnowledgeDocuments.value.length)
 const pendingKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filter((doc) => ['PENDING', 'RUNNING', 'PROCESSING'].includes(doc.status || '') || ['PENDING', 'RUNNING', 'PROCESSING'].includes(doc.latestTaskStatus || '')).length)
 const failedKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filter((doc) => doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED').length)
+const workspaceAdvice = computed(() => {
+  if (!selectedProject.value) {
+    return '先在左侧选择一个项目，项目概览、AI 协同和需求管理工作区会随之切换。'
+  }
+  if (failedKnowledgeCount.value > 0) {
+    return `当前有 ${failedKnowledgeCount.value} 个知识任务失败，建议先进入 AI 协同或知识库页重试，避免后续需求整理缺少上下文。`
+  }
+  if (!projectConversation.value?.sessionId) {
+    return '建议先进入 AI 协同标签页，建立项目会话并完成一轮结构化优化。'
+  }
+  if (requirementsOf(selectedProject.value.id).length === 0) {
+    return '当前项目主信息已基本就绪，下一步建议在需求管理标签页创建第一条需求。'
+  }
+  return '当前项目主链路已打通，可以继续选择一条需求，进入需求工作台推进文档生产。'
+})
 
 function createProjectFormState(): ProjectFormState {
   return {

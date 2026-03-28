@@ -309,7 +309,7 @@ public class ProjectAiConversationService {
 
         int seqNo = messageMapper.findMaxSeqNo(sessionId);
         appendMessage(sessionId, ++seqNo, "user", "material", formatFileMaterialMessage(entity.getTitle(), storedFile));
-        syncKnowledgeDocument(entity, null, operator.getUserId(), storedFile, false);
+        syncKnowledgeDocument(entity, null, operator.getUserId(), storedFile, true);
         return new MaterialSaveResult(sessionId, 1);
     }
 
