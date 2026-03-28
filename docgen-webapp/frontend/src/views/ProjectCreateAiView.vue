@@ -4,17 +4,43 @@
       <div>
         <p class="eyebrow">AI 项目工作台</p>
         <h1>AI 创建项目</h1>
-        <p class="hero-copy">从项目想法、资料沉淀到结构化结果和正式创建，整个过程都在一个工作台里完成。</p>
+        <p class="hero-copy">以对话为主，把你的项目想法持续提炼成准确的项目信息。资料和知识输入只作为 AI 校准理解的辅助依据。</p>
       </div>
       <div class="hero-badges">
         <button class="hero-switch" type="button" @click="goFormMode">切换到传统创建</button>
         <StatusBadge :label="sessionId ? `会话 #${sessionId}` : '未启动会话'" :variant="sessionId ? 'success' : 'warning'" />
-        <StatusBadge :label="readyToCreate ? '已具备创建条件' : '仍需补充信息'" :variant="readyToCreate ? 'success' : 'ai'" />
-        <StatusBadge :label="`${savedMaterials.length} 条资料`" variant="info" />
+        <StatusBadge :label="readyToCreate ? '信息已基本准确' : '仍需继续校准'" :variant="readyToCreate ? 'success' : 'ai'" />
+        <StatusBadge :label="`${confirmedItems.length} 项已提炼`" variant="info" />
       </div>
     </section>
 
     <div class="layout">
+      <ProjectAiChatCard
+        v-model:chat-message="chatMessage"
+        :loading="loading"
+        :session-id="sessionId"
+        :status="status"
+        :messages="messages"
+        :follow-up-questions="followUpQuestions"
+        :knowledge-preview-visible="knowledgePreviewVisible"
+        :knowledge-preview-loading="knowledgePreviewLoading"
+        :knowledge-preview="knowledgePreview"
+        :knowledge-preview-query-text="knowledgePreviewQueryText"
+        @send-message="sendMessage"
+        @refresh-conversation="refreshConversation"
+        @load-knowledge-preview="loadKnowledgePreview"
+      />
+
+      <ProjectAiResultCard
+        :ready-to-create="readyToCreate"
+        :confirmed-items="confirmedItems"
+        :pending-questions="followUpQuestions"
+        :missing-items="missingItems"
+        :accuracy-advice="accuracyAdvice"
+      />
+    </div>
+
+    <div class="lower-layout">
       <ProjectAiSetupCard
         ref="setupCardRef"
         :loading="loading"
@@ -38,26 +64,6 @@
         @open-knowledge-detail="goKnowledgeLibrary"
         @retry-knowledge-document="retryKnowledgeDocument"
       />
-
-      <ProjectAiChatCard
-        v-model:chat-message="chatMessage"
-        :loading="loading"
-        :session-id="sessionId"
-        :status="status"
-        :messages="messages"
-        :follow-up-questions="followUpQuestions"
-        :knowledge-preview-visible="knowledgePreviewVisible"
-        :knowledge-preview-loading="knowledgePreviewLoading"
-        :knowledge-preview="knowledgePreview"
-        :knowledge-preview-query-text="knowledgePreviewQueryText"
-        @send-message="sendMessage"
-        @refresh-conversation="refreshConversation"
-        @load-knowledge-preview="loadKnowledgePreview"
-      />
-    </div>
-
-    <div class="lower-layout">
-      <ProjectAiResultCard :ready-to-create="readyToCreate" :structured-info="structuredInfo" />
 
       <section class="side-stack">
         <ProjectAiCreateCard
@@ -112,6 +118,7 @@ import type {
   KnowledgePreview,
   SourceMaterial,
   StartFormState,
+  StructuredFieldItem,
   StructuredInfo,
   TextDraftState,
   UploadFileMaterialResponse,
@@ -171,6 +178,43 @@ const knowledgePreviewQueryText = computed(
   () => knowledgePreview.value?.query || chatMessage.value.trim() || structuredInfo.projectName || startForm.projectName.trim()
 )
 const visibleChunks = computed(() => toVisibleChunks(knowledgeDetail.value, chunkExpanded.value))
+const confirmedItems = computed<StructuredFieldItem[]>(() => {
+  const candidates: StructuredFieldItem[] = [
+    { key: 'projectName', label: '项目名称', value: structuredInfo.projectName || startForm.projectName.trim() },
+    { key: 'description', label: '项目描述', value: structuredInfo.description || startForm.description.trim() },
+    { key: 'projectBackground', label: '项目背景', value: structuredInfo.projectBackground || '' },
+    { key: 'similarProducts', label: '类似产品', value: structuredInfo.similarProducts || '' },
+    { key: 'targetCustomerGroups', label: '目标客户群体', value: structuredInfo.targetCustomerGroups || '' },
+    { key: 'commercialValue', label: '商业价值', value: structuredInfo.commercialValue || '' },
+    { key: 'coreProductValue', label: '核心产品价值', value: structuredInfo.coreProductValue || '' },
+    { key: 'businessKnowledgeSummary', label: '业务知识摘要', value: structuredInfo.businessKnowledgeSummary || '' }
+  ]
+  return candidates.filter((item) => !!item.value?.trim())
+})
+const missingItems = computed<StructuredFieldItem[]>(() => {
+  const candidates: StructuredFieldItem[] = [
+    { key: 'projectBackground', label: '项目背景', value: structuredInfo.projectBackground || '' },
+    { key: 'targetCustomerGroups', label: '目标客户群体', value: structuredInfo.targetCustomerGroups || '' },
+    { key: 'commercialValue', label: '商业价值', value: structuredInfo.commercialValue || '' },
+    { key: 'coreProductValue', label: '核心产品价值', value: structuredInfo.coreProductValue || '' }
+  ]
+  return candidates.filter((item) => !item.value.trim())
+})
+const accuracyAdvice = computed(() => {
+  if (!sessionId.value) {
+    return '先让 AI 听懂你的项目想法。建议输入项目名称和一段背景描述，再启动会话。'
+  }
+  if (followUpQuestions.value.length > 0) {
+    return `当前还有 ${followUpQuestions.value.length} 个关键问题待确认。优先回答这些问题，能最快提升项目信息准确性。`
+  }
+  if (missingItems.value.length > 0) {
+    return `AI 已经提炼出主体信息，但 ${missingItems.value.map((item) => item.label).join('、')} 仍不够明确。建议继续补充业务事实，而不是只给结论。`
+  }
+  if (!readyToCreate.value) {
+    return '当前信息已经比较完整，建议再检查项目背景、目标客户和核心价值是否表达准确，确认后再创建项目。'
+  }
+  return '当前关键项目信息已基本形成闭环，可以检查项目 Key、负责人和可见性后正式创建项目。'
+})
 const workspaceAdvice = computed(() => {
   if (!sessionId.value) {
     if (!canStartConversation.value) return '先写下项目名称或补充一段背景描述，再启动 AI 会话。'
@@ -544,12 +588,12 @@ h1 {
 }
 .layout {
   display: grid;
-  grid-template-columns: 420px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.95fr);
   gap: 14px;
 }
 .lower-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1.2fr) 360px;
   gap: 14px;
   margin-top: 14px;
 }
