@@ -22,6 +22,9 @@
         @toggle-project="toggleProject"
         @select-project="selectProject"
         @select-requirement="selectRequirement"
+        @create-project="startCreateProject"
+        @create-ai="goCreateAi"
+        @go-docgen="goAiDocgen"
       />
 
       <main class="content">
@@ -42,7 +45,7 @@
             @enter-ai="ensureAiWorkspace"
           />
 
-          <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
+          <section class="content-briefing">
             <ProjectJourneyPanel
               :project="selectedProject"
               :member-count="membersOf(selectedProject.id).length"
@@ -53,6 +56,21 @@
               :has-conversation="!!projectConversation?.sessionId"
             />
 
+            <ProjectInsightsSidebar
+              :project="selectedProject"
+              :selected-requirement="selectedRequirement"
+              :members="membersOf(selectedProject.id)"
+              :member-count="membersOf(selectedProject.id).length"
+              :requirement-count="requirementsOf(selectedProject.id).length"
+              :knowledge-count="knowledgeCount"
+              :pending-knowledge-count="pendingKnowledgeCount"
+              :failed-knowledge-count="failedKnowledgeCount"
+              :project-conversation-status="projectConversation?.status || ''"
+              :project-role-label="projectRoleLabel"
+            />
+          </section>
+
+          <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
             <ProjectOverviewPanel
               :loading="loading"
               :project="selectedProject"
@@ -142,20 +160,6 @@
           </section>
         </template>
       </main>
-
-      <ProjectInsightsSidebar
-        v-if="selectedProject"
-        :project="selectedProject"
-        :selected-requirement="selectedRequirement"
-        :members="membersOf(selectedProject.id)"
-        :member-count="membersOf(selectedProject.id).length"
-        :requirement-count="requirementsOf(selectedProject.id).length"
-        :knowledge-count="knowledgeCount"
-        :pending-knowledge-count="pendingKnowledgeCount"
-        :failed-knowledge-count="failedKnowledgeCount"
-        :project-conversation-status="projectConversation?.status || ''"
-        :project-role-label="projectRoleLabel"
-      />
     </div>
 
     <ProjectKnowledgeDetailModal
@@ -1250,12 +1254,20 @@ onMounted(async () => {
 }
 .layout {
   display: grid;
-  grid-template-columns: 350px minmax(0, 1fr) 320px;
-  gap: 14px;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 .content {
   min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.content-briefing {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) 360px;
+  gap: 14px;
+  align-items: start;
 }
 .workspace-shell {
   background: #fff;
@@ -1301,9 +1313,15 @@ onMounted(async () => {
   .layout {
     grid-template-columns: 320px minmax(0, 1fr);
   }
+  .content-briefing {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 980px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+  .content-briefing {
     grid-template-columns: 1fr;
   }
   .overview-grid {
