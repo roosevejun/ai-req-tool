@@ -125,7 +125,20 @@ function Is-ExcludedPath {
 
 function Is-AllowedUntracked {
     param([string]$Path)
-    $ext = [System.IO.Path]::GetExtension($Path).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    $cleanPath = $Path.Trim()
+    if ($cleanPath.StartsWith('"') -and $cleanPath.EndsWith('"') -and $cleanPath.Length -ge 2) {
+        $cleanPath = $cleanPath.Substring(1, $cleanPath.Length - 2)
+    }
+    try {
+        $ext = [System.IO.Path]::GetExtension($cleanPath).ToLowerInvariant()
+    }
+    catch {
+        Write-Warn ("Skip invalid untracked path: " + $Path)
+        return $false
+    }
     $allowed = @(
         ".java", ".kt", ".groovy", ".xml", ".yml", ".yaml",
         ".sql", ".vue", ".ts", ".tsx", ".js", ".jsx",
@@ -142,8 +155,8 @@ function Stage-ProjectChanges {
     )
 
     $scope = if ([string]::IsNullOrWhiteSpace($ProjectRel)) { "." } else { $ProjectRel }
-    $tracked = @(git -C $GitRoot diff --name-only -- $scope)
-    $untracked = @(git -C $GitRoot ls-files --others --exclude-standard -- $scope)
+    $tracked = @(git -c core.quotepath=false -C $GitRoot diff --name-only -- $scope)
+    $untracked = @(git -c core.quotepath=false -C $GitRoot ls-files --others --exclude-standard -- $scope)
 
     $toStage = New-Object System.Collections.Generic.List[string]
 
