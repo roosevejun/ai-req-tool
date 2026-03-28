@@ -17,10 +17,6 @@
           <strong>{{ pendingKnowledgeCount }}</strong>
         </div>
       </div>
-      <div class="action-grid">
-        <button class="primary" type="button" @click="$emit('create-project')">选择创建方式</button>
-        <button class="ghost" type="button" @click="$emit('create-ai')">AI 项目孵化</button>
-      </div>
     </section>
 
     <ProjectTreeCard
@@ -49,8 +45,6 @@ defineProps<{
 defineEmits<{
   (event: 'reload-projects'): void
   (event: 'select-project', projectId: number): void
-  (event: 'create-project'): void
-  (event: 'create-ai'): void
 }>()
 </script>
 
@@ -111,31 +105,4 @@ h3 {
   font-size: 22px;
 }
 
-.action-grid {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.primary,
-.ghost {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  cursor: pointer;
-  font-weight: 600;
-  text-align: left;
-}
-
-.primary {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #ffffff;
-}
-
-.ghost {
-  background: #ffffff;
-  color: #0f172a;
-}
 </style>

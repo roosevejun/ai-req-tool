@@ -10,8 +10,6 @@
         :pending-knowledge-count="pendingKnowledgeCount"
         @reload-projects="loadProjects"
         @select-project="selectProject"
-        @create-project="startCreateProject"
-        @create-ai="goCreateAi"
       />
 
       <main class="content">
