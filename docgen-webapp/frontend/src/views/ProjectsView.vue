@@ -1246,11 +1246,12 @@ onMounted(async () => {
 
 <style scoped>
 .page {
-  max-width: 1500px;
+  max-width: 1560px;
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #111827;
+  background: #f4f7fb;
 }
 .layout {
   display: grid;
@@ -1269,18 +1270,9 @@ onMounted(async () => {
   gap: 14px;
   align-items: start;
 }
-.workspace-shell {
-  background: #fff;
-  border: 1px solid #dbe2ea;
-  border-radius: 18px;
-  padding: 18px;
-}
 .workspace-stack {
   display: grid;
   gap: 14px;
-}
-.overview-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 .overview-grid {
   display: grid;
@@ -1288,10 +1280,10 @@ onMounted(async () => {
   gap: 14px;
 }
 .info-block {
-  border: 1px solid #e5edf5;
-  border-radius: 14px;
+  border: 1px solid #d4dde8;
+  border-radius: 8px;
   padding: 14px;
-  background: #fff;
+  background: #ffffff;
 }
 .info-block h4 {
   margin: 0 0 10px;

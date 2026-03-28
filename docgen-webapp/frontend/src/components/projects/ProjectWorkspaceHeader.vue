@@ -1,37 +1,53 @@
-﻿<template>
-  <section class="workspace-shell workspace-header">
-    <div class="project-summary">
-      <p class="eyebrow">当前项目</p>
+<template>
+  <section class="workspace-header">
+    <div class="summary-panel">
+      <p class="eyebrow">当前项目对象</p>
       <div class="title-row">
         <h3>{{ project.projectName }}</h3>
         <StatusBadge :label="projectStatusLabel(project.status)" variant="info" />
       </div>
-      <div class="meta-row">
-        <StatusBadge :label="project.projectKey" small />
-        <StatusBadge :label="projectTypeLabel(project.projectType)" small />
-        <StatusBadge :label="visibilityLabel(project.visibility)" small />
-        <StatusBadge :label="project.priority || '-'" variant="warning" small />
-        <StatusBadge v-if="project.tags" :label="project.tags" variant="ai" small />
-      </div>
-      <p class="summary">{{ project.description || '当前项目还没有补充描述信息，建议先进入 AI 协同把项目框架整理完整。' }}</p>
+
+      <dl class="meta-grid">
+        <div class="meta-item">
+          <dt>项目 Key</dt>
+          <dd>{{ project.projectKey || '-' }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>项目类型</dt>
+          <dd>{{ projectTypeLabel(project.projectType) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>可见范围</dt>
+          <dd>{{ visibilityLabel(project.visibility) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>优先级</dt>
+          <dd>{{ project.priority || '-' }}</dd>
+        </div>
+      </dl>
+
+      <p class="summary">
+        {{ project.description || '当前项目还没有形成完整说明，建议优先进入 AI 协同校准项目框架。' }}
+      </p>
     </div>
 
-    <div class="header-actions">
+    <div class="action-panel">
       <button class="primary" type="button" @click="$emit('enter-ai')">继续用 AI 校准项目框架</button>
     </div>
 
-    <div class="tabs">
+    <nav class="section-nav" aria-label="项目业务分区">
       <button
         v-for="tab in tabs"
         :key="tab.value"
-        class="tab"
+        class="section-link"
         :class="{ active: activeTab === tab.value }"
         type="button"
         @click="$emit('change-tab', tab.value)"
       >
-        {{ tab.label }}
+        <strong>{{ tab.label }}</strong>
+        <span>{{ tab.description }}</span>
       </button>
-    </div>
+    </nav>
   </section>
 </template>
 
@@ -52,88 +68,143 @@ defineEmits<{
   (event: 'enter-ai'): void
 }>()
 
-const tabs: Array<{ value: 'overview' | 'ai' | 'requirements'; label: string }> = [
-  { value: 'overview', label: '概览' },
-  { value: 'ai', label: 'AI 协同' },
-  { value: 'requirements', label: '需求管理' }
+const tabs: Array<{ value: 'overview' | 'ai' | 'requirements'; label: string; description: string }> = [
+  { value: 'overview', label: '项目概况', description: '查看项目基础信息、进度摘要与健康状态。' },
+  { value: 'ai', label: 'AI 协同', description: '继续校准项目框架，补充资料并修正理解偏差。' },
+  { value: 'requirements', label: '需求管理', description: '维护当前项目需求，进入需求整理和版本链路。' }
 ]
 </script>
 
 <style scoped>
-.workspace-shell {
-  background: #fff;
-  border: 1px solid #dbe2ea;
-  border-radius: 18px;
-  padding: 18px;
-}
 .workspace-header {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  padding: 18px 20px;
   margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #d4dde8;
+  border-radius: 10px;
 }
+
 .eyebrow {
   margin: 0 0 6px;
-  color: #0f766e;
   font-size: 12px;
-  letter-spacing: .08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: #1d4ed8;
   font-weight: 700;
 }
+
 .title-row {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
+
 h3 {
   margin: 0;
-  font-size: 26px;
+  font-size: 28px;
   color: #0f172a;
 }
-.meta-row {
-  display: flex;
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  flex-wrap: wrap;
+  margin: 14px 0 0;
 }
+
+.meta-item {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.meta-item dt {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.meta-item dd {
+  margin: 6px 0 0;
+  color: #0f172a;
+  font-weight: 600;
+}
+
 .summary {
-  margin: 0;
+  margin: 14px 0 0;
   color: #475569;
-  line-height: 1.6;
+  line-height: 1.7;
 }
-.header-actions {
+
+.action-panel {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
   justify-content: flex-start;
 }
-.tabs {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 6px;
-  border-top: 1px solid #e5edf5;
-}
-.tab,
-.primary,
-.ghost {
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  padding: 9px 14px;
+
+.primary {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 600;
   cursor: pointer;
 }
-.tab,
-.ghost {
+
+.primary:hover {
+  background: #115e59;
+  border-color: #115e59;
+}
+
+.section-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.section-link {
+  display: grid;
+  gap: 6px;
+  min-height: 84px;
+  padding: 12px 14px;
   background: #f8fafc;
-  color: #334155;
+  border: 1px solid #dbe5f0;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
 }
-.tab.active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
+
+.section-link strong {
+  color: #0f172a;
 }
-.primary {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: #fff;
+
+.section-link span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.section-link.active {
+  background: #eff6ff;
+  border-color: #60a5fa;
+}
+
+@media (max-width: 1100px) {
+  .meta-grid,
+  .section-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .meta-grid,
+  .section-nav {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

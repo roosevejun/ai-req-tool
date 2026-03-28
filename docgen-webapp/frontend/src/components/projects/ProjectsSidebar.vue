@@ -1,13 +1,25 @@
 <template>
   <aside class="sidebar">
-    <section class="guide-card">
+    <section class="nav-card">
       <p class="eyebrow">业务功能导航</p>
-      <h3>先选业务入口，再定位项目对象</h3>
-      <p class="summary">左侧负责功能导航和项目定位，右侧负责查看当前项目的办理信息、需求情况和协同结果。</p>
-      <div class="quick-actions">
-        <button class="primary" type="button" @click="$emit('create-project')">选择创建方式</button>
-        <button class="ghost" type="button" @click="$emit('create-ai')">AI 项目孵化</button>
-        <button class="ghost" type="button" @click="$emit('go-docgen')">需求管理中心</button>
+      <h3>项目管理业务入口</h3>
+      <p class="summary">
+        先选择办理入口，再定位项目对象。左侧负责入口与对象导航，右侧负责项目概况、事项推进与结果展示。
+      </p>
+
+      <div class="nav-group">
+        <button class="nav-button nav-button--primary" type="button" @click="$emit('create-project')">
+          选择创建方式
+          <small>新建项目或进入 AI 项目孵化</small>
+        </button>
+        <button class="nav-button" type="button" @click="$emit('create-ai')">
+          AI 项目孵化
+          <small>通过对话提炼项目框架，再决定是否立项</small>
+        </button>
+        <button class="nav-button" type="button" @click="$emit('go-docgen')">
+          需求管理中心
+          <small>进入需求澄清、PRD 生成与版本跟踪流程</small>
+        </button>
       </div>
     </section>
 
@@ -57,53 +69,81 @@ defineEmits<{
   min-height: 70vh;
   display: grid;
   gap: 14px;
+  align-content: start;
 }
-.guide-card {
-  border: 1px solid #cfd9e8;
-  border-radius: 12px;
+
+.nav-card {
   padding: 16px;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background: #ffffff;
+  border: 1px solid #d4dde8;
+  border-top: 4px solid #1d4ed8;
+  border-radius: 10px;
 }
+
 .eyebrow {
   margin: 0 0 6px;
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f4c81;
+  color: #1d4ed8;
   font-weight: 700;
 }
+
 h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   color: #0f172a;
 }
+
 .summary {
   margin: 8px 0 0;
   color: #475569;
-  line-height: 1.6;
+  line-height: 1.7;
   font-size: 13px;
 }
-.quick-actions {
+
+.nav-group {
   display: grid;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 16px;
 }
-.primary,
-.ghost {
+
+.nav-button {
+  display: grid;
+  gap: 4px;
   width: 100%;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  padding: 10px 12px;
-  cursor: pointer;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #d4dde8;
+  background: #f8fafc;
+  color: #0f172a;
   text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
-.primary {
+
+.nav-button:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.nav-button small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.nav-button--primary {
   background: #1d4ed8;
   border-color: #1d4ed8;
-  color: #fff;
+  color: #ffffff;
 }
-.ghost {
-  background: #fff;
-  color: #0f172a;
+
+.nav-button--primary:hover {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.nav-button--primary small {
+  color: rgba(255, 255, 255, 0.82);
 }
 </style>

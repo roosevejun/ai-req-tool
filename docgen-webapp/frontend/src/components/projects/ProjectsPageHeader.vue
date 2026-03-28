@@ -1,36 +1,38 @@
 <template>
-  <section class="workspace-shell page-header">
-    <div>
+  <section class="page-header">
+    <div class="title-panel">
       <p class="eyebrow">项目管理中心</p>
       <h2>项目管理中心</h2>
-      <p class="summary">先定位项目，再围绕项目框架、需求沉淀、知识状态和协同动作持续推进。这里不是只看信息，而是帮助你判断当前项目下一步该做什么。</p>
-      <div class="workflow-hint">
-        <span>1. 选项目</span>
-        <span>2. 校准项目框架</span>
-        <span>3. 沉淀需求</span>
-        <span>4. 跟进知识状态</span>
+      <p class="summary">
+        面向项目立项、框架校准、需求沉淀与知识跟踪的统一业务入口。左侧选择业务入口和项目对象，右侧查看项目状态、办理进展与协同结果。
+      </p>
+      <div class="workflow-strip">
+        <span>1. 选择业务入口</span>
+        <span>2. 定位项目对象</span>
+        <span>3. 查看办理状态</span>
+        <span>4. 推进协同事项</span>
       </div>
     </div>
 
-    <div class="header-stats">
-      <div class="metric-card">
-        <span class="metric-label">项目总数</span>
+    <div class="stat-panel">
+      <div class="stat-card">
+        <span class="stat-label">项目总数</span>
         <strong>{{ projectCount }}</strong>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">当前项目需求</span>
+      <div class="stat-card">
+        <span class="stat-label">当前项目需求</span>
         <strong>{{ requirementCount }}</strong>
       </div>
-      <div class="metric-card">
-        <span class="metric-label">待处理知识任务</span>
+      <div class="stat-card">
+        <span class="stat-label">待处理知识任务</span>
         <strong>{{ pendingKnowledgeCount }}</strong>
       </div>
     </div>
 
-    <div class="header-actions">
-      <button class="ghost" type="button" @click="$emit('create-project')">选择创建方式</button>
-      <button class="primary" type="button" @click="$emit('create-ai')">进入 AI 项目孵化</button>
-      <button class="ghost" type="button" @click="$emit('go-docgen')">进入需求管理中心</button>
+    <div class="action-panel">
+      <button class="primary" type="button" @click="$emit('create-project')">选择创建方式</button>
+      <button class="secondary" type="button" @click="$emit('create-ai')">进入 AI 项目孵化</button>
+      <button class="secondary" type="button" @click="$emit('go-docgen')">进入需求管理中心</button>
     </div>
   </section>
 </template>
@@ -50,107 +52,135 @@ defineEmits<{
 </script>
 
 <style scoped>
-.workspace-shell {
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-  border: 1px solid #dbe2ea;
-  border-radius: 18px;
-  padding: 18px;
-}
 .page-header {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) auto auto;
+  grid-template-columns: minmax(0, 1.6fr) 320px;
   gap: 16px;
-  align-items: start;
+  padding: 18px 20px;
   margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #d4dde8;
+  border-top: 4px solid #1d4ed8;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 }
+
+.title-panel {
+  min-width: 0;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: #1d4ed8;
   font-weight: 700;
 }
+
 h2 {
   margin: 0;
   font-size: 30px;
   line-height: 1.1;
   color: #0f172a;
 }
+
 .summary {
   margin: 10px 0 0;
-  max-width: 720px;
+  max-width: 760px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: #475569;
 }
-.workflow-hint {
+
+.workflow-strip {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 14px;
+  gap: 10px;
+  margin-top: 16px;
 }
-.workflow-hint span {
-  border-radius: 999px;
-  border: 1px solid #d9e6f7;
-  background: rgba(255, 255, 255, 0.82);
+
+.workflow-strip span {
+  padding: 6px 12px;
+  border: 1px solid #dbe5f0;
+  background: #f8fbff;
   color: #1e3a8a;
-  padding: 6px 10px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
 }
-.header-stats {
-  display: flex;
+
+.stat-panel {
+  display: grid;
   gap: 10px;
-  flex-wrap: wrap;
+  align-content: start;
 }
-.metric-card {
-  min-width: 118px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #dbe2ea;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+
+.stat-card {
+  padding: 12px 14px;
+  border: 1px solid #dbe5f0;
+  background: #f8fbff;
+  border-radius: 8px;
 }
-.metric-label {
+
+.stat-label {
   display: block;
   font-size: 12px;
   color: #64748b;
 }
-.metric-card strong {
+
+.stat-card strong {
   display: block;
   margin-top: 6px;
-  font-size: 20px;
+  font-size: 24px;
   color: #0f172a;
 }
-.header-actions {
+
+.action-panel {
+  grid-column: 1 / -1;
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
 }
+
 .primary,
-.ghost {
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  padding: 10px 14px;
+.secondary {
+  min-width: 160px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
+
 .primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
 }
-.ghost {
-  background: #f8fafc;
+
+.primary:hover {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.secondary {
+  background: #ffffff;
   color: #0f172a;
 }
+
+.secondary:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
 @media (max-width: 1180px) {
   .page-header {
     grid-template-columns: 1fr;
-  }
-  .header-actions {
-    justify-content: flex-start;
   }
 }
 </style>
