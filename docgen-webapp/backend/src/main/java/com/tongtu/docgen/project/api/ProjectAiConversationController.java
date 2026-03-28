@@ -38,6 +38,7 @@ public class ProjectAiConversationController {
     public record StartConversationRequest(
             @Size(max = 128) String projectName,
             @Size(max = 4000) String description,
+            @Size(max = 8000) String initialMessage,
             List<SourceMaterialRequest> materials
     ) {
     }
@@ -92,6 +93,7 @@ public class ProjectAiConversationController {
                 traceId,
                 req.projectName(),
                 req.description(),
+                req.initialMessage(),
                 toMaterialInputs(req.materials()),
                 ctx
         ));

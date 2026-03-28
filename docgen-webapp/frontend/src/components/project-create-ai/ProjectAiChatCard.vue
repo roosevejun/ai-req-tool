@@ -8,10 +8,11 @@
     <template #actions>
       <StatusBadge v-if="sessionId" :label="`会话 #${sessionId}`" variant="neutral" small />
       <StatusBadge v-if="sessionId" :label="computedStatusText" variant="ai" small />
+      <StatusBadge v-else label="第一句话将自动启动 AI 孵化" variant="warning" small />
     </template>
 
     <div v-if="messages.length === 0" class="empty-state">
-      输入项目基本信息并启动 AI 会话后，这里会展示对话内容与追问。
+      直接说出你的项目想法、问题、目标用户或业务背景。你的第一句话会自动启动 AI 项目孵化会话。
     </div>
     <div v-else class="chat-list">
       <div v-for="message in messages" :key="`${message.id}-${message.seqNo}`" class="chat-item" :class="message.role">
@@ -30,11 +31,11 @@
     <textarea
       v-model="chatMessage"
       class="input"
-      :disabled="!sessionId || loading"
-      placeholder="补充业务背景、回答 AI 追问，或修正 AI 当前理解"
+      :disabled="loading"
+      placeholder="直接告诉 AI：你现在想做什么项目、想解决什么问题、面向谁、为什么要做。"
     />
     <div class="row">
-      <button class="primary" type="button" :disabled="loading || !sessionId || !chatMessage.trim()" @click="$emit('send-message')">
+      <button class="primary" type="button" :disabled="loading || !chatMessage.trim()" @click="$emit('send-message')">
         发送并继续提炼
       </button>
       <button class="ghost" type="button" :disabled="loading || !sessionId" @click="$emit('refresh-conversation')">刷新会话</button>
@@ -105,7 +106,7 @@ textarea.input { min-height: 110px; resize: vertical; }
 .chat-list { display: grid; gap: 10px; max-height: 420px; overflow: auto; margin-bottom: 12px; }
 .chat-item { border-radius: 12px; padding: 10px 12px; border: 1px solid #dbe2ea; }
 .chat-item.user { background: #f6f9ff; }
-.chat-item.assistant { background: #fffef7; }
+.chat-item.assistant { background: #f8fffb; }
 .chat-role { font-size: 12px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; }
 .chat-content, .preview-item p { white-space: pre-wrap; margin: 0; }
 .preview-item, .question-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; background: #fafcff; }

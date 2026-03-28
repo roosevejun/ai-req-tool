@@ -141,8 +141,10 @@ public class ProjectAiConversationService {
     public ConversationTurnResult startConversation(String traceId,
                                                     String projectName,
                                                     String description,
+                                                    String initialMessage,
                                                     List<SourceMaterialInput> materials,
                                                     UserContext operator) {
+        String bootstrapDescription = mergeBootstrapDescription(description, initialMessage);
         ProjectChatSessionEntity session = new ProjectChatSessionEntity();
         session.setProjectId(null);
         session.setJobId("proj-chat-" + UUID.randomUUID().toString().replace("-", ""));
@@ -151,7 +153,7 @@ public class ProjectAiConversationService {
         session.setBusinessKnowledgeSummary(null);
         session.setStructuredInfoJson(writeStructuredInfo(new StructuredInfo(
                 normalize(projectName),
-                normalize(description),
+                normalize(bootstrapDescription),
                 "",
                 "",
                 "",
@@ -164,7 +166,7 @@ public class ProjectAiConversationService {
         sessionMapper.insert(session);
 
         int seqNo = 0;
-        String initialUserContent = buildInitialUserContent(projectName, description);
+        String initialUserContent = buildInitialUserContent(projectName, description, initialMessage);
         if (!initialUserContent.isBlank()) {
             seqNo = appendMessage(session.getId(), ++seqNo, "user", "chat", initialUserContent);
         }
@@ -608,7 +610,7 @@ public class ProjectAiConversationService {
         return String.join("\n", parts);
     }
 
-    private String buildInitialUserContent(String projectName, String description) {
+    private String buildInitialUserContent(String projectName, String description, String initialMessage) {
         List<String> parts = new ArrayList<>();
         if (projectName != null && !projectName.isBlank()) {
             parts.add("Project Name: " + projectName.trim());
@@ -616,7 +618,25 @@ public class ProjectAiConversationService {
         if (description != null && !description.isBlank()) {
             parts.add("Description: " + description.trim());
         }
+        if (initialMessage != null && !initialMessage.isBlank()) {
+            parts.add("Initial Idea: " + initialMessage.trim());
+        }
         return String.join("\n", parts);
+    }
+
+    private String mergeBootstrapDescription(String description, String initialMessage) {
+        String normalizedDescription = normalize(description);
+        String normalizedInitialMessage = normalize(initialMessage);
+        if (normalizedDescription == null) {
+            return normalizedInitialMessage;
+        }
+        if (normalizedInitialMessage == null) {
+            return normalizedDescription;
+        }
+        if (normalizedDescription.contains(normalizedInitialMessage)) {
+            return normalizedDescription;
+        }
+        return normalizedDescription + "\n\n" + normalizedInitialMessage;
     }
 
     private String mergeDescriptionAndMaterials(String description, Long sessionId, String retrievalContext) {

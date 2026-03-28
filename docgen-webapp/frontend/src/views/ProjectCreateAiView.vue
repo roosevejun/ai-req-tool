@@ -530,13 +530,37 @@ async function uploadFileMaterial() {
 }
 
 async function sendMessage() {
-  if (!sessionId.value || !chatMessage.value.trim()) return
+  const message = chatMessage.value.trim()
+  if (!message) return
   loading.value = true
   error.value = ''
   success.value = ''
   try {
+    if (!sessionId.value) {
+      const res = await axios.post<ApiResponse<ConversationView>>('/api/projects/ai/conversations', {
+        projectName: startForm.projectName || null,
+        description: startForm.description || null,
+        initialMessage: message,
+        materials: pendingMaterials.value
+      })
+      const data = res.data.data
+      sessionId.value = data.sessionId
+      status.value = data.status || 'ACTIVE'
+      readyToCreate.value = data.readyToCreate
+      messages.value = data.messages || []
+      savedMaterials.value = data.materials || []
+      followUpQuestions.value = latestQuestions(data.messages || [])
+      pendingMaterials.value = []
+      applyStructuredInfo(data.structuredInfo)
+      chatMessage.value = ''
+      await refreshKnowledgeStatuses()
+      await router.replace({ path: '/projects/create-ai', query: { sessionId: String(data.sessionId) } })
+      success.value = 'AI 已根据你的第一句话启动项目孵化。'
+      return
+    }
+
     const res = await axios.post<ApiResponse<ConversationTurnResult>>(`/api/projects/ai/conversations/${sessionId.value}/chat`, {
-      message: chatMessage.value.trim()
+      message
     })
     const data = res.data.data
     status.value = data.status || status.value
