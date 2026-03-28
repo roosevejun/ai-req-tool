@@ -3,7 +3,11 @@
     <h3>创建 AI 项目会话</h3>
     <div class="grid two">
       <input v-model.trim="startForm.projectName" class="input" placeholder="输入项目名称，例如 AI 巡检平台" />
-      <textarea v-model="startForm.description" class="input" placeholder="描述项目背景、目标用户、核心流程，以及你当前已知的信息" />
+      <textarea
+        v-model="startForm.description"
+        class="input"
+        placeholder="描述项目背景、目标用户、核心流程，以及你当前已知的信息"
+      />
     </div>
 
     <h3>补充资料</h3>
@@ -23,7 +27,11 @@
           <button class="mini" type="button" @click="$emit('add-text-material')">添加</button>
         </div>
         <input v-model.trim="textDraft.title" class="input" placeholder="资料标题，可选" />
-        <textarea v-model="textDraft.rawContent" class="input" placeholder="粘贴文档内容、会议纪要、业务说明或其他文字资料" />
+        <textarea
+          v-model="textDraft.rawContent"
+          class="input"
+          placeholder="粘贴文档内容、会议纪要、业务说明或其他文字资料"
+        />
       </div>
 
       <div class="material-card">
@@ -65,6 +73,14 @@
             <div class="knowledge-status-item">
               <span class="status-badge" :class="doc.status?.toLowerCase()">{{ knowledgeStatusText(doc.status) }}</span>
               <span class="muted">{{ doc.documentType }} / {{ doc.title || '知识文档' }}</span>
+              <button
+                v-if="doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED'"
+                class="ghost mini"
+                type="button"
+                @click="$emit('retry-knowledge-document', doc.id)"
+              >
+                重新处理
+              </button>
               <button class="ghost mini" type="button" @click="$emit('open-knowledge-detail', doc.id)">查看详情</button>
             </div>
             <div v-if="doc.latestTaskError" class="knowledge-error">错误：{{ doc.latestTaskError }}</div>
@@ -121,6 +137,7 @@ const emit = defineEmits<{
   (event: 'upload-file'): void
   (event: 'file-selected', file: File | null): void
   (event: 'open-knowledge-detail', documentId: number): void
+  (event: 'retry-knowledge-document', documentId: number): void
 }>()
 
 function onFileSelect(event: Event) {

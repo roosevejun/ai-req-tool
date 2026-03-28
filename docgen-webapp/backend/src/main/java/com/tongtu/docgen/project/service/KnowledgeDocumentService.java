@@ -187,6 +187,15 @@ public class KnowledgeDocumentService {
         return knowledgeDocumentAssetMapper.listByDocumentId(documentId);
     }
 
+    public KnowledgeDocumentAssetEntity getAssetById(Long assetId) {
+        KnowledgeDocumentAssetEntity asset = knowledgeDocumentAssetMapper.findById(assetId);
+        if (asset == null) {
+            throw new IllegalArgumentException("Knowledge document asset not found.");
+        }
+        getById(asset.getDocumentId());
+        return asset;
+    }
+
     public KnowledgeDocumentAssetEntity getPrimaryAsset(Long documentId) {
         List<KnowledgeDocumentAssetEntity> assets = listAssets(documentId);
         if (assets.isEmpty()) {
@@ -208,6 +217,11 @@ public class KnowledgeDocumentService {
     public List<KnowledgeDocumentTaskEntity> listTasks(Long documentId) {
         getById(documentId);
         return knowledgeDocumentTaskMapper.listByDocumentId(documentId);
+    }
+
+    public KnowledgeDocumentTaskEntity getLatestTask(Long documentId) {
+        List<KnowledgeDocumentTaskEntity> tasks = listTasks(documentId);
+        return tasks.isEmpty() ? null : tasks.get(tasks.size() - 1);
     }
 
     @Transactional
@@ -260,6 +274,27 @@ public class KnowledgeDocumentService {
         entity.setFinishedAt(command.finishedAt());
         knowledgeDocumentTaskMapper.insert(entity);
         return entity.getId();
+    }
+
+    @Transactional
+    public Long reprocessDocument(Long documentId, UserContext operator) {
+        KnowledgeDocumentEntity document = getById(documentId);
+        KnowledgeDocumentTaskEntity latestTask = getLatestTask(documentId);
+        String taskType = latestTask == null ? inferTaskType(document) : latestTask.getTaskType();
+
+        document.setStatus("PENDING");
+        document.setRetrievable(false);
+        document.setUpdatedBy(operator.getUserId());
+        knowledgeDocumentMapper.update(document);
+
+        return createTask(documentId, new DocumentTaskCommand(
+                taskType,
+                "PENDING",
+                0,
+                null,
+                null,
+                null
+        ));
     }
 
     public KnowledgeDocumentTaskEntity getTaskById(Long taskId) {
@@ -321,6 +356,16 @@ public class KnowledgeDocumentService {
         if (projectSourceMaterialMapper.findById(sourceMaterialId) == null) {
             throw new IllegalArgumentException("Source material not found.");
         }
+    }
+
+    private String inferTaskType(KnowledgeDocumentEntity document) {
+        if (document.getSourceUri() != null && !document.getSourceUri().isBlank()) {
+            return "FETCH_URL";
+        }
+        if (!listAssets(document.getId()).isEmpty()) {
+            return "PARSE_FILE";
+        }
+        return "SUMMARIZE";
     }
 
     private String requireText(String value, String message) {

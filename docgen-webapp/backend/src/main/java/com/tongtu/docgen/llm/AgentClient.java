@@ -16,6 +16,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -74,6 +75,68 @@ public class AgentClient {
             String commercialValue,
             String coreProductValue
     ) {}
+
+    public String extractTextFromImage(String traceId, byte[] bytes, String mimeType, String filename) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("Image bytes are required.");
+        }
+        if (mockOnly || getApiKey().isEmpty()) {
+            throw new IllegalStateException("Image OCR requires a configured LLM API key.");
+        }
+
+        String safeMimeType = (mimeType == null || mimeType.isBlank()) ? "image/png" : mimeType.trim();
+        String safeFilename = filename == null ? "image" : filename.trim();
+        String dataUrl = "data:" + safeMimeType + ";base64," + Base64.getEncoder().encodeToString(bytes);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("model", openaiModel);
+        payload.put("temperature", 0.1);
+        payload.put("messages", List.of(
+                Map.of(
+                        "role", "system",
+                        "content", "You are an OCR assistant. Extract all readable text from the image. Return plain text only. Do not summarize."
+                ),
+                Map.of(
+                        "role", "user",
+                        "content", List.of(
+                                Map.of(
+                                        "type", "text",
+                                        "text", "Please OCR this image file and return the readable text only. Filename: " + safeFilename
+                                ),
+                                Map.of(
+                                        "type", "image_url",
+                                        "image_url", Map.of("url", dataUrl)
+                                )
+                        )
+                )
+        ));
+
+        try {
+            String body = objectMapper.writeValueAsString(payload);
+            HttpRequest request = HttpRequest.newBuilder(URI.create(openaiBaseUrl + "/chat/completions"))
+                    .timeout(Duration.ofMillis(openaiTimeoutMs))
+                    .header("Authorization", "Bearer " + getApiKey())
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+                throw new IllegalStateException("Image OCR failed with status " + resp.statusCode());
+            }
+            JsonNode root = objectMapper.readTree(resp.body());
+            JsonNode choices = root.path("choices");
+            if (!choices.isArray() || choices.isEmpty()) {
+                throw new IllegalStateException("Image OCR response missing choices.");
+            }
+            String content = extractMessageContent(choices.get(0).path("message").path("content")).trim();
+            if (content.isBlank()) {
+                throw new IllegalStateException("Image OCR content is empty.");
+            }
+            return content;
+        } catch (Exception e) {
+            throw new RuntimeException("Call image OCR failed: " + e.getMessage(), e);
+        }
+    }
 
     public List<Float> embedText(String traceId, String text) {
         String normalized = text == null ? "" : text.trim();

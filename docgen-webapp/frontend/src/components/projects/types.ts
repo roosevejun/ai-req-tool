@@ -182,6 +182,8 @@ export type ProjectKnowledgeDocumentAsset = {
   id: number
   assetRole: string
   storageKey: string
+  mimeType?: string
+  sizeBytes?: number
 }
 
 export type ProjectKnowledgeDocumentChunk = {

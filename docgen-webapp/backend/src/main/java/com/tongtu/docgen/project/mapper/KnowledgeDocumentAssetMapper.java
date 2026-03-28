@@ -19,6 +19,15 @@ public interface KnowledgeDocumentAssetMapper {
                    storage_bucket AS storageBucket, storage_key AS storageKey,
                    mime_type AS mimeType, size_bytes AS sizeBytes, sha256, created_at AS createdAt
             FROM km_document_asset
+            WHERE id = #{id}
+            """)
+    KnowledgeDocumentAssetEntity findById(@Param("id") Long id);
+
+    @Select("""
+            SELECT id, document_id AS documentId, asset_role AS assetRole,
+                   storage_bucket AS storageBucket, storage_key AS storageKey,
+                   mime_type AS mimeType, size_bytes AS sizeBytes, sha256, created_at AS createdAt
+            FROM km_document_asset
             WHERE document_id = #{documentId}
             ORDER BY id ASC
             """)

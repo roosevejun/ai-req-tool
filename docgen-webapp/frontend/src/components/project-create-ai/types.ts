@@ -34,6 +34,7 @@ export type KnowledgeDocumentListItem = {
   documentType: string
   title?: string
   status: string
+  latestTaskStatus?: string
   latestTaskError?: string
 }
 
@@ -41,6 +42,8 @@ export type KnowledgeDocumentAsset = {
   id: number
   assetRole: string
   storageKey: string
+  mimeType?: string
+  sizeBytes?: number
 }
 
 export type KnowledgeDocumentChunk = {

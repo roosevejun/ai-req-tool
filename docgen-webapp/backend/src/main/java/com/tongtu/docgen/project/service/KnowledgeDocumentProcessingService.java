@@ -4,9 +4,21 @@ import com.tongtu.docgen.project.model.entity.KnowledgeDocumentEntity;
 import com.tongtu.docgen.project.model.entity.KnowledgeDocumentTaskEntity;
 import com.tongtu.docgen.project.model.entity.KnowledgeDocumentAssetEntity;
 import com.tongtu.docgen.system.model.UserContext;
+import com.tongtu.docgen.llm.AgentClient;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -22,20 +34,25 @@ import java.util.List;
 public class KnowledgeDocumentProcessingService {
     private static final int DEFAULT_PENDING_LIMIT = 20;
     private static final int CHUNK_SIZE = 1000;
+    private static final int PDF_OCR_MAX_PAGES = 5;
+    private static final float PDF_OCR_DPI = 180f;
 
     private final KnowledgeDocumentService knowledgeDocumentService;
     private final KnowledgeFileStorageService knowledgeFileStorageService;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final AgentClient agentClient;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
     public KnowledgeDocumentProcessingService(KnowledgeDocumentService knowledgeDocumentService,
                                               KnowledgeFileStorageService knowledgeFileStorageService,
-                                              KnowledgeRetrievalService knowledgeRetrievalService) {
+                                              KnowledgeRetrievalService knowledgeRetrievalService,
+                                              AgentClient agentClient) {
         this.knowledgeDocumentService = knowledgeDocumentService;
         this.knowledgeFileStorageService = knowledgeFileStorageService;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.agentClient = agentClient;
     }
 
     @Transactional
@@ -149,14 +166,76 @@ public class KnowledgeDocumentProcessingService {
 
     private ProcessingPayload processFileDocument(KnowledgeDocumentEntity document) throws IOException {
         KnowledgeDocumentAssetEntity asset = knowledgeDocumentService.getPrimaryAsset(document.getId());
-        if (!isTextLike(asset)) {
-            throw new IllegalStateException("Current file parser only supports text and markdown files.");
+        String cleanText;
+        if (isPdf(asset)) {
+            cleanText = normalizeBlank(extractPdfText(asset));
+        } else if (isDocx(asset)) {
+            cleanText = normalizeBlank(extractDocxText(asset));
+        } else if (isImage(asset)) {
+            cleanText = normalizeBlank(extractImageText(document, asset));
+        } else if (isTextLike(asset)) {
+            cleanText = normalizeBlank(knowledgeFileStorageService.readUtf8(asset.getStorageBucket(), asset.getStorageKey()));
+        } else {
+            throw new IllegalStateException("Current file parser only supports PDF, DOCX, image OCR, text, markdown, and JSON files.");
         }
-        String cleanText = normalizeBlank(knowledgeFileStorageService.readUtf8(asset.getStorageBucket(), asset.getStorageKey()));
         if (cleanText == null) {
             throw new IllegalStateException("Uploaded file content is empty.");
         }
         return new ProcessingPayload(cleanText, summarize(cleanText), Integer.toHexString(cleanText.hashCode()));
+    }
+
+    private String extractPdfText(KnowledgeDocumentAssetEntity asset) throws IOException {
+        byte[] bytes = knowledgeFileStorageService.readBytes(asset.getStorageBucket(), asset.getStorageKey());
+        try (PDDocument document = Loader.loadPDF(bytes)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String extracted = normalizeBlank(stripper.getText(document));
+            if (extracted != null) {
+                return extracted;
+            }
+            return extractScannedPdfText(document, asset.getStorageKey());
+        }
+    }
+
+    private String extractDocxText(KnowledgeDocumentAssetEntity asset) throws IOException {
+        byte[] bytes = knowledgeFileStorageService.readBytes(asset.getStorageBucket(), asset.getStorageKey());
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+             XWPFDocument document = new XWPFDocument(inputStream);
+             XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+            return extractor.getText();
+        }
+    }
+
+    private String extractImageText(KnowledgeDocumentEntity document, KnowledgeDocumentAssetEntity asset) {
+        byte[] bytes = knowledgeFileStorageService.readBytes(asset.getStorageBucket(), asset.getStorageKey());
+        String filename = knowledgeFileStorageService.suggestFilename(asset.getStorageKey());
+        return agentClient.extractTextFromImage(buildTraceId(document.getId()), bytes, asset.getMimeType(), filename);
+    }
+
+    private String extractScannedPdfText(PDDocument document, String storageKey) throws IOException {
+        PDFRenderer renderer = new PDFRenderer(document);
+        int pageCount = Math.min(document.getNumberOfPages(), PDF_OCR_MAX_PAGES);
+        List<String> pageTexts = new ArrayList<>();
+        for (int i = 0; i < pageCount; i++) {
+            BufferedImage image = renderer.renderImageWithDPI(i, PDF_OCR_DPI, ImageType.RGB);
+            byte[] pngBytes = renderPng(image);
+            String pageText = normalizeBlank(agentClient.extractTextFromImage(
+                    buildPdfOcrTraceId(storageKey, i + 1),
+                    pngBytes,
+                    "image/png",
+                    buildPdfOcrFilename(storageKey, i + 1)
+            ));
+            if (pageText != null) {
+                pageTexts.add("Page " + (i + 1) + ":\n" + pageText);
+            }
+        }
+        return pageTexts.isEmpty() ? null : String.join("\n\n", pageTexts);
+    }
+
+    private byte[] renderPng(BufferedImage image) throws IOException {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", outputStream);
+            return outputStream.toByteArray();
+        }
     }
 
     private List<KnowledgeDocumentService.DocumentChunkCommand> toChunkCommands(String cleanText) {
@@ -237,6 +316,16 @@ public class KnowledgeDocumentProcessingService {
         return documentId == null ? "knowledge-doc" : "knowledge-doc-" + documentId;
     }
 
+    private String buildPdfOcrTraceId(String storageKey, int pageNo) {
+        String safeKey = storageKey == null ? "pdf" : storageKey.replaceAll("[^a-zA-Z0-9-_./]", "_");
+        return "knowledge-pdf-ocr-" + safeKey + "-page-" + pageNo;
+    }
+
+    private String buildPdfOcrFilename(String storageKey, int pageNo) {
+        String base = storageKey == null || storageKey.isBlank() ? "document" : knowledgeFileStorageService.suggestFilename(storageKey);
+        return base + "-page-" + pageNo + ".png";
+    }
+
     private boolean isTextLike(KnowledgeDocumentAssetEntity asset) {
         String mimeType = asset.getMimeType() == null ? "" : asset.getMimeType().trim().toLowerCase();
         String storageKey = asset.getStorageKey() == null ? "" : asset.getStorageKey().trim().toLowerCase();
@@ -247,6 +336,31 @@ public class KnowledgeDocumentProcessingService {
                 || storageKey.endsWith(".md")
                 || storageKey.endsWith(".markdown")
                 || "application/json".equals(mimeType);
+    }
+
+    private boolean isPdf(KnowledgeDocumentAssetEntity asset) {
+        String mimeType = asset.getMimeType() == null ? "" : asset.getMimeType().trim().toLowerCase();
+        String storageKey = asset.getStorageKey() == null ? "" : asset.getStorageKey().trim().toLowerCase();
+        return "application/pdf".equals(mimeType) || storageKey.endsWith(".pdf");
+    }
+
+    private boolean isDocx(KnowledgeDocumentAssetEntity asset) {
+        String mimeType = asset.getMimeType() == null ? "" : asset.getMimeType().trim().toLowerCase();
+        String storageKey = asset.getStorageKey() == null ? "" : asset.getStorageKey().trim().toLowerCase();
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(mimeType)
+                || storageKey.endsWith(".docx");
+    }
+
+    private boolean isImage(KnowledgeDocumentAssetEntity asset) {
+        String mimeType = asset.getMimeType() == null ? "" : asset.getMimeType().trim().toLowerCase();
+        String storageKey = asset.getStorageKey() == null ? "" : asset.getStorageKey().trim().toLowerCase();
+        if (mimeType.startsWith("image/")) {
+            return true;
+        }
+        return storageKey.endsWith(".png")
+                || storageKey.endsWith(".jpg")
+                || storageKey.endsWith(".jpeg")
+                || storageKey.endsWith(".webp");
     }
 
     private record ProcessingPayload(

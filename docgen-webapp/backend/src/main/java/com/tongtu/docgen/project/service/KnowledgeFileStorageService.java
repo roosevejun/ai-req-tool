@@ -91,6 +91,10 @@ public class KnowledgeFileStorageService {
     }
 
     public String readUtf8(String storageBucket, String storageKey) {
+        return new String(readBytes(storageBucket, storageKey), StandardCharsets.UTF_8);
+    }
+
+    public byte[] readBytes(String storageBucket, String storageKey) {
         if (storageKey == null || storageKey.isBlank()) {
             throw new IllegalArgumentException("Storage key is required.");
         }
@@ -100,7 +104,7 @@ public class KnowledgeFileStorageService {
                 if (!Files.exists(path)) {
                     throw new IllegalStateException("Stored file does not exist.");
                 }
-                return Files.readString(path, StandardCharsets.UTF_8);
+                return Files.readAllBytes(path);
             }
             try (InputStream inputStream = buildMinioClient().getObject(
                     GetObjectArgs.builder()
@@ -108,7 +112,7 @@ public class KnowledgeFileStorageService {
                             .object(storageKey)
                             .build()
             )) {
-                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                return inputStream.readAllBytes();
             }
         } catch (ErrorResponseException ex) {
             throw new IllegalStateException("Failed to read object from MinIO: " + ex.errorResponse().message(), ex);
@@ -117,6 +121,19 @@ public class KnowledgeFileStorageService {
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to load stored object.", ex);
         }
+    }
+
+    public String suggestFilename(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            return "knowledge-asset.bin";
+        }
+        String normalized = storageKey.replace('\\', '/');
+        int index = normalized.lastIndexOf('/');
+        String filename = index >= 0 ? normalized.substring(index + 1) : normalized;
+        if (filename.isBlank()) {
+            return "knowledge-asset.bin";
+        }
+        return filename;
     }
 
     public Path resolvePath(String storageKey) {

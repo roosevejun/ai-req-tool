@@ -22,6 +22,7 @@
         @upload-file="uploadFileMaterial"
         @file-selected="handleFileSelect"
         @open-knowledge-detail="openKnowledgeDetail"
+        @retry-knowledge-document="retryKnowledgeDocument"
       />
 
       <ProjectAiChatCard
@@ -54,10 +55,12 @@
     <KnowledgeDetailModal
       :visible="knowledgeDetailVisible"
       :loading="knowledgeDetailLoading"
+      :reprocessing="knowledgeReprocessing"
       :detail="knowledgeDetail"
       :chunk-expanded="chunkExpanded"
       :visible-chunks="visibleChunks"
       @close="closeKnowledgeDetail"
+      @reprocess="reprocessKnowledgeDetail"
       @toggle-chunks="chunkExpanded = !chunkExpanded"
     />
 
@@ -112,6 +115,7 @@ const selectedFile = ref<File | null>(null)
 const chatMessage = ref('')
 const knowledgeDetailVisible = ref(false)
 const knowledgeDetailLoading = ref(false)
+const knowledgeReprocessing = ref(false)
 const knowledgeDetail = ref<KnowledgeDocumentDetail | null>(null)
 const chunkExpanded = ref(false)
 const knowledgePreviewLoading = ref(false)
@@ -200,10 +204,49 @@ async function openKnowledgeDetail(documentId: number) {
   }
 }
 
+async function retryKnowledgeDocument(documentId: number) {
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/knowledge-documents/${documentId}/reprocess`)
+    await refreshKnowledgeStatuses()
+    if (knowledgeDetail.value?.document.id === documentId) {
+      await openKnowledgeDetail(documentId)
+    }
+    success.value = '知识文档已重新处理。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function reprocessKnowledgeDetail() {
+  if (!knowledgeDetail.value) {
+    return
+  }
+  knowledgeReprocessing.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const documentId = knowledgeDetail.value.document.id
+    const res = await axios.post<ApiResponse<KnowledgeDocumentDetail>>(`/api/knowledge-documents/${documentId}/reprocess`)
+    knowledgeDetail.value = res.data.data
+    await refreshKnowledgeStatuses()
+    success.value = '知识文档已重新处理。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    knowledgeReprocessing.value = false
+  }
+}
+
 function closeKnowledgeDetail() {
   knowledgeDetailVisible.value = false
   knowledgeDetail.value = null
   chunkExpanded.value = false
+  knowledgeReprocessing.value = false
 }
 
 async function loadKnowledgePreview() {

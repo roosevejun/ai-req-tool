@@ -242,6 +242,14 @@
                   <span class="status-badge task">{{ projectKnowledgeStatusText(doc.latestTaskStatus) }}</span>
                   <span class="muted">{{ doc.documentType }} / {{ doc.title || '知识文档' }}</span>
                   <button class="ghost mini" type="button" @click="$emit('open-project-knowledge-detail', doc.id)">查看详情</button>
+                  <button
+                    v-if="doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED'"
+                    class="ghost mini"
+                    type="button"
+                    @click="$emit('retry-project-knowledge-document', doc.id)"
+                  >
+                    重新处理
+                  </button>
                   <span v-if="doc.latestTaskError" class="knowledge-error">{{ doc.latestTaskError }}</span>
                 </div>
               </div>
@@ -374,6 +382,7 @@ const emit = defineEmits<{
   (event: 'upload-project-file'): void
   (event: 'delete-project-material', materialId?: number): void
   (event: 'open-project-knowledge-detail', documentId: number): void
+  (event: 'retry-project-knowledge-document', documentId: number): void
   (event: 'load-project-knowledge-preview'): void
   (event: 'update-project-material-filter', value: 'ALL' | 'URL' | 'TEXT' | 'FILE'): void
   (event: 'toggle-project-materials-collapse'): void

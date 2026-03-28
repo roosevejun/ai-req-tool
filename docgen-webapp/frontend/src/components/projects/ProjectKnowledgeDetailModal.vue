@@ -3,7 +3,12 @@
     <div class="panel">
       <div class="section-head">
         <h3>知识文档详情</h3>
-        <button class="ghost mini" type="button" @click="$emit('close')">关闭</button>
+        <div class="header-actions">
+          <button class="ghost mini" type="button" :disabled="loading || reprocessing || !detail" @click="$emit('reprocess')">
+            {{ reprocessing ? '重新处理中...' : '重新处理' }}
+          </button>
+          <button class="ghost mini" type="button" @click="$emit('close')">关闭</button>
+        </div>
       </div>
 
       <div v-if="loading" class="empty-state">正在加载详情...</div>
@@ -28,7 +33,16 @@
           <strong>资源列表</strong>
           <p v-if="detail.assets.length === 0">暂无资源</p>
           <ul v-else class="simple-list">
-            <li v-for="asset in detail.assets" :key="asset.id">{{ asset.assetRole }} / {{ asset.storageKey }}</li>
+            <li v-for="asset in detail.assets" :key="asset.id" class="asset-item">
+              <div>
+                {{ asset.assetRole }} / {{ asset.storageKey }}
+                <span v-if="asset.mimeType" class="muted"> / {{ asset.mimeType }}</span>
+              </div>
+              <div class="asset-actions">
+                <a class="ghost mini link-button" :href="assetPreviewUrl(asset.id)" target="_blank" rel="noreferrer">预览</a>
+                <a class="ghost mini link-button" :href="assetDownloadUrl(asset.id)" target="_blank" rel="noreferrer">下载</a>
+              </div>
+            </li>
           </ul>
         </div>
 
@@ -66,6 +80,7 @@ import type { ProjectKnowledgeDocumentChunk, ProjectKnowledgeDocumentDetail } fr
 defineProps<{
   visible: boolean
   loading: boolean
+  reprocessing: boolean
   detail: ProjectKnowledgeDocumentDetail | null
   chunkExpanded: boolean
   visibleChunks: ProjectKnowledgeDocumentChunk[]
@@ -74,18 +89,31 @@ defineProps<{
 defineEmits<{
   (event: 'close'): void
   (event: 'toggle-chunks'): void
+  (event: 'reprocess'): void
 }>()
+
+function assetPreviewUrl(assetId: number) {
+  return `/api/knowledge-documents/assets/${assetId}/preview`
+}
+
+function assetDownloadUrl(assetId: number) {
+  return `/api/knowledge-documents/assets/${assetId}/download`
+}
 </script>
 
 <style scoped>
 .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 60; }
 .panel { width: min(920px, 100%); max-height: 85vh; overflow: auto; background: #fff; border-radius: 14px; padding: 16px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
 .meta-grid { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 10px; }
 .block { margin-top: 12px; }
 .block p { white-space: pre-wrap; }
 .chunk-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #fafcff; margin-top: 8px; }
 .simple-list { margin: 8px 0 0; padding-left: 18px; }
+.asset-item { margin-bottom: 8px; }
+.asset-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.link-button { text-decoration: none; display: inline-flex; align-items: center; }
 .muted, .empty-state { color: #6b7280; }
 .ghost, .mini { border-radius: 8px; border: 1px solid #d1d5db; padding: 5px 9px; cursor: pointer; background: #f3f4f6; font-size: 12px; }
 @media (max-width: 960px) { .meta-grid { grid-template-columns: 1fr; } }

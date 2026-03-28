@@ -91,6 +91,7 @@
             @upload-project-file="uploadProjectFileMaterial"
             @delete-project-material="deleteProjectMaterial"
             @open-project-knowledge-detail="openProjectKnowledgeDetail"
+            @retry-project-knowledge-document="retryProjectKnowledgeDocument"
             @load-project-knowledge-preview="loadProjectKnowledgePreview"
             @update-project-material-filter="projectMaterialFilter = $event"
             @toggle-project-materials-collapse="projectMaterialsCollapsed = !projectMaterialsCollapsed"
@@ -127,10 +128,12 @@
     <ProjectKnowledgeDetailModal
       :visible="projectKnowledgeDetailVisible"
       :loading="projectKnowledgeDetailLoading"
+      :reprocessing="projectKnowledgeReprocessing"
       :detail="projectKnowledgeDetail"
       :chunk-expanded="projectKnowledgeChunkExpanded"
       :visible-chunks="visibleProjectKnowledgeChunks"
       @close="closeProjectKnowledgeDetail"
+      @reprocess="reprocessProjectKnowledgeDetail"
       @toggle-chunks="projectKnowledgeChunkExpanded = !projectKnowledgeChunkExpanded"
     />
 
@@ -213,6 +216,7 @@ const projectMaterialFilter = ref<'ALL' | 'URL' | 'TEXT' | 'FILE'>('ALL')
 const projectMaterialsCollapsed = ref(false)
 const projectKnowledgeDetailVisible = ref(false)
 const projectKnowledgeDetailLoading = ref(false)
+const projectKnowledgeReprocessing = ref(false)
 const projectKnowledgeDetail = ref<ProjectKnowledgeDocumentDetail | null>(null)
 const projectKnowledgeChunkExpanded = ref(false)
 const projectKnowledgePreviewVisible = ref(false)
@@ -598,10 +602,51 @@ async function openProjectKnowledgeDetail(documentId: number) {
   }
 }
 
+async function retryProjectKnowledgeDocument(documentId: number) {
+  projectConversationLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/knowledge-documents/${documentId}/reprocess`)
+    await refreshProjectMaterialKnowledgeStatuses()
+    if (projectKnowledgeDetail.value?.document.id === documentId) {
+      await openProjectKnowledgeDetail(documentId)
+    }
+    success.value = '知识文档已重新处理。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    projectConversationLoading.value = false
+  }
+}
+
+async function reprocessProjectKnowledgeDetail() {
+  if (!projectKnowledgeDetail.value) {
+    return
+  }
+  projectKnowledgeReprocessing.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const documentId = projectKnowledgeDetail.value.document.id
+    const res = await axios.post<ApiResponse<ProjectKnowledgeDocumentDetail>>(
+      `/api/knowledge-documents/${documentId}/reprocess`
+    )
+    projectKnowledgeDetail.value = res.data.data
+    await refreshProjectMaterialKnowledgeStatuses()
+    success.value = '知识文档已重新处理。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    projectKnowledgeReprocessing.value = false
+  }
+}
+
 function closeProjectKnowledgeDetail() {
   projectKnowledgeDetailVisible.value = false
   projectKnowledgeDetail.value = null
   projectKnowledgeChunkExpanded.value = false
+  projectKnowledgeReprocessing.value = false
 }
 
 async function loadProjectKnowledgePreview() {
