@@ -34,7 +34,7 @@
         @save-materials="saveMaterials"
         @upload-file="uploadFileMaterial"
         @file-selected="handleFileSelect"
-        @open-knowledge-detail="openKnowledgeDetail"
+        @open-knowledge-detail="goKnowledgeLibrary"
         @retry-knowledge-document="retryKnowledgeDocument"
       />
 
@@ -221,6 +221,15 @@ async function openKnowledgeDetail(documentId: number) {
   } finally {
     knowledgeDetailLoading.value = false
   }
+}
+
+function goKnowledgeLibrary(documentId: number) {
+  void router.push({
+    path: '/knowledge',
+    query: {
+      documentId: String(documentId)
+    }
+  })
 }
 
 async function retryKnowledgeDocument(documentId: number) {

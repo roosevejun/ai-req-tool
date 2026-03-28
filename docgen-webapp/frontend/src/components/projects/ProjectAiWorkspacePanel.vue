@@ -271,7 +271,7 @@
                 <StatusBadge :label="projectKnowledgeStatusText(doc.status)" variant="neutral" small />
                 <StatusBadge :label="projectKnowledgeStatusText(doc.latestTaskStatus)" variant="info" small />
                 <span class="muted">{{ doc.documentType }} / {{ doc.title || '????' }}</span>
-                <button class="ghost mini" type="button" @click="$emit('open-project-knowledge-detail', doc.id)">????</button>
+                <button class="ghost mini" type="button" @click="$emit('open-project-knowledge-detail', doc.id)">进入知识库</button>
                 <button
                   v-if="doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED'"
                   class="ghost mini"

@@ -1,67 +1,130 @@
-<template>
-  <div class="container">
-    <SystemQuickActionsCard :loading="loading" @go-create-ai="goCreateAi" @go-ai-docgen="goAiDocgen" />
+﻿<template>
+  <div class="page">
+    <section class="page-hero">
+      <div>
+        <p class="eyebrow">System Console</p>
+        <h1>系统管理</h1>
+        <p class="hero-copy">统一维护用户、角色与权限，并从同一页进入 AI 项目和需求工作台。</p>
+      </div>
+      <div class="hero-badges">
+        <StatusBadge :label="`${users.length} 个用户`" variant="info" />
+        <StatusBadge :label="`${roles.length} 个角色`" variant="ai" />
+        <StatusBadge :label="`${permissions.length} 条权限`" variant="success" />
+      </div>
+    </section>
 
-    <UserManagementCard
-      :loading="loading"
-      :new-user="newUser"
-      :roles="roles"
-      :users="users"
-      @refresh="loadAll"
-      @create-user="createUser"
-      @open-user-edit="openUserEdit"
-      @open-user-roles="openUserRoles"
-      @reset-password="resetPassword"
-    />
+    <div class="layout">
+      <main class="content">
+        <WorkspaceSection
+          eyebrow="Management Tabs"
+          title="管理工作台"
+          description="按对象切换用户、角色和权限管理区域，保持系统操作结构更清晰。"
+          :tint="true"
+        >
+          <template #actions>
+            <div class="tab-list">
+              <button
+                v-for="tab in adminTabs"
+                :key="tab.key"
+                class="tab"
+                :class="{ 'tab--active': activeAdminTab === tab.key }"
+                @click="activeAdminTab = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+          </template>
 
-    <RolePermissionCards
-      :loading="loading"
-      :new-role="newRole"
-      :new-perm="newPerm"
-      :roles="roles"
-      :permissions="permissions"
-      @create-role="createRole"
-      @create-permission="createPermission"
-      @open-role-edit="openRoleEdit"
-      @open-role-perms="openRolePerms"
-      @open-perm-edit="openPermEdit"
-    />
+          <div class="workspace-stack">
+            <UserManagementCard
+              v-if="activeAdminTab === 'users'"
+              :loading="loading"
+              :new-user="newUser"
+              :roles="roles"
+              :users="users"
+              @refresh="loadAll"
+              @create-user="createUser"
+              @open-user-edit="openUserEdit"
+              @open-user-roles="openUserRoles"
+              @reset-password="resetPassword"
+            />
 
-    <BindingPanels
-      :loading="loading"
-      :editing-user="editingUser"
-      :edit-user-form="editUserForm"
-      :binding-user="bindingUser"
-      v-model:bind-user-role-ids="bindUserRoleIds"
-      :editing-role="editingRole"
-      :edit-role-form="editRoleForm"
-      :binding-role="bindingRole"
-      v-model:bind-role-perm-ids="bindRolePermIds"
-      :editing-perm="editingPerm"
-      :edit-perm-form="editPermForm"
-      :roles="roles"
-      :permissions="permissions"
-      @save-user-edit="saveUserEdit"
-      @close-user-edit="editingUser = null"
-      @save-user-roles="saveUserRoles"
-      @close-user-roles="bindingUser = null"
-      @save-role-edit="saveRoleEdit"
-      @close-role-edit="editingRole = null"
-      @save-role-perms="saveRolePerms"
-      @close-role-perms="bindingRole = null"
-      @save-perm-edit="savePermEdit"
-      @close-perm-edit="editingPerm = null"
-    />
+            <RolePermissionCards
+              v-else
+              :loading="loading"
+              :new-role="newRole"
+              :new-perm="newPerm"
+              :roles="roles"
+              :permissions="permissions"
+              @create-role="createRole"
+              @create-permission="createPermission"
+              @open-role-edit="openRoleEdit"
+              @open-role-perms="openRolePerms"
+              @open-perm-edit="openPermEdit"
+            />
+          </div>
+        </WorkspaceSection>
+      </main>
 
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="success" class="success">{{ success }}</p>
+      <aside class="sidebar">
+        <SystemQuickActionsCard :loading="loading" @go-create-ai="goCreateAi" @go-ai-docgen="goAiDocgen" />
+
+        <WorkspaceSection
+          eyebrow="Pending Actions"
+          title="待处理操作"
+          description="这里会承接当前打开的编辑、绑定和修正动作，避免和主列表混在一起。"
+        >
+          <BindingPanels
+            v-if="hasBindingPanels"
+            :loading="loading"
+            :editing-user="editingUser"
+            :edit-user-form="editUserForm"
+            :binding-user="bindingUser"
+            v-model:bind-user-role-ids="bindUserRoleIds"
+            :editing-role="editingRole"
+            :edit-role-form="editRoleForm"
+            :binding-role="bindingRole"
+            v-model:bind-role-perm-ids="bindRolePermIds"
+            :editing-perm="editingPerm"
+            :edit-perm-form="editPermForm"
+            :roles="roles"
+            :permissions="permissions"
+            @save-user-edit="saveUserEdit"
+            @close-user-edit="editingUser = null"
+            @save-user-roles="saveUserRoles"
+            @close-user-roles="bindingUser = null"
+            @save-role-edit="saveRoleEdit"
+            @close-role-edit="editingRole = null"
+            @save-role-perms="saveRolePerms"
+            @close-role-perms="bindingRole = null"
+            @save-perm-edit="savePermEdit"
+            @close-perm-edit="editingPerm = null"
+          />
+          <EmptyWorkspaceState
+            v-else
+            eyebrow="Admin Ready"
+            title="当前没有待处理表单"
+            description="从左侧工作台选择用户、角色或权限后，对应的编辑和绑定动作会显示在这里。"
+          />
+        </WorkspaceSection>
+
+        <div class="feedback-stack">
+          <FeedbackPanel title="处理提示" :message="error" tone="danger" />
+          <FeedbackPanel title="最新进展" :message="success" tone="success" />
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
+import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import StatusBadge from '../components/projects/StatusBadge.vue'
+import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
 import BindingPanels from '../components/system-admin/BindingPanels.vue'
 import RolePermissionCards from '../components/system-admin/RolePermissionCards.vue'
 import SystemQuickActionsCard from '../components/system-admin/SystemQuickActionsCard.vue'
@@ -86,6 +149,12 @@ const success = ref('')
 const users = ref<UserItem[]>([])
 const roles = ref<RoleItem[]>([])
 const permissions = ref<PermItem[]>([])
+const activeAdminTab = ref<'users' | 'roles'>('users')
+
+const adminTabs = [
+  { key: 'users' as const, label: '用户' },
+  { key: 'roles' as const, label: '角色与权限' }
+]
 
 const newUser = ref<NewUserForm>({
   username: '',
@@ -130,6 +199,8 @@ const editPermForm = ref<EditPermForm>({
   permName: '',
   status: 'ENABLED'
 })
+
+const hasBindingPanels = computed(() => !!(editingUser.value || bindingUser.value || editingRole.value || bindingRole.value || editingPerm.value))
 
 function clearTips() {
   error.value = ''
@@ -226,7 +297,7 @@ async function saveUserRoles() {
 }
 
 async function resetPassword(user: UserItem) {
-  const password = window.prompt(`请为 ${user.username} 输入新密码`)
+  const password = window.prompt(`请为 ${user.username} 输入新密码`) 
   if (!password) return
   loading.value = true
   clearTips()
@@ -356,19 +427,103 @@ onMounted(loadAll)
 </script>
 
 <style scoped>
-.container {
-  max-width: 1200px;
-  margin: 24px auto;
-  padding: 0 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", sans-serif;
+.page {
+  max-width: 1480px;
+  margin: 18px auto;
+  padding: 0 14px 18px;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.error {
-  color: #b91c1c;
-  margin-top: 10px;
+
+.page-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #dbe2ea;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%);
 }
-.success {
-  color: #166534;
-  margin-top: 10px;
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #0f766e;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #0f172a;
+}
+
+.hero-copy {
+  margin: 10px 0 0;
+  max-width: 720px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  align-items: start;
+}
+
+.content,
+.sidebar {
+  min-width: 0;
+}
+
+.workspace-stack,
+.feedback-stack,
+.sidebar {
+  display: grid;
+  gap: 14px;
+}
+
+.tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #334155;
+}
+
+.tab--active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+@media (max-width: 1080px) {
+  .page-hero,
+  .hero-badges {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

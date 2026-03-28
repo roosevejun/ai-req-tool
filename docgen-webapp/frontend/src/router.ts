@@ -1,7 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { isLoggedIn } from './auth'
 import LoginPage from './views/LoginPage.vue'
 import DocGenView from './views/DocGenView.vue'
+import KnowledgeLibraryView from './views/KnowledgeLibraryView.vue'
 import SystemAdminView from './views/SystemAdminView.vue'
 import ProjectsView from './views/ProjectsView.vue'
 import ProjectCreateAiView from './views/ProjectCreateAiView.vue'
@@ -15,6 +16,7 @@ const router = createRouter({
     { path: '/login', component: LoginPage, meta: { public: true } },
     { path: '/', redirect: '/docgen' },
     { path: '/docgen', component: DocGenView, meta: { section: 'docgen' } },
+    { path: '/knowledge', component: KnowledgeLibraryView, meta: { section: 'knowledge' } },
     { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
     { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
     { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },

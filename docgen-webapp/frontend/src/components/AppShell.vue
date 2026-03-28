@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="shell">
     <ShellHeader
       :nav-items="navItems"
@@ -35,6 +35,7 @@ const router = useRouter()
 
 const navItems: NavItem[] = [
   { label: 'AI 整理', to: '/docgen', section: 'docgen' },
+  { label: '知识库', to: '/knowledge', section: 'knowledge' },
   { label: '项目与需求', to: '/projects', section: 'projects' },
   { label: '系统管理', to: '/system', section: 'system' }
 ]
@@ -46,6 +47,7 @@ const activeSection = computed(() => {
   const section = String(route.meta.section || '')
   if (section) return section
   if (route.path.startsWith('/projects') || route.path.startsWith('/requirements')) return 'projects'
+  if (route.path.startsWith('/knowledge')) return 'knowledge'
   if (route.path.startsWith('/system')) return 'system'
   return 'docgen'
 })
@@ -70,6 +72,11 @@ const breadcrumbs = computed<Crumb[]>(() => {
 
   if (activeSection.value === 'docgen') {
     items.push({ label: 'AI 整理' })
+    return items
+  }
+
+  if (activeSection.value === 'knowledge') {
+    items.push({ label: '知识库' })
     return items
   }
 

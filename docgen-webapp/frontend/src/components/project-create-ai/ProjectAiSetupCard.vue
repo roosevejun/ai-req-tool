@@ -91,7 +91,7 @@
               >
                 ????
               </button>
-              <button class="ghost mini" type="button" @click="$emit('open-knowledge-detail', doc.id)">????</button>
+              <button class="ghost mini" type="button" @click="$emit('open-knowledge-detail', doc.id)">进入知识库</button>
             </div>
             <div v-if="doc.latestTaskError" class="knowledge-error">???{{ doc.latestTaskError }}</div>
           </div>

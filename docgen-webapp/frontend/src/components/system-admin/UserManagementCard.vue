@@ -1,7 +1,10 @@
-<template>
+﻿<template>
   <section class="panel">
     <div class="panel-head">
-      <h3>用户管理</h3>
+      <div>
+        <h3>用户管理</h3>
+        <p class="copy">创建、编辑用户，并维护账号状态和角色绑定。</p>
+      </div>
       <button class="ghost" :disabled="loading" @click="$emit('refresh')">刷新</button>
     </div>
 
@@ -14,13 +17,15 @@
         <option value="DISABLED">禁用</option>
       </select>
     </div>
+
     <div class="checkbox-row">
-      <label v-for="r in roles" :key="`nu-${r.id}`" class="check-item">
-        <input v-model="newUser.roleIds" type="checkbox" :value="r.id" />
-        {{ r.roleCode }}
+      <label v-for="role in roles" :key="`new-user-role-${role.id}`" class="check-item">
+        <input v-model="newUser.roleIds" type="checkbox" :value="role.id" />
+        {{ role.roleCode }}
       </label>
     </div>
-    <div class="row">
+
+    <div class="actions">
       <button class="primary" :disabled="loading || !newUser.username || !newUser.password" @click="$emit('create-user')">
         创建用户
       </button>
@@ -38,20 +43,20 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="u in users" :key="u.id">
-          <td>{{ u.id }}</td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.displayName }}</td>
-          <td>{{ statusLabel(u.status) }}</td>
-          <td>{{ (u.roleCodes || []).join(', ') }}</td>
-          <td>
-            <button class="mini" @click="$emit('open-user-edit', u)">编辑</button>
-            <button class="mini" @click="$emit('open-user-roles', u)">角色</button>
-            <button class="mini" @click="$emit('reset-password', u)">重置密码</button>
+        <tr v-for="user in users" :key="user.id">
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.displayName || '-' }}</td>
+          <td>{{ statusLabel(user.status) }}</td>
+          <td>{{ (user.roleCodes || []).join(', ') || '-' }}</td>
+          <td class="table-actions">
+            <button class="mini" @click="$emit('open-user-edit', user)">编辑</button>
+            <button class="mini" @click="$emit('open-user-roles', user)">绑定角色</button>
+            <button class="mini" @click="$emit('reset-password', user)">重置密码</button>
           </td>
         </tr>
         <tr v-if="users.length === 0">
-          <td colspan="6" class="muted">暂无用户</td>
+          <td colspan="6" class="muted">暂无用户数据。</td>
         </tr>
       </tbody>
     </table>
@@ -79,20 +84,132 @@ defineEmits<{
 </script>
 
 <style scoped>
-.panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.panel-head h3 { margin: 0; }
-.row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-.form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
-.checkbox-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.check-item { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
-.input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #d1d5db; }
-.table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-.table th, .table td { border: 1px solid #e5e7eb; padding: 8px; font-size: 13px; }
-.primary, .ghost, .mini { border-radius: 8px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; }
-.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-.ghost, .mini { background: #f3f4f6; }
-.mini { padding: 5px 9px; font-size: 12px; }
-.muted { color: #6b7280; }
-@media (max-width: 980px) { .form-grid { grid-template-columns: 1fr; } }
+.panel {
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panel-head h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.copy {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.check-item {
+  border: 1px solid #dbe2ea;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e5edf5;
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primary,
+.ghost,
+.mini {
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.ghost,
+.mini {
+  background: #f8fafc;
+}
+
+.mini {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.muted {
+  color: #64748b;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .panel-head {
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

@@ -119,7 +119,7 @@
               @select-project-file="handleProjectFileSelect"
               @upload-project-file="uploadProjectFileMaterial"
               @delete-project-material="deleteProjectMaterial"
-              @open-project-knowledge-detail="openProjectKnowledgeDetail"
+              @open-project-knowledge-detail="goProjectKnowledgeLibrary"
               @retry-project-knowledge-document="retryProjectKnowledgeDocument"
               @load-project-knowledge-preview="loadProjectKnowledgePreview"
               @update-project-material-filter="projectMaterialFilter = $event"
@@ -692,6 +692,17 @@ async function openProjectKnowledgeDetail(documentId: number) {
   } finally {
     projectKnowledgeDetailLoading.value = false
   }
+}
+
+function goProjectKnowledgeLibrary(documentId: number) {
+  void router.push({
+    path: '/knowledge',
+    query: {
+      projectId: selectedProjectId.value ? String(selectedProjectId.value) : undefined,
+      requirementId: selectedRequirementId.value ? String(selectedRequirementId.value) : undefined,
+      documentId: String(documentId)
+    }
+  })
 }
 
 async function retryProjectKnowledgeDocument(documentId: number) {

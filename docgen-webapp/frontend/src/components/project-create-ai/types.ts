@@ -30,10 +30,14 @@ export type KnowledgePreview = {
 
 export type KnowledgeDocumentListItem = {
   id: number
+  projectId?: number
+  requirementId?: number
   sourceMaterialId?: number
   documentType: string
+  sourceUri?: string
   title?: string
   status: string
+  summary?: string
   latestTaskStatus?: string
   latestTaskError?: string
 }
@@ -61,6 +65,9 @@ export type KnowledgeDocumentTask = {
 
 export type KnowledgeDocumentEntity = {
   id: number
+  projectId?: number
+  requirementId?: number
+  sourceMaterialId?: number
   documentType: string
   status: string
   title?: string
