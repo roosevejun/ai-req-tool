@@ -1,5 +1,14 @@
-<template>
+﻿<template>
   <div class="page">
+    <ProjectsPageHeader
+      :project-count="projects.length"
+      :requirement-count="selectedProject ? requirementsOf(selectedProject.id).length : 0"
+      :pending-knowledge-count="pendingKnowledgeCount"
+      @create-project="startCreateProject"
+      @create-ai="goCreateAi"
+      @go-docgen="goAiDocgen"
+    />
+
     <div class="layout">
       <ProjectsSidebar
         :loading="loading"
@@ -28,101 +37,127 @@
       />
 
       <main class="content">
-        <section class="card quick-actions">
-          <div class="section-head">
-            <h3>快捷操作</h3>
-            <p class="summary">常用入口放在这里，避免和顶部全局导航重复。</p>
-          </div>
-          <div class="row">
-            <button class="primary" @click="goCreateAi">AI 创建项目</button>
-            <button class="ghost" @click="goAiDocgen">进入 AI 需求整理</button>
-          </div>
-        </section>
-
-        <section v-if="!selectedProject" class="card empty-state">
-          <h3>请选择一个项目</h3>
-          <p>你可以先在左侧创建项目，再逐条新增需求，并进入 AI 需求整理与 PRD 生成流程。</p>
-        </section>
+        <EmptyWorkspaceState
+          v-if="!selectedProject"
+          title="??????????"
+          description="?????????????????????????AI ??????????????"
+        />
 
         <template v-else>
-          <ProjectDetailsCard
-            :loading="loading"
-            :editing-project="editingProject"
+          <ProjectWorkspaceHeader
             :project="selectedProject"
-            :project-edit-form="projectEditForm"
-            :project-conversation-loading="projectConversationLoading"
-            :project-conversation="projectConversation"
-            :project-conversation-input="projectConversationInput"
-            :can-send-project-conversation="canSendProjectConversation"
-            :project-url-draft="projectUrlDraft"
-            :project-text-draft="projectTextDraft"
-            :project-file-draft="projectFileDraft"
-            :project-selected-file="projectSelectedFile"
-            :project-pending-materials="projectPendingMaterials"
-            :project-material-knowledge-map="projectMaterialKnowledgeMap"
-            :project-material-filter="projectMaterialFilter"
-            :filtered-project-materials="filteredProjectMaterials"
-            :project-materials-collapsed="projectMaterialsCollapsed"
-            :can-save-project-materials="canSaveProjectMaterials"
-            :can-upload-project-file="canUploadProjectFile"
-            :project-material-preview="projectMaterialPreview"
-            :project-knowledge-status-text="projectKnowledgeStatusText"
-            :project-knowledge-preview-visible="projectKnowledgePreviewVisible"
-            :project-knowledge-preview-loading="projectKnowledgePreviewLoading"
-            :project-knowledge-preview="projectKnowledgePreview"
-            :project-knowledge-preview-query-text="projectKnowledgePreviewQueryText"
-            :user-options="userOptions"
+            :active-tab="activeWorkspaceTab"
             :project-type-label="projectTypeLabel"
             :visibility-label="visibilityLabel"
             :project-status-label="projectStatusLabel"
-            @start-edit="startEditProject"
-            @cancel-edit="cancelProjectEdit"
-            @save-edit="saveProjectEdit"
-            @delete-project="deleteProject"
-            @refresh-project-ai="ensureProjectConversation"
-            @send-project-ai="sendProjectConversation"
-            @apply-project-ai="applyConversationStructuredInfo"
-            @update-project-ai-input="projectConversationInput = $event"
-            @add-project-url-material="addProjectUrlMaterial"
-            @add-project-text-material="addProjectTextMaterial"
-            @clear-project-pending-materials="clearProjectPendingMaterials"
-            @save-project-materials="saveProjectMaterials"
-            @select-project-file="handleProjectFileSelect"
-            @upload-project-file="uploadProjectFileMaterial"
-            @delete-project-material="deleteProjectMaterial"
-            @open-project-knowledge-detail="openProjectKnowledgeDetail"
-            @retry-project-knowledge-document="retryProjectKnowledgeDocument"
-            @load-project-knowledge-preview="loadProjectKnowledgePreview"
-            @update-project-material-filter="projectMaterialFilter = $event"
-            @toggle-project-materials-collapse="projectMaterialsCollapsed = !projectMaterialsCollapsed"
+            @change-tab="handleWorkspaceTabChange"
+            @enter-ai="ensureAiWorkspace"
           />
 
-          <ProjectMembersCard
-            :loading="loading"
-            :member-form="memberForm"
-            :user-options="userOptions"
-            :members="membersOf(selectedProject.id)"
-            :project-role-label="projectRoleLabel"
-            :member-status-label="memberStatusLabel"
-            @add-member="addProjectMember"
-            @remove-member="removeProjectMember"
-          />
+          <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
+            <ProjectOverviewPanel
+              :loading="loading"
+              :project="selectedProject"
+              :project-type-label="projectTypeLabel"
+              :visibility-label="visibilityLabel"
+              :project-status-label="projectStatusLabel"
+              @start-edit="startEditProject"
+              @enter-ai="ensureAiWorkspace"
+              @delete-project="deleteProject"
+            />
 
-          <ProjectRequirementsCard
-            :loading="loading"
-            :project="selectedProject"
-            :req-form="reqForm"
-            :requirements="requirementsOf(selectedProject.id)"
-            :selected-requirement="selectedRequirement"
-            :priority-label="priorityLabel"
-            :requirement-status-label="requirementStatusLabel"
-            @create-requirement="createRequirement"
-            @select-requirement="selectRequirement"
-            @open-workbench="openWorkbench"
-            @open-versions="openVersions"
-          />
+            <ProjectMembersCard
+              :loading="loading"
+              :member-form="memberForm"
+              :user-options="userOptions"
+              :members="membersOf(selectedProject.id)"
+              :project-role-label="projectRoleLabel"
+              :member-status-label="memberStatusLabel"
+              @add-member="addProjectMember"
+              @remove-member="removeProjectMember"
+            />
+          </section>
+
+          <section v-else-if="activeWorkspaceTab === 'ai'" class="workspace-stack">
+            <ProjectAiWorkspacePanel
+              :loading="loading"
+              :project="selectedProject"
+              :project-edit-form="projectEditForm"
+              :project-conversation-loading="projectConversationLoading"
+              :project-conversation="projectConversation"
+              :project-conversation-input="projectConversationInput"
+              :can-send-project-conversation="canSendProjectConversation"
+              :project-url-draft="projectUrlDraft"
+              :project-text-draft="projectTextDraft"
+              :project-file-draft="projectFileDraft"
+              :project-selected-file="projectSelectedFile"
+              :project-pending-materials="projectPendingMaterials"
+              :project-material-knowledge-map="projectMaterialKnowledgeMap"
+              :project-material-filter="projectMaterialFilter"
+              :filtered-project-materials="filteredProjectMaterials"
+              :project-materials-collapsed="projectMaterialsCollapsed"
+              :can-save-project-materials="canSaveProjectMaterials"
+              :can-upload-project-file="canUploadProjectFile"
+              :project-material-preview="projectMaterialPreview"
+              :project-knowledge-status-text="projectKnowledgeStatusText"
+              :project-knowledge-preview-visible="projectKnowledgePreviewVisible"
+              :project-knowledge-preview-loading="projectKnowledgePreviewLoading"
+              :project-knowledge-preview="projectKnowledgePreview"
+              :project-knowledge-preview-query-text="projectKnowledgePreviewQueryText"
+              :user-options="userOptions"
+              @cancel-edit="cancelProjectEdit"
+              @save-edit="saveProjectEdit"
+              @delete-project="deleteProject"
+              @refresh-project-ai="ensureProjectConversation"
+              @send-project-ai="sendProjectConversation"
+              @apply-project-ai="applyConversationStructuredInfo"
+              @update-project-ai-input="projectConversationInput = $event"
+              @add-project-url-material="addProjectUrlMaterial"
+              @add-project-text-material="addProjectTextMaterial"
+              @clear-project-pending-materials="clearProjectPendingMaterials"
+              @save-project-materials="saveProjectMaterials"
+              @select-project-file="handleProjectFileSelect"
+              @upload-project-file="uploadProjectFileMaterial"
+              @delete-project-material="deleteProjectMaterial"
+              @open-project-knowledge-detail="openProjectKnowledgeDetail"
+              @retry-project-knowledge-document="retryProjectKnowledgeDocument"
+              @load-project-knowledge-preview="loadProjectKnowledgePreview"
+              @update-project-material-filter="projectMaterialFilter = $event"
+              @toggle-project-materials-collapse="projectMaterialsCollapsed = !projectMaterialsCollapsed"
+            />
+          </section>
+
+          <section v-else class="workspace-stack">
+            <ProjectRequirementsPanel
+              :loading="loading"
+              :project="selectedProject"
+              :req-form="reqForm"
+              :requirements="requirementsOf(selectedProject.id)"
+              :selected-requirement="selectedRequirement"
+              :priority-label="priorityLabel"
+              :requirement-status-label="requirementStatusLabel"
+              @create-requirement="createRequirement"
+              @select-requirement="selectRequirement"
+              @open-workbench="openWorkbench"
+              @open-versions="openVersions"
+            />
+          </section>
         </template>
       </main>
+
+      <ProjectInsightsSidebar
+        v-if="selectedProject"
+        :project="selectedProject"
+        :selected-requirement="selectedRequirement"
+        :members="membersOf(selectedProject.id)"
+        :member-count="membersOf(selectedProject.id).length"
+        :requirement-count="requirementsOf(selectedProject.id).length"
+        :knowledge-count="knowledgeCount"
+        :pending-knowledge-count="pendingKnowledgeCount"
+        :failed-knowledge-count="failedKnowledgeCount"
+        :project-conversation-status="projectConversation?.status || ''"
+        :project-role-label="projectRoleLabel"
+      />
     </div>
 
     <ProjectKnowledgeDetailModal
@@ -137,8 +172,10 @@
       @toggle-chunks="projectKnowledgeChunkExpanded = !projectKnowledgeChunkExpanded"
     />
 
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="success" class="success">{{ success }}</p>
+    <div class="feedback-stack">
+      <FeedbackPanel title="处理提示" :message="error" tone="danger" />
+      <FeedbackPanel title="最新进展" :message="success" tone="success" />
+    </div>
   </div>
 </template>
 
@@ -146,11 +183,17 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
-import ProjectDetailsCard from '../components/projects/ProjectDetailsCard.vue'
+import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
+import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import ProjectAiWorkspacePanel from '../components/projects/ProjectAiWorkspacePanel.vue'
 import ProjectKnowledgeDetailModal from '../components/projects/ProjectKnowledgeDetailModal.vue'
+import ProjectInsightsSidebar from '../components/projects/ProjectInsightsSidebar.vue'
 import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
-import ProjectRequirementsCard from '../components/projects/ProjectRequirementsCard.vue'
+import ProjectOverviewPanel from '../components/projects/ProjectOverviewPanel.vue'
+import ProjectRequirementsPanel from '../components/projects/ProjectRequirementsPanel.vue'
+import ProjectsPageHeader from '../components/projects/ProjectsPageHeader.vue'
 import ProjectsSidebar from '../components/projects/ProjectsSidebar.vue'
+import ProjectWorkspaceHeader from '../components/projects/ProjectWorkspaceHeader.vue'
 import {
   memberStatusLabel,
   priorityLabel,
@@ -201,6 +244,7 @@ const expandedProjectIds = ref<number[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
 const editingProject = ref(false)
+const activeWorkspaceTab = ref<'overview' | 'ai' | 'requirements'>('overview')
 
 const projectAiLoading = ref(false)
 const projectAiMessage = ref('')
@@ -273,6 +317,19 @@ const visibleProjectKnowledgeChunks = computed<ProjectKnowledgeDocumentChunk[]>(
 const projectKnowledgePreviewQueryText = computed(() => {
   return projectKnowledgePreview.value?.query || projectConversationInput.value.trim() || projectEditForm.projectName || selectedProject.value?.projectName || ''
 })
+const uniqueKnowledgeDocuments = computed(() => {
+  const docs = Object.values(projectMaterialKnowledgeMap.value).flat()
+  const seen = new Map<number, ProjectKnowledgeDocumentListItem>()
+  docs.forEach((doc) => {
+    if (!seen.has(doc.id)) {
+      seen.set(doc.id, doc)
+    }
+  })
+  return Array.from(seen.values())
+})
+const knowledgeCount = computed(() => uniqueKnowledgeDocuments.value.length)
+const pendingKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filter((doc) => ['PENDING', 'RUNNING', 'PROCESSING'].includes(doc.status || '') || ['PENDING', 'RUNNING', 'PROCESSING'].includes(doc.latestTaskStatus || '')).length)
+const failedKnowledgeCount = computed(() => uniqueKnowledgeDocuments.value.filter((doc) => doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED').length)
 
 function createProjectFormState(): ProjectFormState {
   return {
@@ -342,6 +399,7 @@ function resetProjectAiGuide() {
 }
 
 function resetProjectConversation() {
+  activeWorkspaceTab.value = 'overview'
   projectConversation.value = null
   projectConversationInput.value = ''
   projectMaterialKnowledgeMap.value = {}
@@ -452,7 +510,7 @@ async function loadProjects() {
     editingProject.value = false
     resetProjectEditForm()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载项目失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰澶辫触'
   } finally {
     loading.value = false
   }
@@ -472,7 +530,7 @@ async function loadRequirements(projectId: number) {
     const res = await axios.get<ApiResponse<RequirementItem[]>>(`/api/projects/${projectId}/requirements`)
     requirementsMap.value = { ...requirementsMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载需求失败'
+    error.value = e?.response?.data?.message || e?.message || '加载需求失败。'
   }
 }
 
@@ -481,7 +539,7 @@ async function loadProjectMembers(projectId: number) {
     const res = await axios.get<ApiResponse<ProjectMemberItem[]>>(`/api/projects/${projectId}/members`)
     projectMembersMap.value = { ...projectMembersMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载项目成员失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰鎴愬憳澶辫触'
   }
 }
 
@@ -490,18 +548,18 @@ async function loadVersions(requirementId: number) {
     const res = await axios.get<ApiResponse<VersionItem[]>>(`/api/requirements/${requirementId}/versions`)
     versionsMap.value = { ...versionsMap.value, [requirementId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载版本失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇鐗堟湰澶辫触'
   }
 }
 
 async function createProject() {
   if (!projectForm.projectKey.trim() || !projectForm.projectName.trim()) {
-    error.value = '请先填写项目 Key 和项目名称'
+    error.value = '请先填写项目 Key 和项目名称。'
     success.value = ''
     return
   }
   if (projectForm.startDate && projectForm.targetDate && projectForm.targetDate < projectForm.startDate) {
-    error.value = '计划结束日期不能早于计划开始日期'
+    error.value = '计划结束日期不能早于计划开始日期。'
     return
   }
 
@@ -517,7 +575,7 @@ async function createProject() {
       projectType: projectForm.projectType || null,
       tags: projectForm.tags || null
     })
-    success.value = '项目创建成功'
+    success.value = '椤圭洰鍒涘缓鎴愬姛'
     const createdProjectId = res.data.data
     resetCreateProjectForm()
     resetProjectAiGuide()
@@ -526,9 +584,41 @@ async function createProject() {
       await selectProject(createdProjectId)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '创建项目失败'
+    error.value = e?.response?.data?.message || e?.message || '鍒涘缓椤圭洰澶辫触'
   } finally {
     loading.value = false
+  }
+}
+
+function startCreateProject() {
+  selectedProjectId.value = null
+  selectedRequirementId.value = null
+  editingProject.value = false
+  activeWorkspaceTab.value = 'overview'
+  resetProjectEditForm()
+  resetProjectConversation()
+  success.value = '请在左侧填写新项目表单。'
+}
+
+function handleWorkspaceTabChange(tab: 'overview' | 'ai' | 'requirements') {
+  if (tab === 'ai') {
+    void ensureAiWorkspace()
+    return
+  }
+  activeWorkspaceTab.value = tab
+}
+
+async function ensureAiWorkspace() {
+  if (!selectedProject.value) {
+    return
+  }
+  activeWorkspaceTab.value = 'ai'
+  if (!editingProject.value) {
+    await startEditProject()
+    return
+  }
+  if (!projectConversation.value) {
+    await ensureProjectConversation()
   }
 }
 
@@ -538,6 +628,7 @@ async function startEditProject() {
   }
   fillProjectEditForm(selectedProject.value)
   editingProject.value = true
+  activeWorkspaceTab.value = 'ai'
   error.value = ''
   success.value = ''
   await ensureProjectConversation()
@@ -545,6 +636,7 @@ async function startEditProject() {
 
 function cancelProjectEdit() {
   editingProject.value = false
+  activeWorkspaceTab.value = 'overview'
   if (selectedProject.value) {
     fillProjectEditForm(selectedProject.value)
     return
@@ -565,7 +657,7 @@ async function ensureProjectConversation() {
     projectConversation.value = res.data.data || null
     await refreshProjectMaterialKnowledgeStatuses()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载项目 AI 会话失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰 AI 浼氳瘽澶辫触'
   } finally {
     projectConversationLoading.value = false
   }
@@ -596,7 +688,7 @@ async function openProjectKnowledgeDetail(documentId: number) {
     const res = await axios.get<ApiResponse<ProjectKnowledgeDocumentDetail>>(`/api/knowledge-documents/${documentId}`)
     projectKnowledgeDetail.value = res.data.data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载知识文档详情失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇鐭ヨ瘑鏂囨。璇︽儏澶辫触'
   } finally {
     projectKnowledgeDetailLoading.value = false
   }
@@ -668,7 +760,7 @@ async function loadProjectKnowledgePreview() {
     )
     projectKnowledgePreview.value = res.data.data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载项目检索上下文失败'
+    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰妫€绱笂涓嬫枃澶辫触'
   } finally {
     projectKnowledgePreviewLoading.value = false
   }
@@ -688,9 +780,9 @@ async function sendProjectConversation() {
     })
     projectConversationInput.value = ''
     await ensureProjectConversation()
-    success.value = '项目 AI 已生成新的优化建议'
+    success.value = '项目 AI 已生成新的优化建议。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '发送项目 AI 消息失败'
+    error.value = e?.response?.data?.message || e?.message || '鍙戦€侀」鐩?AI 娑堟伅澶辫触'
   } finally {
     projectConversationLoading.value = false
   }
@@ -699,7 +791,7 @@ async function sendProjectConversation() {
 function applyConversationStructuredInfo() {
   const structured = projectConversation.value?.structuredInfo
   if (!structured) {
-    error.value = '当前没有可应用的 AI 结果'
+    error.value = '当前没有可应用的 AI 结果。'
     return
   }
   projectEditForm.projectName = structured.projectName || projectEditForm.projectName
@@ -709,7 +801,7 @@ function applyConversationStructuredInfo() {
   projectEditForm.targetCustomerGroups = structured.targetCustomerGroups || projectEditForm.targetCustomerGroups
   projectEditForm.commercialValue = structured.commercialValue || projectEditForm.commercialValue
   projectEditForm.coreProductValue = structured.coreProductValue || projectEditForm.coreProductValue
-  success.value = 'AI 优化结果已回填到项目编辑表单'
+  success.value = 'AI 优化结果已回填到项目编辑表单。'
 }
 
 function handleProjectFileSelect(file: File | null) {
@@ -718,7 +810,7 @@ function handleProjectFileSelect(file: File | null) {
 
 function addProjectUrlMaterial() {
   if (!projectUrlDraft.sourceUri.trim()) {
-    error.value = '请先填写网站链接'
+    error.value = '请先填写网站链接。'
     return
   }
   projectPendingMaterials.value.push({
@@ -733,7 +825,7 @@ function addProjectUrlMaterial() {
 
 function addProjectTextMaterial() {
   if (!projectTextDraft.rawContent.trim()) {
-    error.value = '请先填写文本资料内容'
+    error.value = '请先填写文本资料内容。'
     return
   }
   projectPendingMaterials.value.push({
@@ -763,9 +855,9 @@ async function saveProjectMaterials() {
     })
     projectPendingMaterials.value = []
     await ensureProjectConversation()
-    success.value = '项目资料已保存到当前 AI 会话'
+    success.value = '椤圭洰璧勬枡宸蹭繚瀛樺埌褰撳墠 AI 浼氳瘽'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '保存项目资料失败'
+    error.value = e?.response?.data?.message || e?.message || '淇濆瓨椤圭洰璧勬枡澶辫触'
   } finally {
     projectConversationLoading.value = false
   }
@@ -788,9 +880,9 @@ async function uploadProjectFileMaterial() {
     projectSelectedFile.value = null
     projectFileDraft.title = ''
     await ensureProjectConversation()
-    success.value = '项目文件资料已上传，AI 会自动继续学习'
+    success.value = '项目文件资料已上传，AI 会自动继续学习。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '上传项目文件资料失败'
+    error.value = e?.response?.data?.message || e?.message || '涓婁紶椤圭洰鏂囦欢璧勬枡澶辫触'
   } finally {
     projectConversationLoading.value = false
   }
@@ -810,9 +902,9 @@ async function deleteProjectMaterial(materialId?: number) {
   try {
     await axios.delete(`/api/projects/ai/conversations/materials/${materialId}`)
     await ensureProjectConversation()
-    success.value = '项目资料已删除'
+    success.value = '项目资料已删除。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '删除项目资料失败'
+    error.value = e?.response?.data?.message || e?.message || '鍒犻櫎椤圭洰璧勬枡澶辫触'
   } finally {
     projectConversationLoading.value = false
   }
@@ -856,7 +948,7 @@ async function deleteProject() {
   success.value = ''
   try {
     await axios.delete(`/api/projects/${project.id}`)
-    success.value = '项目删除成功'
+    success.value = '椤圭洰鍒犻櫎鎴愬姛'
     editingProject.value = false
     delete requirementsMap.value[project.id]
     delete projectMembersMap.value[project.id]
@@ -868,7 +960,7 @@ async function deleteProject() {
       await selectProject(fallbackProjectId)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '删除项目失败'
+    error.value = e?.response?.data?.message || e?.message || '鍒犻櫎椤圭洰澶辫触'
   } finally {
     loading.value = false
   }
@@ -879,11 +971,11 @@ async function saveProjectEdit() {
     return
   }
   if (!projectEditForm.projectName.trim()) {
-    error.value = '请填写项目名称'
+    error.value = '请填写项目名称。'
     return
   }
   if (projectEditForm.startDate && projectEditForm.targetDate && projectEditForm.targetDate < projectEditForm.startDate) {
-    error.value = '计划结束日期不能早于计划开始日期'
+    error.value = '计划结束日期不能早于计划开始日期。'
     return
   }
 
@@ -908,13 +1000,13 @@ async function saveProjectEdit() {
       status: projectEditForm.status || null,
       ownerUserId: projectEditForm.ownerUserId ? Number(projectEditForm.ownerUserId) : null
     })
-    success.value = '项目信息更新成功'
+    success.value = '椤圭洰淇℃伅鏇存柊鎴愬姛'
     editingProject.value = false
     const projectId = selectedProject.value.id
     await loadProjects()
     await selectProject(projectId)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '更新项目信息失败'
+    error.value = e?.response?.data?.message || e?.message || '鏇存柊椤圭洰淇℃伅澶辫触'
   } finally {
     loading.value = false
   }
@@ -922,7 +1014,7 @@ async function saveProjectEdit() {
 
 async function guideProjectProductInfo() {
   if (!canGuideProjectInfo.value) {
-    error.value = '请至少填写项目名称、项目描述或项目背景中的一项后再使用 AI 补全'
+    error.value = '璇疯嚦灏戝～鍐欓」鐩悕绉般€侀」鐩弿杩版垨椤圭洰鑳屾櫙涓殑涓€椤瑰悗鍐嶄娇鐢?AI 琛ュ叏'
     return
   }
 
@@ -960,9 +1052,9 @@ async function guideProjectProductInfo() {
     })
     projectAiQuestions.value = nextQuestions
     projectAiAnswers.value = nextQuestions.map((question) => existingAnswers.get(question) || '')
-    success.value = nextQuestions.length > 0 ? 'AI 已生成建议并提出补充问题' : 'AI 已生成完整建议'
+    success.value = nextQuestions.length > 0 ? 'AI 已生成建议并提出补充问题。' : 'AI 已生成完整建议。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'AI 补全失败'
+    error.value = e?.response?.data?.message || e?.message || 'AI 琛ュ叏澶辫触'
   } finally {
     projectAiLoading.value = false
   }
@@ -970,7 +1062,7 @@ async function guideProjectProductInfo() {
 
 function applyProjectAiSuggestions() {
   if (!hasProjectAiSuggestions.value) {
-    error.value = '当前没有可应用的 AI 建议'
+    error.value = '当前没有可应用的 AI 建议。'
     return
   }
   projectForm.projectBackground = projectAiSuggestions.projectBackground || projectForm.projectBackground
@@ -978,7 +1070,7 @@ function applyProjectAiSuggestions() {
   projectForm.targetCustomerGroups = projectAiSuggestions.targetCustomerGroups || projectForm.targetCustomerGroups
   projectForm.commercialValue = projectAiSuggestions.commercialValue || projectForm.commercialValue
   projectForm.coreProductValue = projectAiSuggestions.coreProductValue || projectForm.coreProductValue
-  success.value = 'AI 建议已应用到项目表单'
+  success.value = 'AI 建议已应用到项目表单。'
 }
 
 async function createRequirement() {
@@ -990,14 +1082,14 @@ async function createRequirement() {
   success.value = ''
   try {
     await axios.post(`/api/projects/${selectedProjectId.value}/requirements`, reqForm)
-    success.value = '需求创建成功'
+    success.value = '需求创建成功。'
     reqForm.title = ''
     reqForm.summary = ''
     reqForm.priority = 'P2'
     reqForm.status = 'DRAFT'
     await loadRequirements(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '创建需求失败'
+    error.value = e?.response?.data?.message || e?.message || '创建需求失败。'
   } finally {
     loading.value = false
   }
@@ -1006,6 +1098,7 @@ async function createRequirement() {
 async function selectProject(projectId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = null
+  activeWorkspaceTab.value = 'overview'
   editingProject.value = false
   resetProjectEditForm()
   resetProjectConversation()
@@ -1023,6 +1116,7 @@ async function selectProject(projectId: number) {
 async function selectRequirement(projectId: number, requirementId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = requirementId
+  activeWorkspaceTab.value = 'requirements'
   editingProject.value = false
   resetProjectConversation()
 
@@ -1044,7 +1138,7 @@ async function addProjectMember() {
   }
   const userId = Number(memberForm.selectedUserId || memberForm.userId)
   if (!userId || userId <= 0) {
-    error.value = '请输入有效的用户 ID'
+    error.value = '璇疯緭鍏ユ湁鏁堢殑鐢ㄦ埛 ID'
     return
   }
 
@@ -1056,12 +1150,12 @@ async function addProjectMember() {
       userId,
       projectRole: memberForm.projectRole
     })
-    success.value = '项目成员添加成功'
+    success.value = '椤圭洰鎴愬憳娣诲姞鎴愬姛'
     memberForm.selectedUserId = ''
     memberForm.userId = ''
     await loadProjectMembers(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '添加项目成员失败'
+    error.value = e?.response?.data?.message || e?.message || '娣诲姞椤圭洰鎴愬憳澶辫触'
   } finally {
     loading.value = false
   }
@@ -1076,10 +1170,10 @@ async function removeProjectMember(userId: number) {
   success.value = ''
   try {
     await axios.delete(`/api/projects/${selectedProjectId.value}/members/${userId}`)
-    success.value = '项目成员移除成功'
+    success.value = '椤圭洰鎴愬憳绉婚櫎鎴愬姛'
     await loadProjectMembers(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '移除项目成员失败'
+    error.value = e?.response?.data?.message || e?.message || '绉婚櫎椤圭洰鎴愬憳澶辫触'
   } finally {
     loading.value = false
   }
@@ -1128,7 +1222,7 @@ onMounted(async () => {
 
 <style scoped>
 .page {
-  max-width: 1320px;
+  max-width: 1500px;
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -1136,70 +1230,65 @@ onMounted(async () => {
 }
 .layout {
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 350px minmax(0, 1fr) 320px;
   gap: 14px;
+  align-items: start;
 }
 .content {
-  min-height: 70vh;
+  min-width: 0;
 }
-.card {
+.workspace-shell {
   background: #fff;
   border: 1px solid #dbe2ea;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 18px;
+  padding: 18px;
 }
-.quick-actions .summary {
-  margin: 0;
+.workspace-stack {
+  display: grid;
+  gap: 14px;
 }
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.overview-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.info-block {
+  border: 1px solid #e5edf5;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+}
+.info-block h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #0f172a;
+}
+.info-block p {
+  margin: 0 0 6px;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.feedback-stack {
+  display: grid;
   gap: 10px;
+  margin-top: 12px;
 }
-.row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.primary,
-.ghost {
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-.ghost {
-  background: #f3f4f6;
-}
-.summary {
-  font-size: 13px;
-  color: #4b5563;
-}
-.empty-state {
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.error {
-  margin-top: 8px;
-  color: #b91c1c;
-}
-.success {
-  margin-top: 8px;
-  color: #166534;
+@media (max-width: 1280px) {
+  .layout {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
 }
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
   }
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
+

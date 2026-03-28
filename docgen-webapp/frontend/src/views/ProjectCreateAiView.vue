@@ -1,5 +1,18 @@
-<template>
+﻿<template>
   <div class="page">
+    <section class="page-hero">
+      <div>
+        <p class="eyebrow">AI Project Workspace</p>
+        <h1>AI 创建项目</h1>
+        <p class="hero-copy">从项目想法、资料沉淀到结构化结果和正式创建，整个过程都在一个工作台里完成。</p>
+      </div>
+      <div class="hero-badges">
+        <StatusBadge :label="sessionId ? `会话 #${sessionId}` : '未启动会话'" :variant="sessionId ? 'success' : 'warning'" />
+        <StatusBadge :label="readyToCreate ? '已具备创建条件' : '仍需补充信息'" :variant="readyToCreate ? 'success' : 'ai'" />
+        <StatusBadge :label="`${savedMaterials.length} 条资料`" variant="info" />
+      </div>
+    </section>
+
     <div class="layout">
       <ProjectAiSetupCard
         ref="setupCardRef"
@@ -42,15 +55,22 @@
       />
     </div>
 
-    <ProjectAiResultCard :ready-to-create="readyToCreate" :structured-info="structuredInfo" />
+    <div class="lower-layout">
+      <ProjectAiResultCard :ready-to-create="readyToCreate" :structured-info="structuredInfo" />
 
-    <ProjectAiCreateCard
-      :loading="loading"
-      :session-id="sessionId"
-      :ready-to-create="readyToCreate"
-      :create-form="createForm"
-      @create-project="createProject"
-    />
+      <section class="side-stack">
+        <ProjectAiCreateCard
+          :loading="loading"
+          :session-id="sessionId"
+          :ready-to-create="readyToCreate"
+          :create-form="createForm"
+          @create-project="createProject"
+        />
+
+        <FeedbackPanel title="处理提示" :message="error" tone="danger" />
+        <FeedbackPanel title="最新进展" :message="success" tone="success" />
+      </section>
+    </div>
 
     <KnowledgeDetailModal
       :visible="knowledgeDetailVisible"
@@ -63,9 +83,6 @@
       @reprocess="reprocessKnowledgeDetail"
       @toggle-chunks="chunkExpanded = !chunkExpanded"
     />
-
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="success" class="success">{{ success }}</p>
   </div>
 </template>
 
@@ -73,6 +90,8 @@
 import { computed, reactive, ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import StatusBadge from '../components/projects/StatusBadge.vue'
 import KnowledgeDetailModal from '../components/project-create-ai/KnowledgeDetailModal.vue'
 import ProjectAiChatCard from '../components/project-create-ai/ProjectAiChatCard.vue'
 import ProjectAiCreateCard from '../components/project-create-ai/ProjectAiCreateCard.vue'
@@ -326,19 +345,22 @@ async function startConversation() {
   error.value = ''
   success.value = ''
   try {
-    const res = await axios.post<ApiResponse<ConversationTurnResult>>('/api/projects/ai/conversations', {
-      projectName: startForm.projectName || null,
-      description: startForm.description || null,
+    const res = await axios.post<ApiResponse<ConversationView>>('/api/projects/ai/conversations', {
+      projectName: startForm.projectName,
+      description: startForm.description,
       materials: pendingMaterials.value
     })
-    sessionId.value = res.data.data.sessionId
-    status.value = res.data.data.readyToCreate ? 'READY_TO_CREATE' : 'ACTIVE'
-    readyToCreate.value = res.data.data.readyToCreate
-    followUpQuestions.value = res.data.data.followUpQuestions || []
-    applyStructuredInfo(res.data.data.structuredInfo)
-    success.value = 'AI 项目会话已启动。'
+    const data = res.data.data
+    sessionId.value = data.sessionId
+    status.value = data.status || 'ACTIVE'
+    readyToCreate.value = data.readyToCreate
+    messages.value = data.messages || []
+    savedMaterials.value = data.materials || []
+    followUpQuestions.value = latestQuestions(data.messages || [])
     pendingMaterials.value = []
-    await refreshConversation()
+    applyStructuredInfo(data.structuredInfo)
+    await refreshKnowledgeStatuses()
+    success.value = 'AI 会话已启动。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '启动 AI 会话失败。'
   } finally {
@@ -352,10 +374,12 @@ async function saveMaterials() {
   error.value = ''
   success.value = ''
   try {
-    await axios.post(`/api/projects/ai/conversations/${sessionId.value}/materials`, { materials: pendingMaterials.value })
+    await axios.post(`/api/projects/ai/conversations/${sessionId.value}/materials`, {
+      materials: pendingMaterials.value
+    })
     pendingMaterials.value = []
-    success.value = '资料已保存到当前会话。'
     await refreshConversation()
+    success.value = '资料已保存到当前会话。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '保存资料失败。'
   } finally {
@@ -374,10 +398,14 @@ async function uploadFileMaterial() {
     if (fileDraft.title.trim()) {
       formData.append('title', fileDraft.title.trim())
     }
-    await axios.post<ApiResponse<UploadFileMaterialResponse>>(`/api/projects/ai/conversations/${sessionId.value}/materials/upload`, formData)
+    const res = await axios.post<ApiResponse<UploadFileMaterialResponse>>(`/api/projects/ai/conversations/${sessionId.value}/materials/upload`, formData)
+    const uploadedMaterial = res.data.data?.material
+    if (uploadedMaterial) {
+      savedMaterials.value = [...savedMaterials.value, uploadedMaterial]
+    }
     resetFileDraft()
-    success.value = '文件资料已上传，后台已开始处理。'
     await refreshConversation()
+    success.value = '文件资料已上传。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '上传文件资料失败。'
   } finally {
@@ -394,13 +422,14 @@ async function sendMessage() {
     const res = await axios.post<ApiResponse<ConversationTurnResult>>(`/api/projects/ai/conversations/${sessionId.value}/chat`, {
       message: chatMessage.value.trim()
     })
-    status.value = res.data.data.readyToCreate ? 'READY_TO_CREATE' : 'ACTIVE'
-    readyToCreate.value = res.data.data.readyToCreate
-    followUpQuestions.value = res.data.data.followUpQuestions || []
-    applyStructuredInfo(res.data.data.structuredInfo)
+    const data = res.data.data
+    status.value = data.status || status.value
+    readyToCreate.value = data.readyToCreate
+    messages.value = data.messages || []
+    followUpQuestions.value = latestQuestions(data.messages || [])
+    applyStructuredInfo(data.structuredInfo)
     chatMessage.value = ''
-    success.value = readyToCreate.value ? '信息已基本齐备，可以创建项目。' : 'AI 已更新整理结果。'
-    await refreshConversation()
+    success.value = 'AI 已完成这一轮更新。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '发送消息失败。'
   } finally {
@@ -409,29 +438,22 @@ async function sendMessage() {
 }
 
 async function createProject() {
-  if (!sessionId.value) return
-  if (!createForm.projectKey.trim()) {
-    error.value = '请先填写项目 Key。'
-    return
-  }
-  if (createForm.ownerUserId && (!Number.isInteger(Number(createForm.ownerUserId)) || Number(createForm.ownerUserId) <= 0)) {
-    error.value = '负责人用户 ID 必须是正整数。'
-    return
-  }
+  if (!sessionId.value || !readyToCreate.value) return
   loading.value = true
   error.value = ''
   success.value = ''
   try {
-    const res = await axios.post<ApiResponse<{ projectId: number }>>(`/api/projects/ai/conversations/${sessionId.value}/create-project`, {
-      projectKey: createForm.projectKey,
+    const res = await axios.post<ApiResponse<number>>(`/api/projects/ai/conversations/${sessionId.value}/create-project`, {
+      projectKey: createForm.projectKey || null,
       projectName: createForm.projectName || null,
       projectType: createForm.projectType || null,
       priority: createForm.priority || null,
       visibility: createForm.visibility || null,
       ownerUserId: createForm.ownerUserId ? Number(createForm.ownerUserId) : null
     })
-    success.value = '项目创建成功，正在跳转到项目页。'
-    await router.push(`/projects?projectId=${res.data.data.projectId}`)
+    const projectId = res.data.data
+    success.value = '项目已创建，正在跳转到项目工作台。'
+    await router.push(`/projects?projectId=${projectId}`)
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '创建项目失败。'
   } finally {
@@ -441,9 +463,75 @@ async function createProject() {
 </script>
 
 <style scoped>
-.page { max-width: 1280px; margin: 18px auto; padding: 0 14px 18px; color: #111827; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-.layout { display: grid; grid-template-columns: 420px 1fr; gap: 14px; }
-.error { color: #b91c1c; }
-.success { color: #166534; }
-@media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+.page {
+  max-width: 1440px;
+  margin: 18px auto;
+  padding: 0 14px 18px;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.page-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #dbe2ea;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%);
+}
+.eyebrow {
+  margin: 0 0 6px;
+  color: #0f766e;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #0f172a;
+}
+.hero-copy {
+  margin: 10px 0 0;
+  max-width: 720px;
+  color: #64748b;
+  line-height: 1.7;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr);
+  gap: 14px;
+}
+.lower-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  margin-top: 14px;
+}
+.side-stack {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+@media (max-width: 1024px) {
+  .page-hero,
+  .hero-badges {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .layout,
+  .lower-layout {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
+

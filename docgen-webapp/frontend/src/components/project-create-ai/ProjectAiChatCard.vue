@@ -1,9 +1,14 @@
-<template>
-  <section class="card">
-    <div class="section-head">
-      <h3>AI 对话</h3>
-      <span class="muted" v-if="sessionId">会话 #{{ sessionId }} / {{ computedStatusText }}</span>
-    </div>
+﻿<template>
+  <WorkspaceSection
+    eyebrow="AI Conversation"
+    title="AI 对话"
+    description="在这里持续补充上下文、回答 AI 追问，并查看每轮会话参考到的知识内容。"
+    tint
+  >
+    <template #actions>
+      <StatusBadge v-if="sessionId" :label="`会话 #${sessionId}`" variant="neutral" small />
+      <StatusBadge v-if="sessionId" :label="computedStatusText" variant="ai" small />
+    </template>
 
     <div v-if="messages.length === 0" class="empty-state">
       输入项目基本信息并启动 AI 会话后，这里会展示对话内容与追问。
@@ -57,11 +62,13 @@
         </div>
       </div>
     </div>
-  </section>
+  </WorkspaceSection>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import StatusBadge from '../projects/StatusBadge.vue'
+import WorkspaceSection from '../projects/WorkspaceSection.vue'
 import { roleLabel, statusText } from './helpers'
 import type { ChatMessageItem, KnowledgePreview } from './types'
 
@@ -89,9 +96,8 @@ const computedStatusText = computed(() => statusText(props.status))
 </script>
 
 <style scoped>
-.card { background: #fff; border: 1px solid #dbe2ea; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-.input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 8px; padding: 9px 10px; background: #fff; }
-textarea.input { min-height: 92px; resize: vertical; }
+.input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; background: #fff; }
+textarea.input { min-height: 110px; resize: vertical; }
 .knowledge-preview { margin-top: 12px; }
 .section-head, .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .section-head { justify-content: space-between; margin-bottom: 8px; }
@@ -102,10 +108,11 @@ textarea.input { min-height: 92px; resize: vertical; }
 .chat-item.assistant { background: #fffef7; }
 .chat-role { font-size: 12px; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; }
 .chat-content, .preview-item p { white-space: pre-wrap; margin: 0; }
-.preview-item, .question-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; background: #fafcff; }
+.preview-item, .question-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; background: #fafcff; }
 .wide { margin-top: 10px; }
-.primary, .ghost { border-radius: 8px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; }
+.questions { display: grid; gap: 8px; }
+.primary, .ghost { border-radius: 10px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; }
 .primary { background: #2563eb; border-color: #2563eb; color: #fff; }
 .ghost { background: #f3f4f6; }
-.empty-state { color: #6b7280; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+.empty-state { color: #6b7280; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #dbe2ea; border-radius: 12px; background: #fff; }
 </style>

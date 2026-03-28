@@ -1,5 +1,18 @@
-<template>
+﻿<template>
   <div class="page">
+    <section class="page-hero">
+      <div>
+        <p class="eyebrow">Requirement Workspace</p>
+        <h1>AI 需求整理</h1>
+        <p class="hero-copy">围绕项目和需求上下文持续整理、澄清并沉淀 PRD，让 AI 工作台和需求列表保持同一条业务链路。</p>
+      </div>
+      <div class="hero-badges">
+        <StatusBadge :label="selectedProjectId ? `项目 #${selectedProjectId}` : '未选中项目'" :variant="selectedProjectId ? 'info' : 'warning'" />
+        <StatusBadge :label="selectedRequirementId ? `需求 #${selectedRequirementId}` : '未选中需求'" :variant="selectedRequirementId ? 'success' : 'warning'" />
+        <StatusBadge :label="`${requirements.length} 条需求`" variant="ai" />
+      </div>
+    </section>
+
     <div class="layout">
       <aside class="sidebar">
         <ProjectRequirementTree
@@ -29,7 +42,7 @@
           @open-versions="goVersions"
         />
 
-        <section v-if="selectedRequirementId" class="card">
+        <section v-if="selectedRequirementId" class="card workspace-card">
           <div class="row between">
             <h3>需求 {{ selectedRequirementId }} 的 AI 整理</h3>
             <div class="row">
@@ -43,15 +56,18 @@
           />
         </section>
 
-        <section v-else class="card empty-state">
-          <h3>请选择一个需求开始 AI 整理</h3>
-          <p>先在左侧树中选择项目和需求，这里会显示对应的 AI 整理面板。</p>
-        </section>
+        <EmptyWorkspaceState
+          v-else
+          title="请选择一个需求开始 AI 整理"
+          description="先在左侧树中选择项目和需求，这里会显示对应的 AI 整理面板。"
+        />
       </main>
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="success" class="success">{{ success }}</p>
+    <div class="feedback-stack">
+      <FeedbackPanel title="处理提示" :message="error" tone="danger" />
+      <FeedbackPanel title="最新进展" :message="success" tone="success" />
+    </div>
   </div>
 </template>
 
@@ -59,6 +75,9 @@
 import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
+import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import StatusBadge from '../components/projects/StatusBadge.vue'
 import DocGenPage from '../components/DocGenPage.vue'
 import ProjectRequirementTree from '../components/ProjectRequirementTree.vue'
 import RequirementComposerCard from '../components/docgen-view/RequirementComposerCard.vue'
@@ -157,10 +176,46 @@ watch(selectedProjectId, async (projectId) => {
 
 <style scoped>
 .page {
-  max-width: 1320px;
+  max-width: 1440px;
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.page-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #dbe2ea;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%);
+}
+.eyebrow {
+  margin: 0 0 6px;
+  color: #0f766e;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #0f172a;
+}
+.hero-copy {
+  margin: 10px 0 0;
+  max-width: 760px;
+  color: #64748b;
+  line-height: 1.7;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 .layout {
   display: grid;
@@ -170,9 +225,12 @@ watch(selectedProjectId, async (projectId) => {
 .card {
   background: #fff;
   border: 1px solid #dbe2ea;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.workspace-card {
+  background: linear-gradient(180deg, #f8fcff 0%, #ffffff 45%);
 }
 .row {
   display: flex;
@@ -196,23 +254,17 @@ watch(selectedProjectId, async (projectId) => {
   padding: 5px 9px;
   font-size: 12px;
 }
-.empty-state h3,
-.empty-state p {
-  margin: 0;
-}
-.empty-state p {
-  margin-top: 8px;
-  color: #6b7280;
-}
-.error {
-  margin-top: 8px;
-  color: #b91c1c;
-}
-.success {
-  margin-top: 8px;
-  color: #166534;
+.feedback-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
 }
 @media (max-width: 980px) {
+  .page-hero,
+  .hero-badges {
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .layout {
     grid-template-columns: 1fr;
   }
@@ -221,3 +273,4 @@ watch(selectedProjectId, async (projectId) => {
   }
 }
 </style>
+
