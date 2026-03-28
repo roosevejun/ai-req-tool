@@ -3,8 +3,8 @@
     <div class="brand" @click="$emit('go-default')">
       <div class="brand-mark">AI</div>
       <div>
-        <div class="brand-title">AI 需求工具</div>
-        <div class="brand-sub">项目、需求与 AI 协同工作台</div>
+        <div class="brand-title">AI 项目与需求管理平台</div>
+        <div class="brand-sub">项目管理、需求生产、模板标准、行业知识与系统治理统一工作台</div>
       </div>
     </div>
 
@@ -16,6 +16,7 @@
         :class="{ active: activeSection === item.section }"
         @click="$emit('navigate', item.to)"
       >
+        <span class="nav-eyebrow">管理中心</span>
         {{ item.label }}
       </button>
     </nav>
@@ -85,7 +86,7 @@ defineEmits<{
 }
 .main-nav {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   justify-content: center;
 }
@@ -101,6 +102,22 @@ defineEmits<{
   background: #2563eb;
   color: #fff;
   border-color: #2563eb;
+}
+.nav-btn {
+  min-width: 136px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.nav-eyebrow {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.nav-btn.active .nav-eyebrow {
+  color: rgba(255, 255, 255, 0.82);
 }
 .user-area {
   display: flex;

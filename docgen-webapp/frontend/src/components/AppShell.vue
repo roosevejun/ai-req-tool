@@ -34,10 +34,10 @@ const route = useRoute()
 const router = useRouter()
 
 const navItems: NavItem[] = [
-  { label: 'AI 整理', to: '/docgen', section: 'docgen' },
-  { label: '知识库', to: '/knowledge', section: 'knowledge' },
-  { label: '项目与需求', to: '/projects', section: 'projects' },
-  { label: '模板中心', to: '/templates', section: 'system' },
+  { label: '项目管理中心', to: '/projects', section: 'projects' },
+  { label: '需求管理中心', to: '/docgen', section: 'requirements' },
+  { label: '模板管理中心', to: '/templates', section: 'templates' },
+  { label: '企业行业知识库', to: '/knowledge', section: 'knowledge' },
   { label: '系统管理', to: '/system', section: 'system' }
 ]
 
@@ -47,10 +47,12 @@ const isLoginPage = computed(() => route.path === '/login')
 const activeSection = computed(() => {
   const section = String(route.meta.section || '')
   if (section) return section
-  if (route.path.startsWith('/projects') || route.path.startsWith('/requirements')) return 'projects'
+  if (route.path.startsWith('/projects')) return 'projects'
+  if (route.path.startsWith('/requirements') || route.path.startsWith('/docgen')) return 'requirements'
   if (route.path.startsWith('/knowledge')) return 'knowledge'
+  if (route.path.startsWith('/templates')) return 'templates'
   if (route.path.startsWith('/system')) return 'system'
-  return 'docgen'
+  return 'projects'
 })
 
 const projectId = computed(() => {
@@ -69,36 +71,59 @@ const breadcrumbs = computed<Crumb[]>(() => {
   const items: Crumb[] = []
   if (route.path === '/login') return items
 
-  items.push({ label: '首页', to: '/docgen' })
+  items.push({ label: '首页', to: '/projects' })
 
-  if (activeSection.value === 'docgen') {
-    items.push({ label: 'AI 整理' })
-    return items
-  }
-
-  if (activeSection.value === 'knowledge') {
-    items.push({ label: '知识库' })
-    return items
-  }
-
-  if (activeSection.value === 'system') {
-    if (route.path.startsWith('/templates')) {
-      items.push({ label: '模板中心' })
-    } else {
-      items.push({ label: '系统管理' })
+  if (activeSection.value === 'requirements') {
+    items.push({ label: '需求管理中心', to: '/docgen' })
+    if (route.path === '/docgen') {
+      items[items.length - 1].to = undefined
+      return items
+    }
+    if (requirementId.value) {
+      items.push({ label: `需求 #${requirementId.value}` })
+      if (route.path.endsWith('/workbench')) {
+        items.push({ label: '需求工作台' })
+      } else if (route.path.endsWith('/versions')) {
+        items.push({ label: '需求版本中心' })
+      }
     }
     return items
   }
 
-  items.push({ label: '项目与需求', to: '/projects' })
+  if (activeSection.value === 'knowledge') {
+    items.push({ label: '企业行业知识库' })
+    return items
+  }
+
+  if (activeSection.value === 'templates') {
+    items.push({ label: '模板管理中心' })
+    return items
+  }
+
+  if (activeSection.value === 'system') {
+    items.push({ label: '系统管理' })
+    return items
+  }
+
+  items.push({ label: '项目管理中心', to: '/projects' })
 
   if (route.path === '/projects') {
     items[items.length - 1].to = undefined
     return items
   }
 
+  if (route.path === '/projects/create') {
+    items.push({ label: '选择创建方式' })
+    return items
+  }
+
+  if (route.path === '/projects/create/form') {
+    items.push({ label: '传统创建项目' })
+    return items
+  }
+
   if (route.path === '/projects/create-ai') {
-    items.push({ label: 'AI 创建项目' })
+    items.push({ label: 'AI 项目孵化' })
     return items
   }
 
@@ -108,28 +133,13 @@ const breadcrumbs = computed<Crumb[]>(() => {
     return items
   }
 
-  if (requirementId.value) {
-    if (projectId.value) {
-      items.push({ label: `项目 #${projectId.value}`, to: `/projects?projectId=${projectId.value}` })
-    }
-    items.push({ label: `需求 #${requirementId.value}` })
-    if (route.path.endsWith('/workbench')) {
-      items.push({ label: 'AI 工作台' })
-    } else if (route.path.endsWith('/versions')) {
-      items.push({ label: '版本页' })
-    }
-    return items
-  }
-
   return items
 })
 
 const backTarget = computed(() => {
-  if (route.path === '/projects/create-ai') return '/projects'
+  if (route.path === '/projects/create' || route.path === '/projects/create/form' || route.path === '/projects/create-ai') return '/projects'
   if (route.path.startsWith('/templates')) return '/system'
-  if (route.path.startsWith('/requirements/') && projectId.value) {
-    return `/projects?projectId=${projectId.value}`
-  }
+  if (route.path.startsWith('/requirements/')) return '/docgen'
   if (route.path.startsWith('/projects/') && route.path.endsWith('/requirements') && projectId.value) {
     return `/projects?projectId=${projectId.value}`
   }

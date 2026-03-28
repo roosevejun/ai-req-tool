@@ -18,17 +18,17 @@ const router = createRouter({
   routes: [
     { path: '/login', component: LoginPage, meta: { public: true } },
     { path: '/', redirect: '/docgen' },
-    { path: '/docgen', component: DocGenView, meta: { section: 'docgen' } },
+    { path: '/docgen', component: DocGenView, meta: { section: 'requirements' } },
     { path: '/knowledge', component: KnowledgeLibraryView, meta: { section: 'knowledge' } },
     { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
-    { path: '/templates', component: TemplateCenterView, meta: { section: 'system' } },
+    { path: '/templates', component: TemplateCenterView, meta: { section: 'templates' } },
     { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
     { path: '/projects/create', component: ProjectCreateEntryView, meta: { section: 'projects' } },
     { path: '/projects/create/form', component: ProjectCreateFormView, meta: { section: 'projects' } },
     { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },
     { path: '/projects/:projectId/requirements', component: RequirementsView, meta: { section: 'projects' } },
-    { path: '/requirements/:requirementId/workbench', component: RequirementWorkbenchView, meta: { section: 'projects' } },
-    { path: '/requirements/:requirementId/versions', component: RequirementVersionsView, meta: { section: 'projects' } }
+    { path: '/requirements/:requirementId/workbench', component: RequirementWorkbenchView, meta: { section: 'requirements' } },
+    { path: '/requirements/:requirementId/versions', component: RequirementVersionsView, meta: { section: 'requirements' } }
   ]
 })
 
