@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tongtu.docgen.system.mapper.SystemTemplateVersionMapper">
+
+    <resultMap id="SysTemplateVersionMap" type="com.tongtu.docgen.system.model.entity.SysTemplateVersionEntity">
+        <id property="id" column="id"/>
+        <result property="templateId" column="template_id"/>
+        <result property="versionNo" column="version_no"/>
+        <result property="versionLabel" column="version_label"/>
+        <result property="contentMarkdown" column="content_markdown"/>
+        <result property="variablesJson" column="variables_json"/>
+        <result property="notes" column="notes"/>
+        <result property="status" column="status"/>
+        <result property="isPublished" column="is_published"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="listByTemplateId" resultMap="SysTemplateVersionMap">
+        SELECT id, template_id, version_no, version_label, content_markdown, variables_json,
+               notes, status, is_published, created_by, created_at, updated_at
+        FROM sys_template_version
+        WHERE template_id = #{templateId}
+        ORDER BY version_no DESC, id DESC
+    </select>
+
+    <select id="findById" resultMap="SysTemplateVersionMap">
+        SELECT id, template_id, version_no, version_label, content_markdown, variables_json,
+               notes, status, is_published, created_by, created_at, updated_at
+        FROM sys_template_version
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findByTemplateAndVersion" resultMap="SysTemplateVersionMap">
+        SELECT id, template_id, version_no, version_label, content_markdown, variables_json,
+               notes, status, is_published, created_by, created_at, updated_at
+        FROM sys_template_version
+        WHERE template_id = #{templateId}
+          AND version_no = #{versionNo}
+        LIMIT 1
+    </select>
+
+    <select id="findPublishedByTemplateId" resultMap="SysTemplateVersionMap">
+        SELECT id, template_id, version_no, version_label, content_markdown, variables_json,
+               notes, status, is_published, created_by, created_at, updated_at
+        FROM sys_template_version
+        WHERE template_id = #{templateId}
+          AND is_published = TRUE
+        ORDER BY version_no DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertVersion" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_template_version (
+            template_id, version_no, version_label, content_markdown, variables_json,
+            notes, status, is_published, created_by, created_at, updated_at
+        )
+        VALUES (
+            #{templateId}, #{versionNo}, #{versionLabel}, #{contentMarkdown}, #{variablesJson},
+            #{notes}, #{status}, #{isPublished}, #{createdBy}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="updateVersion">
+        UPDATE sys_template_version
+        SET version_label = #{versionLabel},
+            content_markdown = #{contentMarkdown},
+            variables_json = #{variablesJson},
+            notes = #{notes},
+            status = #{status},
+            is_published = #{isPublished},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="clearPublishedByTemplateId">
+        UPDATE sys_template_version
+        SET is_published = FALSE,
+            updated_at = NOW()
+        WHERE template_id = #{templateId}
+    </update>
+</mapper>

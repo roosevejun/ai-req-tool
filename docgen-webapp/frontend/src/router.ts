@@ -4,6 +4,7 @@ import LoginPage from './views/LoginPage.vue'
 import DocGenView from './views/DocGenView.vue'
 import KnowledgeLibraryView from './views/KnowledgeLibraryView.vue'
 import SystemAdminView from './views/SystemAdminView.vue'
+import TemplateCenterView from './views/TemplateCenterView.vue'
 import ProjectsView from './views/ProjectsView.vue'
 import ProjectCreateAiView from './views/ProjectCreateAiView.vue'
 import RequirementsView from './views/RequirementsView.vue'
@@ -18,6 +19,7 @@ const router = createRouter({
     { path: '/docgen', component: DocGenView, meta: { section: 'docgen' } },
     { path: '/knowledge', component: KnowledgeLibraryView, meta: { section: 'knowledge' } },
     { path: '/system', component: SystemAdminView, meta: { section: 'system' } },
+    { path: '/templates', component: TemplateCenterView, meta: { section: 'system' } },
     { path: '/projects', component: ProjectsView, meta: { section: 'projects' } },
     { path: '/projects/create-ai', component: ProjectCreateAiView, meta: { section: 'projects' } },
     { path: '/projects/:projectId/requirements', component: RequirementsView, meta: { section: 'projects' } },

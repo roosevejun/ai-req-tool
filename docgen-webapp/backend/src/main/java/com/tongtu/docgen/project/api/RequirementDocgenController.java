@@ -31,7 +31,9 @@ public class RequirementDocgenController {
 
     public record CreateReqDocgenJobRequest(
             @Size(max = 20000) String businessDescription,
-            @Size(max = 200000) String previousPrdMarkdown
+            @Size(max = 200000) String previousPrdMarkdown,
+            Long templateId,
+            Long templateVersionId
     ) {
     }
 
@@ -58,6 +60,8 @@ public class RequirementDocgenController {
                 requirementId,
                 req.businessDescription(),
                 req.previousPrdMarkdown(),
+                req.templateId(),
+                req.templateVersionId(),
                 ctx
         );
         return ApiResponse.ok(traceId, data);

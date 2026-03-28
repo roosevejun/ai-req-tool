@@ -4,13 +4,14 @@
       <div>
         <p class="eyebrow">快捷入口</p>
         <h3>快捷入口</h3>
-        <p class="copy">从系统管理页可以直接跳转到 AI 建项目和 AI 需求整理工作台。</p>
+        <p class="copy">从系统管理页可以直接跳转到 AI 建项目、需求整理和模板中心工作台。</p>
       </div>
     </div>
 
     <div class="actions">
       <button class="primary" :disabled="loading" @click="$emit('go-create-ai')">AI 创建项目</button>
       <button class="ghost" :disabled="loading" @click="$emit('go-ai-docgen')">进入 AI 需求整理</button>
+      <button class="ghost" :disabled="loading" @click="$emit('go-template-center')">进入模板中心</button>
     </div>
   </section>
 </template>
@@ -21,6 +22,7 @@ defineProps<{ loading: boolean }>()
 defineEmits<{
   (event: 'go-create-ai'): void
   (event: 'go-ai-docgen'): void
+  (event: 'go-template-center'): void
 }>()
 </script>
 

@@ -16,8 +16,11 @@ public class DocGenControllerDelegate {
         this.docGenService = docGenService;
     }
 
-    public DocGenController.CreateJobResponse createJob(String traceId, String businessDescription, String previousPrdMarkdown) {
-        return docGenService.createJob(traceId, businessDescription, previousPrdMarkdown);
+    public DocGenController.CreateJobResponse createJob(String traceId,
+                                                        String businessDescription,
+                                                        String previousPrdMarkdown,
+                                                        String templateMarkdown) {
+        return docGenService.createJob(traceId, businessDescription, previousPrdMarkdown, null, null, templateMarkdown);
     }
 
     public DocGenController.CreateJobResponse getJob(String traceId, String jobId) {
@@ -32,13 +35,15 @@ public class DocGenControllerDelegate {
                                                         String businessDescription,
                                                         List<DocGenController.ChatMessage> history,
                                                         String pendingQuestion,
-                                                        String basePrdMarkdown) {
+                                                        String basePrdMarkdown,
+                                                        String templateMarkdown) {
         return docGenService.continueConversationWithHistory(
                 traceId,
                 businessDescription,
                 history,
                 pendingQuestion,
-                basePrdMarkdown
+                basePrdMarkdown,
+                templateMarkdown
         );
     }
 
@@ -50,14 +55,20 @@ public class DocGenControllerDelegate {
                                       String businessDescription,
                                       List<DocGenController.ChatMessage> history,
                                       String basePrdMarkdown,
-                                      List<String> unconfirmedItems) {
+                                      List<String> unconfirmedItems,
+                                      String templateMarkdown) {
         return docGenService.generatePrdFromHistory(
                 traceId,
                 businessDescription,
                 history,
                 basePrdMarkdown,
-                unconfirmedItems
+                unconfirmedItems,
+                templateMarkdown
         );
+    }
+
+    public String loadDefaultTemplate() {
+        return docGenService.loadDefaultTemplate();
     }
 
     public byte[] exportMarkdown(String jobId) {

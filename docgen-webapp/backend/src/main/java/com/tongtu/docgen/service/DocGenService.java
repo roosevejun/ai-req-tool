@@ -49,13 +49,21 @@ public class DocGenService {
         this.agentClient = agentClient;
     }
 
-    public DocGenController.CreateJobResponse createJob(String traceId, String businessDescription, String previousPrdMarkdown) {
+    public DocGenController.CreateJobResponse createJob(String traceId,
+                                                        String businessDescription,
+                                                        String previousPrdMarkdown,
+                                                        Long templateId,
+                                                        Long templateVersionId,
+                                                        String templateMarkdown) {
         String jobId = UUID.randomUUID().toString();
         JobState s = new JobState(jobId, businessDescription, "PENDING");
         s.basePrdMarkdown = isBlank(previousPrdMarkdown) ? null : previousPrdMarkdown;
+        s.templateId = templateId;
+        s.templateVersionId = templateVersionId;
+        s.templateMarkdown = isBlank(templateMarkdown) ? null : templateMarkdown;
         jobs.put(jobId, s);
 
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(s.templateMarkdown);
         AgentClient.ConversationTurn first = agentClient.startConversation(traceId, template, businessDescription, s.basePrdMarkdown);
         s.confirmedItems = new ArrayList<>(first.confirmedItems());
         s.unconfirmedItems = new ArrayList<>(first.unconfirmedItems());
@@ -75,7 +83,7 @@ public class DocGenService {
             s.answers.putAll(answers);
         }
 
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(s.templateMarkdown);
         String prdMarkdown = agentClient.generatePrd(traceId, template, s.businessDescription, s.clarifyQuestions, s.answers);
         commitGeneratedPrd(s, prdMarkdown);
         String msg = "Generated PRD successfully. You can keep chatting to revise a new version.";
@@ -98,7 +106,7 @@ public class DocGenService {
         // Iterative cycle support: use latest generated PRD as base context if present.
         String basePrdForContext = !isBlank(s.prdMarkdown) ? s.prdMarkdown : s.basePrdMarkdown;
 
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(s.templateMarkdown);
         AgentClient.ConversationTurn turn = agentClient.continueConversation(
                 traceId,
                 template,
@@ -122,11 +130,12 @@ public class DocGenService {
                                                                         String businessDescription,
                                                                         List<DocGenController.ChatMessage> history,
                                                                         String pendingQuestion,
-                                                                        String basePrdMarkdown) {
+                                                                        String basePrdMarkdown,
+                                                                        String templateMarkdown) {
         if (isBlank(businessDescription)) {
             throw new IllegalArgumentException("businessDescription cannot be blank.");
         }
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(templateMarkdown);
         return agentClient.continueConversation(
                 traceId,
                 template,
@@ -149,7 +158,7 @@ public class DocGenService {
             );
         }
 
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(s.templateMarkdown);
         String basePrdForContext = !isBlank(s.prdMarkdown) ? s.prdMarkdown : s.basePrdMarkdown;
         String prdMarkdown = agentClient.generatePrdFromChat(
                 traceId,
@@ -169,7 +178,8 @@ public class DocGenService {
                                          String businessDescription,
                                          List<DocGenController.ChatMessage> history,
                                          String basePrdMarkdown,
-                                         List<String> unconfirmedItems) {
+                                         List<String> unconfirmedItems,
+                                         String templateMarkdown) {
         if (unconfirmedItems != null && !unconfirmedItems.isEmpty()) {
             String guidance = buildUnconfirmedGuidancePrompt(unconfirmedItems);
             throw new IllegalArgumentException(
@@ -183,7 +193,7 @@ public class DocGenService {
             throw new IllegalArgumentException("businessDescription cannot be blank.");
         }
 
-        String template = loadPrdTemplate();
+        String template = resolveTemplate(templateMarkdown);
         String prdMarkdown = agentClient.generatePrdFromChat(
                 traceId,
                 template,
@@ -243,7 +253,8 @@ public class DocGenService {
                 s.unconfirmedItems,
                 history,
                 s.basePrdMarkdown,
-                s.currentVersion
+                s.currentVersion,
+                new DocGenController.TemplateSelection(s.templateId, s.templateVersionId, s.templateVersionLabel)
         );
     }
 
@@ -263,7 +274,8 @@ public class DocGenService {
                 history,
                 s.prdMarkdown,
                 s.basePrdMarkdown,
-                s.currentVersion
+                s.currentVersion,
+                new DocGenController.TemplateSelection(s.templateId, s.templateVersionId, s.templateVersionLabel)
         );
     }
 
@@ -330,7 +342,7 @@ public class DocGenService {
         return sb.toString().trim();
     }
 
-    private String loadPrdTemplate() {
+    public String loadDefaultTemplate() {
         Path dir = Paths.get(templateDir);
         if (!Files.exists(dir)) {
             throw new IllegalArgumentException("Template directory not found: " + dir.toAbsolutePath());
@@ -344,6 +356,13 @@ public class DocGenService {
             throw new RuntimeException("Failed to read template: " + e.getMessage(), e);
         }
         throw new IllegalArgumentException("Template not found: dir=" + dir.toAbsolutePath() + " glob=" + templateGlob);
+    }
+
+    private String resolveTemplate(String templateMarkdown) {
+        if (!isBlank(templateMarkdown)) {
+            return templateMarkdown;
+        }
+        return loadDefaultTemplate();
     }
 
     private boolean isBlank(String v) {
@@ -480,6 +499,10 @@ public class DocGenService {
         volatile List<String> unconfirmedItems = new ArrayList<>();
         volatile String prdMarkdown;
         volatile String basePrdMarkdown;
+        volatile Long templateId;
+        volatile Long templateVersionId;
+        volatile String templateVersionLabel;
+        volatile String templateMarkdown;
         volatile int currentVersion = 0;
         final List<String> generatedPrdHistory = new ArrayList<>();
 

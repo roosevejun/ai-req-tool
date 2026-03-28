@@ -3,7 +3,11 @@
     <DocGenIntroCard
       v-model:business-description="businessDescription"
       v-model:previous-prd-markdown="previousPrdMarkdown"
+      v-model:selected-template-id="selectedTemplateId"
+      v-model:selected-template-version-id="selectedTemplateVersionId"
       :loading="loading"
+      :templates="templates"
+      :template-versions="templateVersions"
       @create-job="onCreateJob"
       @reset="onReset"
     />
@@ -30,6 +34,7 @@
       :base-prd-markdown="basePrdMarkdown"
       :prd-markdown="prdMarkdown"
       :diff-summary="diffSummary"
+      :template-selection="templateSelection"
       @use-guidance-template="useGuidanceTemplate"
       @prev-question="goPrevQuestion"
       @next-question="goNextQuestion"
@@ -57,7 +62,9 @@ import type {
   ChatMessage,
   ClarifyQuestion,
   CreateJobResponse,
-  KnowledgePreviewResponse
+  KnowledgePreviewResponse,
+  TemplateOption,
+  TemplateVersionOption
 } from './docgen/types'
 
 const props = withDefaults(defineProps<{ apiBase?: string; draftKey?: string }>(), {
@@ -82,6 +89,11 @@ const chatInput = ref('')
 const structuredInputs = reactive<Record<string, string>>({})
 const loading = ref(false)
 const error = ref('')
+const templates = ref<TemplateOption[]>([])
+const templateVersions = ref<TemplateVersionOption[]>([])
+const selectedTemplateId = ref(0)
+const selectedTemplateVersionId = ref(0)
+const templateSelection = ref<CreateJobResponse['templateSelection']>(null)
 const knowledgePreviewLoading = ref(false)
 const knowledgePreviewVisible = ref(false)
 const knowledgePreview = ref<KnowledgePreviewResponse | null>(null)
@@ -150,7 +162,9 @@ async function onCreateJob() {
   try {
     const res = await axios.post<ApiResponse<CreateJobResponse>>(`${props.apiBase}/jobs`, {
       businessDescription: businessDescription.value,
-      previousPrdMarkdown: previousPrdMarkdown.value
+      previousPrdMarkdown: previousPrdMarkdown.value,
+      templateId: selectedTemplateId.value > 0 ? selectedTemplateId.value : null,
+      templateVersionId: selectedTemplateVersionId.value > 0 ? selectedTemplateVersionId.value : null
     })
     if (res.data.code !== 0) {
       throw new Error(res.data.message || '启动整理失败。')
@@ -167,6 +181,7 @@ async function onCreateJob() {
     initStructuredInputs(unconfirmedItems.value)
     prdMarkdown.value = data.prdMarkdown ?? ''
     basePrdMarkdown.value = data.basePrdMarkdown ?? previousPrdMarkdown.value
+    templateSelection.value = data.templateSelection || null
     knowledgePreview.value = null
     knowledgePreviewVisible.value = false
   } catch (e: any) {
@@ -199,6 +214,7 @@ async function onSendChat() {
     initStructuredInputs(unconfirmedItems.value)
     prdMarkdown.value = data.prdMarkdown ?? ''
     basePrdMarkdown.value = data.basePrdMarkdown ?? basePrdMarkdown.value
+    templateSelection.value = data.templateSelection || templateSelection.value
     chatInput.value = ''
     knowledgePreview.value = null
     knowledgePreviewVisible.value = false
@@ -229,6 +245,7 @@ async function onGeneratePrd() {
     initStructuredInputs(unconfirmedItems.value)
     prdMarkdown.value = data.prdMarkdown ?? ''
     basePrdMarkdown.value = data.basePrdMarkdown ?? basePrdMarkdown.value
+    templateSelection.value = data.templateSelection || templateSelection.value
   } catch (e: any) {
     const resp = e?.response
     error.value = resp?.data
@@ -254,10 +271,38 @@ function onReset() {
   chatInput.value = ''
   prdMarkdown.value = ''
   basePrdMarkdown.value = ''
+  templateSelection.value = null
   error.value = ''
   knowledgePreview.value = null
   knowledgePreviewVisible.value = false
   localStorage.removeItem(draftKey)
+}
+
+async function loadTemplates() {
+  try {
+    const res = await axios.get<ApiResponse<TemplateOption[]>>('/api/system/templates')
+    templates.value = (res.data.data || []).filter((item) => item.templateCategory === 'PRD' || !item.templateCategory)
+  } catch {
+    templates.value = []
+  }
+}
+
+async function loadTemplateVersions(templateId: number) {
+  if (!templateId) {
+    templateVersions.value = []
+    selectedTemplateVersionId.value = 0
+    return
+  }
+  try {
+    const res = await axios.get<ApiResponse<{ versions: TemplateVersionOption[] }>>(`/api/system/templates/${templateId}`)
+    templateVersions.value = res.data.data?.versions || []
+    if (selectedTemplateVersionId.value > 0 && !templateVersions.value.some((item) => item.id === selectedTemplateVersionId.value)) {
+      selectedTemplateVersionId.value = 0
+    }
+  } catch {
+    templateVersions.value = []
+    selectedTemplateVersionId.value = 0
+  }
 }
 
 function initStructuredInputs(items: string[]) {
@@ -341,6 +386,8 @@ function loadDraft() {
     businessDescription.value = draft.businessDescription || ''
     previousPrdMarkdown.value = draft.previousPrdMarkdown || ''
     chatInput.value = draft.chatInput || ''
+    selectedTemplateId.value = Number(draft.selectedTemplateId || 0)
+    selectedTemplateVersionId.value = Number(draft.selectedTemplateVersionId || 0)
     for (const [key, value] of Object.entries(draft.structuredInputs || {})) {
       structuredInputs[key] = String(value || '')
     }
@@ -356,6 +403,8 @@ watch(
       businessDescription: businessDescription.value,
       previousPrdMarkdown: previousPrdMarkdown.value,
       chatInput: chatInput.value,
+      selectedTemplateId: selectedTemplateId.value,
+      selectedTemplateVersionId: selectedTemplateVersionId.value,
       structuredInputs
     }
     localStorage.setItem(draftKey, JSON.stringify(data))
@@ -364,6 +413,11 @@ watch(
 )
 
 loadDraft()
+void loadTemplates()
+
+watch(selectedTemplateId, async (value) => {
+  await loadTemplateVersions(value)
+})
 </script>
 
 <style scoped>

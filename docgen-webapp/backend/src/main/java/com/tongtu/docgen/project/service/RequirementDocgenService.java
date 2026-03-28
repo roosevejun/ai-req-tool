@@ -10,6 +10,8 @@ import com.tongtu.docgen.project.model.entity.RequirementChatMessageEntity;
 import com.tongtu.docgen.project.model.entity.RequirementChatSessionEntity;
 import com.tongtu.docgen.project.model.entity.RequirementEntity;
 import com.tongtu.docgen.project.model.entity.RequirementVersionEntity;
+import com.tongtu.docgen.system.model.entity.SysTemplateEntity;
+import com.tongtu.docgen.system.service.SystemTemplateService;
 import com.tongtu.docgen.system.model.UserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ public class RequirementDocgenService {
     private final ProjectService projectService;
     private final AgentClient agentClient;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final SystemTemplateService systemTemplateService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RequirementDocgenService(DocGenControllerDelegate docGenDelegate,
@@ -43,7 +46,8 @@ public class RequirementDocgenService {
                                     RequirementService requirementService,
                                     ProjectService projectService,
                                     AgentClient agentClient,
-                                    KnowledgeRetrievalService knowledgeRetrievalService) {
+                                    KnowledgeRetrievalService knowledgeRetrievalService,
+                                    SystemTemplateService systemTemplateService) {
         this.docGenDelegate = docGenDelegate;
         this.requirementChatMessageMapper = requirementChatMessageMapper;
         this.requirementDocgenMapper = requirementDocgenMapper;
@@ -51,6 +55,7 @@ public class RequirementDocgenService {
         this.projectService = projectService;
         this.agentClient = agentClient;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.systemTemplateService = systemTemplateService;
     }
 
     @Transactional
@@ -58,10 +63,18 @@ public class RequirementDocgenService {
                                                                    Long requirementId,
                                                                    String businessDescription,
                                                                    String previousPrdMarkdown,
+                                                                   Long templateId,
+                                                                   Long templateVersionId,
                                                                    UserContext operator) {
         RequirementEntity requirement = requirementService.getById(requirementId);
         String baseDescription = resolveInitialBusinessDescription(requirement, businessDescription);
-        DocGenController.CreateJobResponse resp = docGenDelegate.createJob(traceId, baseDescription, previousPrdMarkdown);
+        SystemTemplateService.TemplateSnapshot templateSnapshot = resolveTemplateSnapshot(templateId, templateVersionId);
+        DocGenController.CreateJobResponse resp = docGenDelegate.createJob(
+                traceId,
+                baseDescription,
+                previousPrdMarkdown,
+                buildTemplatePrompt(templateSnapshot.templateMarkdown(), templateSnapshot.variablesJson())
+        );
 
         RequirementChatSessionEntity session = new RequirementChatSessionEntity();
         session.setRequirementId(requirementId);
@@ -71,12 +84,18 @@ public class RequirementDocgenService {
         session.setConfirmedItemsJson(toJson(resp.confirmedItems()));
         session.setUnconfirmedItemsJson(toJson(resp.unconfirmedItems()));
         session.setReadyToGenerate(resp.readyToGenerate());
+        session.setTemplateId(templateSnapshot.templateId());
+        session.setTemplateVersionId(templateSnapshot.versionId());
+        session.setTemplateVersionLabel(templateSnapshot.versionLabel());
+        session.setTemplateSnapshotMarkdown(templateSnapshot.templateMarkdown());
+        session.setTemplateVariablesJson(templateSnapshot.variablesJson());
         session.setCreatedBy(operator.getUserId());
         requirementDocgenMapper.insert(session);
 
         insertMessageIfPresent(session.getId(), "user", baseDescription);
         insertMessageIfPresent(session.getId(), "assistant", findLastAssistantMessage(resp.chatHistory()));
-        return resp;
+        List<RequirementChatMessageEntity> messages = requirementChatMessageMapper.listBySessionId(session.getId());
+        return buildCreateJobResponse(session, requirement, messages);
     }
 
     public DocGenController.CreateJobResponse getRequirementJob(String traceId, Long requirementId, String jobId) {
@@ -98,7 +117,8 @@ public class RequirementDocgenService {
                 resolveBusinessDescription(requirement, messages),
                 toChatHistory(messages),
                 session.getPendingQuestion(),
-                resolveBasePrdMarkdown(requirement)
+                resolveBasePrdMarkdown(requirement),
+                buildTemplatePrompt(session.getTemplateSnapshotMarkdown(), session.getTemplateVariablesJson())
         );
         updateSessionFromChat(session, turn);
         insertMessageIfPresent(session.getId(), "assistant", turn.assistantMessage());
@@ -118,7 +138,8 @@ public class RequirementDocgenService {
                 resolveBusinessDescription(requirement, messages),
                 toChatHistory(messages),
                 resolveBasePrdMarkdown(requirement),
-                fromJsonStringList(session.getUnconfirmedItemsJson())
+                fromJsonStringList(session.getUnconfirmedItemsJson()),
+                buildTemplatePrompt(session.getTemplateSnapshotMarkdown(), session.getTemplateVariablesJson())
         );
 
         String assistantMessage = "Generated PRD successfully. You can keep chatting to revise and generate a newer version.";
@@ -211,6 +232,12 @@ public class RequirementDocgenService {
                 toChatHistory(messages),
                 resolveBasePrdMarkdown(requirement),
                 currentVersionCount(requirement.getId())
+                ,
+                new DocGenController.TemplateSelection(
+                        session.getTemplateId(),
+                        session.getTemplateVersionId(),
+                        session.getTemplateVersionLabel()
+                )
         );
     }
 
@@ -235,6 +262,12 @@ public class RequirementDocgenService {
                 prdMarkdown,
                 resolveBasePrdMarkdown(requirement),
                 currentVersionCount(requirement.getId())
+                ,
+                new DocGenController.TemplateSelection(
+                        session.getTemplateId(),
+                        session.getTemplateVersionId(),
+                        session.getTemplateVersionLabel()
+                )
         );
     }
 
@@ -255,6 +288,12 @@ public class RequirementDocgenService {
                 prdMarkdown,
                 resolveBasePrdMarkdown(requirement),
                 currentVersionCount(requirement.getId())
+                ,
+                new DocGenController.TemplateSelection(
+                        session.getTemplateId(),
+                        session.getTemplateVersionId(),
+                        session.getTemplateVersionLabel()
+                )
         );
     }
 
@@ -432,6 +471,42 @@ public class RequirementDocgenService {
                 4
         ).contextText();
         return joinKnowledgeContexts(requirementKnowledge, projectKnowledge);
+    }
+
+    private SystemTemplateService.TemplateSnapshot resolveTemplateSnapshot(Long templateId, Long templateVersionId) {
+        if (templateId != null && templateId > 0) {
+            return systemTemplateService.resolveSnapshot(templateId, templateVersionId);
+        }
+        List<SysTemplateEntity> templates = systemTemplateService.listTemplates();
+        for (SysTemplateEntity template : templates) {
+            if (template == null) {
+                continue;
+            }
+            if ("PUBLISHED".equalsIgnoreCase(template.getStatus())) {
+                return systemTemplateService.resolveSnapshot(template.getId(), null);
+            }
+        }
+        if (!templates.isEmpty() && templates.get(0) != null) {
+            return systemTemplateService.resolveSnapshot(templates.get(0).getId(), null);
+        }
+        return new SystemTemplateService.TemplateSnapshot(
+                null,
+                null,
+                "default",
+                docGenDelegate.loadDefaultTemplate(),
+                null
+        );
+    }
+
+    private String buildTemplatePrompt(String templateMarkdown, String templateVariablesJson) {
+        String markdown = templateMarkdown == null || templateMarkdown.isBlank()
+                ? docGenDelegate.loadDefaultTemplate()
+                : templateMarkdown.trim();
+        String variables = templateVariablesJson == null ? "" : templateVariablesJson.trim();
+        if (variables.isEmpty()) {
+            return markdown;
+        }
+        return markdown + "\n\n<!-- TEMPLATE_VARIABLES\n" + variables + "\n-->";
     }
 
     private String buildRetrievalQuery(RequirementEntity requirement,

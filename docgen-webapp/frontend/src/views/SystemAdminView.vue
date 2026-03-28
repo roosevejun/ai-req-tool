@@ -67,7 +67,12 @@
       </main>
 
       <aside class="sidebar">
-        <SystemQuickActionsCard :loading="loading" @go-create-ai="goCreateAi" @go-ai-docgen="goAiDocgen" />
+        <SystemQuickActionsCard
+          :loading="loading"
+          @go-create-ai="goCreateAi"
+          @go-ai-docgen="goAiDocgen"
+          @go-template-center="goTemplateCenter"
+        />
 
         <WorkspaceSection
           eyebrow="待处理操作"
@@ -265,6 +270,7 @@ async function savePermEdit() {
 }
 function goCreateAi() { void router.push('/projects/create-ai') }
 function goAiDocgen() { void router.push('/docgen') }
+function goTemplateCenter() { void router.push('/templates') }
 
 onMounted(loadAll)
 </script>

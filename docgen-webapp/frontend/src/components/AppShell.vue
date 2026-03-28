@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
   { label: 'AI 整理', to: '/docgen', section: 'docgen' },
   { label: '知识库', to: '/knowledge', section: 'knowledge' },
   { label: '项目与需求', to: '/projects', section: 'projects' },
+  { label: '模板中心', to: '/templates', section: 'system' },
   { label: '系统管理', to: '/system', section: 'system' }
 ]
 
@@ -81,7 +82,11 @@ const breadcrumbs = computed<Crumb[]>(() => {
   }
 
   if (activeSection.value === 'system') {
-    items.push({ label: '系统管理' })
+    if (route.path.startsWith('/templates')) {
+      items.push({ label: '模板中心' })
+    } else {
+      items.push({ label: '系统管理' })
+    }
     return items
   }
 
@@ -121,6 +126,7 @@ const breadcrumbs = computed<Crumb[]>(() => {
 
 const backTarget = computed(() => {
   if (route.path === '/projects/create-ai') return '/projects'
+  if (route.path.startsWith('/templates')) return '/system'
   if (route.path.startsWith('/requirements/') && projectId.value) {
     return `/projects?projectId=${projectId.value}`
   }

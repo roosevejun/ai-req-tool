@@ -6,8 +6,12 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface RequirementDocgenMapper {
     @Insert("""
-            INSERT INTO rm_requirement_chat_session(requirement_id, job_id, status, pending_question, confirmed_items_json, unconfirmed_items_json, ready_to_generate, created_by, created_at, updated_at)
-            VALUES(#{requirementId}, #{jobId}, #{status}, #{pendingQuestion}, #{confirmedItemsJson}, #{unconfirmedItemsJson}, #{readyToGenerate}, #{createdBy}, NOW(), NOW())
+            INSERT INTO rm_requirement_chat_session(requirement_id, job_id, status, pending_question, confirmed_items_json, unconfirmed_items_json, ready_to_generate,
+                                                    template_id, template_version_id, template_version_label, template_snapshot_markdown, template_variables_json,
+                                                    created_by, created_at, updated_at)
+            VALUES(#{requirementId}, #{jobId}, #{status}, #{pendingQuestion}, #{confirmedItemsJson}, #{unconfirmedItemsJson}, #{readyToGenerate},
+                   #{templateId}, #{templateVersionId}, #{templateVersionLabel}, #{templateSnapshotMarkdown}, #{templateVariablesJson},
+                   #{createdBy}, NOW(), NOW())
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(RequirementChatSessionEntity entity);
@@ -15,7 +19,9 @@ public interface RequirementDocgenMapper {
     @Select("""
             SELECT id, requirement_id AS requirementId, job_id AS jobId, status, pending_question AS pendingQuestion,
                    confirmed_items_json AS confirmedItemsJson, unconfirmed_items_json AS unconfirmedItemsJson,
-                   ready_to_generate AS readyToGenerate, created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+                   ready_to_generate AS readyToGenerate, template_id AS templateId, template_version_id AS templateVersionId,
+                   template_version_label AS templateVersionLabel, template_snapshot_markdown AS templateSnapshotMarkdown,
+                   template_variables_json AS templateVariablesJson, created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
             FROM rm_requirement_chat_session
             WHERE requirement_id = #{requirementId}
             ORDER BY id DESC
@@ -26,7 +32,9 @@ public interface RequirementDocgenMapper {
     @Select("""
             SELECT id, requirement_id AS requirementId, job_id AS jobId, status, pending_question AS pendingQuestion,
                    confirmed_items_json AS confirmedItemsJson, unconfirmed_items_json AS unconfirmedItemsJson,
-                   ready_to_generate AS readyToGenerate, created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
+                   ready_to_generate AS readyToGenerate, template_id AS templateId, template_version_id AS templateVersionId,
+                   template_version_label AS templateVersionLabel, template_snapshot_markdown AS templateSnapshotMarkdown,
+                   template_variables_json AS templateVariablesJson, created_by AS createdBy, created_at AS createdAt, updated_at AS updatedAt
             FROM rm_requirement_chat_session
             WHERE requirement_id = #{requirementId} AND job_id = #{jobId}
             LIMIT 1

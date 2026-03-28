@@ -29,6 +29,11 @@ export type CreateJobResponse = {
   chatHistory: ChatMessage[]
   basePrdMarkdown: string | null
   currentVersion: number
+  templateSelection?: {
+    templateId?: number | null
+    templateVersionId?: number | null
+    templateVersionLabel?: string | null
+  } | null
 }
 
 export type ChatResponse = {
@@ -42,6 +47,28 @@ export type ChatResponse = {
   prdMarkdown: string | null
   basePrdMarkdown: string | null
   currentVersion: number
+  templateSelection?: {
+    templateId?: number | null
+    templateVersionId?: number | null
+    templateVersionLabel?: string | null
+  } | null
+}
+
+export type TemplateOption = {
+  id: number
+  templateCode: string
+  templateName: string
+  templateCategory: string
+  status: string
+  publishedVersionNo?: number | null
+}
+
+export type TemplateVersionOption = {
+  id: number
+  versionNo: number
+  versionLabel?: string | null
+  status: string
+  isPublished: boolean
 }
 
 export type RetrievalItem = {

@@ -14,6 +14,11 @@ public class RequirementChatSessionEntity {
     private String confirmedItemsJson;
     private String unconfirmedItemsJson;
     private Boolean readyToGenerate;
+    private Long templateId;
+    private Long templateVersionId;
+    private String templateVersionLabel;
+    private String templateSnapshotMarkdown;
+    private String templateVariablesJson;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

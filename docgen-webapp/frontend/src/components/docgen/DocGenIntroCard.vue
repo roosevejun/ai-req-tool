@@ -20,6 +20,28 @@
       placeholder="请描述当前需求背景、业务目标、已知约束和你希望 AI 帮你继续梳理的重点。"
     />
 
+    <div class="template-grid">
+      <label class="field">
+        <span>选择模板</span>
+        <select v-model.number="selectedTemplateId" class="select">
+          <option :value="0">使用默认模板</option>
+          <option v-for="item in templates" :key="item.id" :value="item.id">
+            {{ item.templateName }}（{{ item.templateCode }}）
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>选择版本</span>
+        <select v-model.number="selectedTemplateVersionId" class="select" :disabled="templateVersions.length === 0">
+          <option :value="0">优先使用已发布版本</option>
+          <option v-for="item in templateVersions" :key="item.id" :value="item.id">
+            {{ item.versionLabel || `v${item.versionNo}` }}{{ item.isPublished ? '（已发布）' : '' }}
+          </option>
+        </select>
+      </label>
+    </div>
+
     <div class="row">
       <button class="primary" :disabled="loading" @click="$emit('create-job')">
         {{ loading ? '处理中...' : '启动 AI 整理' }}
@@ -31,11 +53,16 @@
 
 <script setup lang="ts">
 import WorkspaceSection from '../projects/WorkspaceSection.vue'
+import type { TemplateOption, TemplateVersionOption } from './types'
 const businessDescription = defineModel<string>('businessDescription', { required: true })
 const previousPrdMarkdown = defineModel<string>('previousPrdMarkdown', { required: true })
+const selectedTemplateId = defineModel<number>('selectedTemplateId', { required: true })
+const selectedTemplateVersionId = defineModel<number>('selectedTemplateVersionId', { required: true })
 
 defineProps<{
   loading: boolean
+  templates: TemplateOption[]
+  templateVersions: TemplateVersionOption[]
 }>()
 
 defineEmits<{
@@ -47,9 +74,14 @@ defineEmits<{
 <style scoped>
 .hint { color: #6b7280; margin-top: 8px; margin-bottom: 10px; }
 .details { margin-bottom: 12px; }
+.template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.field { display: grid; gap: 6px; }
+.field span { color: #334155; font-size: 13px; font-weight: 600; }
+.select { width: 100%; padding: 10px; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; }
 .textarea { width: 100%; min-height: 140px; resize: vertical; padding: 10px; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; line-height: 1.4; }
 .row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 button { border-radius: 10px; padding: 10px 14px; border: 1px solid transparent; cursor: pointer; font-size: 14px; }
 .primary { background: #2563eb; color: #fff; }
 .ghost { background: #f3f4f6; color: #111827; border-color: #e5e7eb; }
+@media (max-width: 900px) { .template-grid { grid-template-columns: 1fr; } }
 </style>

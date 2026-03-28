@@ -39,7 +39,16 @@ public class DocGenController {
     public record CreateJobRequest(
             @NotBlank @Size(max = 20000) String businessDescription,
             // Optional: previous PRD markdown for iterative refinement
-            @Size(max = 200000) String previousPrdMarkdown
+            @Size(max = 200000) String previousPrdMarkdown,
+            Long templateId,
+            Long templateVersionId
+    ) {
+    }
+
+    public record TemplateSelection(
+            Long templateId,
+            Long templateVersionId,
+            String templateVersionLabel
     ) {
     }
 
@@ -54,7 +63,8 @@ public class DocGenController {
             List<String> unconfirmedItems,
             List<ChatMessage> chatHistory,
             String basePrdMarkdown,
-            int currentVersion
+            int currentVersion,
+            TemplateSelection templateSelection
     ) {
     }
 
@@ -72,7 +82,8 @@ public class DocGenController {
             List<ChatMessage> chatHistory,
             String prdMarkdown,
             String basePrdMarkdown,
-            int currentVersion
+            int currentVersion,
+            TemplateSelection templateSelection
     ) {
     }
 
@@ -97,7 +108,14 @@ public class DocGenController {
             @RequestBody CreateJobRequest req
     ) {
         String tid = (traceId == null || traceId.isBlank()) ? UUID.randomUUID().toString() : traceId;
-        CreateJobResponse data = docGenService.createJob(tid, req.businessDescription(), req.previousPrdMarkdown());
+        CreateJobResponse data = docGenService.createJob(
+                tid,
+                req.businessDescription(),
+                req.previousPrdMarkdown(),
+                req.templateId(),
+                req.templateVersionId(),
+                null
+        );
         return ApiResponse.ok(tid, data);
     }
 
@@ -164,4 +182,3 @@ public class DocGenController {
                 .body(markdown.getBytes(StandardCharsets.UTF_8));
     }
 }
-

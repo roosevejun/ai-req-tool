@@ -9,6 +9,12 @@
       <StatusBadge :label="`任务 ${jobId}`" variant="neutral" small />
       <StatusBadge :label="statusLabel(status)" variant="ai" small />
       <StatusBadge :label="`版本 v${currentVersion || 0}`" variant="info" small />
+      <StatusBadge
+        v-if="templateSelection?.templateId"
+        :label="`模板 ${templateSelection.templateVersionLabel || '已选择'}`"
+        variant="success"
+        small
+      />
     </template>
 
     <div class="checklists">
@@ -160,6 +166,7 @@ defineProps<{
   basePrdMarkdown: string
   prdMarkdown: string
   diffSummary: { added: number; removed: number }
+  templateSelection?: { templateId?: number | null; templateVersionId?: number | null; templateVersionLabel?: string | null } | null
 }>()
 
 defineEmits<{
