@@ -1,99 +1,99 @@
-<template>
+﻿<template>
   <WorkspaceSection
-    eyebrow="Project Kickoff"
-    title="?? AI ????"
-    description="??????????????? AI ????????????????"
+    eyebrow="项目启动"
+    title="通过 AI 创建项目"
+    description="先描述你的项目想法，再补充资料，让 AI 和你一起梳理出可落地的项目信息。"
   >
     <div class="grid two">
-      <input v-model.trim="startForm.projectName" class="input" placeholder="????????? AI ????" />
+      <input v-model.trim="startForm.projectName" class="input" placeholder="先写下项目名称，或一个临时工作名" />
       <textarea
         v-model="startForm.description"
         class="input"
-        placeholder="???????????????????????????"
+        placeholder="补充项目背景、想解决的问题、目标用户，或当前已有的业务设想。"
       />
     </div>
 
     <div class="materials-header">
       <div>
-        <p class="section-label">Knowledge Inputs</p>
-        <h4>????</h4>
+        <p class="section-label">知识输入</p>
+        <h4>补充资料</h4>
       </div>
-      <StatusBadge :label="sessionId ? '?????' : '??????'" :variant="sessionId ? 'success' : 'warning'" small />
+      <StatusBadge :label="sessionId ? '会话已启动' : '等待启动会话'" :variant="sessionId ? 'success' : 'warning'" small />
     </div>
 
     <div class="materials">
       <div class="material-card">
         <div class="section-head">
-          <strong>????</strong>
-          <button class="mini" type="button" @click="$emit('add-url-material')">??</button>
+          <strong>网站链接</strong>
+          <button class="mini" type="button" @click="$emit('add-url-material')">添加</button>
         </div>
-        <input v-model.trim="urlDraft.title" class="input" placeholder="???????" />
+        <input v-model.trim="urlDraft.title" class="input" placeholder="链接标题，可选" />
         <input v-model.trim="urlDraft.sourceUri" class="input" placeholder="https://example.com" />
       </div>
 
       <div class="material-card">
         <div class="section-head">
-          <strong>????</strong>
-          <button class="mini" type="button" @click="$emit('add-text-material')">??</button>
+          <strong>文本资料</strong>
+          <button class="mini" type="button" @click="$emit('add-text-material')">添加</button>
         </div>
-        <input v-model.trim="textDraft.title" class="input" placeholder="???????" />
+        <input v-model.trim="textDraft.title" class="input" placeholder="文本标题，可选" />
         <textarea
           v-model="textDraft.rawContent"
           class="input"
-          placeholder="???????????????????????"
+          placeholder="把会议纪要、需求说明、竞品分析或你的业务构想直接贴进来。"
         />
       </div>
 
       <div class="material-card">
         <div class="section-head">
-          <strong>????</strong>
+          <strong>文件资料</strong>
         </div>
         <input ref="fileInputRef" class="input" type="file" :disabled="loading || !sessionId" @change="onFileSelect" />
-        <input v-model.trim="fileDraft.title" class="input" :disabled="loading || !sessionId" placeholder="???????" />
+        <input v-model.trim="fileDraft.title" class="input" :disabled="loading || !sessionId" placeholder="文件标题，可选" />
         <div class="row">
           <button class="ghost" type="button" :disabled="loading || !sessionId || !selectedFile" @click="$emit('upload-file')">
-            ??????
+            上传文件
           </button>
-          <span class="muted">{{ selectedFile ? selectedFile.name : '????????????' }}</span>
+          <span class="muted">{{ selectedFile ? selectedFile.name : '尚未选择文件' }}</span>
         </div>
       </div>
     </div>
 
     <div v-if="pendingMaterials.length > 0" class="pending-list">
       <div class="section-head">
-        <strong>?????</strong>
-        <button class="ghost mini" type="button" @click="$emit('clear-pending-materials')">??</button>
+        <strong>待保存资料</strong>
+        <button class="ghost mini" type="button" @click="$emit('clear-pending-materials')">清空</button>
       </div>
       <div v-for="(item, idx) in pendingMaterials" :key="`pending-${idx}`" class="pending-item">
-        <div>{{ item.materialType }} / {{ item.title || '?????' }}</div>
+        <div>{{ item.materialType }} / {{ item.title || '未命名资料' }}</div>
         <div class="muted">{{ item.sourceUri || previewText(item.rawContent) }}</div>
       </div>
     </div>
 
     <div v-if="savedMaterials.length > 0" class="pending-list">
       <div class="section-head">
-        <strong>?????</strong>
-        <span class="muted">{{ savedMaterials.length }} ?</span>
+        <strong>已保存资料</strong>
+        <span class="muted">{{ savedMaterials.length }} 条</span>
       </div>
       <div v-for="(item, idx) in savedMaterials" :key="`saved-${idx}`" class="pending-item">
-        <div>{{ item.materialType }} / {{ item.title || '?????' }}</div>
+        <div>{{ item.materialType }} / {{ item.title || '未命名资料' }}</div>
         <div class="muted">{{ item.sourceUri || previewText(item.rawContent) }}</div>
         <div v-if="materialKnowledgeItems(item).length > 0" class="knowledge-status-list">
           <div v-for="doc in materialKnowledgeItems(item)" :key="doc.id" class="knowledge-status-block">
             <div class="knowledge-status-item">
               <StatusBadge :label="knowledgeStatusText(doc.status)" small />
-              <span class="muted">{{ doc.documentType }} / {{ doc.title || '????' }}</span>
+              <span class="muted">{{ doc.documentType }} / {{ doc.title || '未命名文档' }}</span>
               <button
                 v-if="doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED'"
                 class="ghost mini"
                 type="button"
                 @click="$emit('retry-knowledge-document', doc.id)"
               >
-                ????
+                重新处理
               </button>
               <button class="ghost mini" type="button" @click="$emit('open-knowledge-detail', doc.id)">进入知识库</button>
             </div>
-            <div v-if="doc.latestTaskError" class="knowledge-error">???{{ doc.latestTaskError }}</div>
+            <div v-if="doc.latestTaskError" class="knowledge-error">错误：{{ doc.latestTaskError }}</div>
           </div>
         </div>
       </div>
@@ -101,10 +101,10 @@
 
     <div class="row">
       <button class="primary" type="button" :disabled="loading || !canStartConversation" @click="$emit('start-conversation')">
-        ?? AI ??
+        启动 AI 会话
       </button>
       <button class="ghost" type="button" :disabled="loading || !sessionId || pendingMaterials.length === 0" @click="$emit('save-materials')">
-        ???????
+        保存资料到会话
       </button>
     </div>
   </WorkspaceSection>

@@ -1,11 +1,9 @@
-<template>
+﻿<template>
   <section class="workspace-shell page-header">
     <div>
-      <p class="eyebrow">Project Workspace</p>
+      <p class="eyebrow">项目工作台</p>
       <h2>项目工作台</h2>
-      <p class="summary">
-        统一查看项目、需求、AI 协同与知识状态，围绕当前选中的项目持续推进。
-      </p>
+      <p class="summary">统一查看项目、需求、AI 协同与知识状态，围绕当前选中的项目持续推进。</p>
     </div>
 
     <div class="header-stats">

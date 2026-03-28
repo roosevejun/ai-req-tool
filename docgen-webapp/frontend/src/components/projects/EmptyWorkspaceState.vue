@@ -14,7 +14,7 @@ withDefaults(
     description: string
   }>(),
   {
-    eyebrow: 'Workspace Ready'
+    eyebrow: '工作区已就绪'
   }
 )
 </script>

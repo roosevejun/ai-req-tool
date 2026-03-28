@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="tabs card">
     <div class="title-block">
       <h2>{{ title }}</h2>
@@ -32,8 +32,5 @@ defineEmits<{
 .tab-actions { display: flex; gap: 8px; }
 .tab { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; background: #f3f4f6; cursor: pointer; }
 .tab.active { background: #2563eb; border-color: #2563eb; color: #fff; }
-@media (max-width: 980px) {
-  .tabs { flex-direction: column; align-items: stretch; }
-  .tab-actions { flex-wrap: wrap; }
-}
+@media (max-width: 980px) { .tabs { flex-direction: column; align-items: stretch; } .tab-actions { flex-wrap: wrap; } }
 </style>

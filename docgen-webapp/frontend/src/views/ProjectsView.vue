@@ -39,8 +39,8 @@
       <main class="content">
         <EmptyWorkspaceState
           v-if="!selectedProject"
-          title="??????????"
-          description="?????????????????????????AI ??????????????"
+          title="请选择一个项目开始协同"
+          description="先在左侧选择项目，这里会切换到项目概览、AI 协同和需求管理工作区。"
         />
 
         <template v-else>
@@ -510,7 +510,7 @@ async function loadProjects() {
     editingProject.value = false
     resetProjectEditForm()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载项目失败。'
   } finally {
     loading.value = false
   }
@@ -539,7 +539,7 @@ async function loadProjectMembers(projectId: number) {
     const res = await axios.get<ApiResponse<ProjectMemberItem[]>>(`/api/projects/${projectId}/members`)
     projectMembersMap.value = { ...projectMembersMap.value, [projectId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰鎴愬憳澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载项目成员失败。'
   }
 }
 
@@ -548,7 +548,7 @@ async function loadVersions(requirementId: number) {
     const res = await axios.get<ApiResponse<VersionItem[]>>(`/api/requirements/${requirementId}/versions`)
     versionsMap.value = { ...versionsMap.value, [requirementId]: res.data.data || [] }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇鐗堟湰澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载版本失败。'
   }
 }
 
@@ -575,7 +575,7 @@ async function createProject() {
       projectType: projectForm.projectType || null,
       tags: projectForm.tags || null
     })
-    success.value = '椤圭洰鍒涘缓鎴愬姛'
+    success.value = '项目创建成功。'
     const createdProjectId = res.data.data
     resetCreateProjectForm()
     resetProjectAiGuide()
@@ -584,7 +584,7 @@ async function createProject() {
       await selectProject(createdProjectId)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍒涘缓椤圭洰澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '创建项目失败。'
   } finally {
     loading.value = false
   }
@@ -657,7 +657,7 @@ async function ensureProjectConversation() {
     projectConversation.value = res.data.data || null
     await refreshProjectMaterialKnowledgeStatuses()
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰 AI 浼氳瘽澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载项目 AI 会话失败。'
   } finally {
     projectConversationLoading.value = false
   }
@@ -688,7 +688,7 @@ async function openProjectKnowledgeDetail(documentId: number) {
     const res = await axios.get<ApiResponse<ProjectKnowledgeDocumentDetail>>(`/api/knowledge-documents/${documentId}`)
     projectKnowledgeDetail.value = res.data.data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇鐭ヨ瘑鏂囨。璇︽儏澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载知识文档详情失败。'
   } finally {
     projectKnowledgeDetailLoading.value = false
   }
@@ -771,7 +771,7 @@ async function loadProjectKnowledgePreview() {
     )
     projectKnowledgePreview.value = res.data.data
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍔犺浇椤圭洰妫€绱笂涓嬫枃澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '加载项目检索上下文失败。'
   } finally {
     projectKnowledgePreviewLoading.value = false
   }
@@ -793,7 +793,7 @@ async function sendProjectConversation() {
     await ensureProjectConversation()
     success.value = '项目 AI 已生成新的优化建议。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍙戦€侀」鐩?AI 娑堟伅澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '发送项目 AI 消息失败。'
   } finally {
     projectConversationLoading.value = false
   }
@@ -866,9 +866,9 @@ async function saveProjectMaterials() {
     })
     projectPendingMaterials.value = []
     await ensureProjectConversation()
-    success.value = '椤圭洰璧勬枡宸蹭繚瀛樺埌褰撳墠 AI 浼氳瘽'
+    success.value = '项目资料已保存到当前 AI 会话。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '淇濆瓨椤圭洰璧勬枡澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '保存项目资料失败。'
   } finally {
     projectConversationLoading.value = false
   }
@@ -893,7 +893,7 @@ async function uploadProjectFileMaterial() {
     await ensureProjectConversation()
     success.value = '项目文件资料已上传，AI 会自动继续学习。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '涓婁紶椤圭洰鏂囦欢璧勬枡澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '上传项目文件资料失败。'
   } finally {
     projectConversationLoading.value = false
   }
@@ -915,7 +915,7 @@ async function deleteProjectMaterial(materialId?: number) {
     await ensureProjectConversation()
     success.value = '项目资料已删除。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍒犻櫎椤圭洰璧勬枡澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '删除项目资料失败。'
   } finally {
     projectConversationLoading.value = false
   }
@@ -959,7 +959,7 @@ async function deleteProject() {
   success.value = ''
   try {
     await axios.delete(`/api/projects/${project.id}`)
-    success.value = '椤圭洰鍒犻櫎鎴愬姛'
+    success.value = '项目删除成功。'
     editingProject.value = false
     delete requirementsMap.value[project.id]
     delete projectMembersMap.value[project.id]
@@ -971,7 +971,7 @@ async function deleteProject() {
       await selectProject(fallbackProjectId)
     }
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鍒犻櫎椤圭洰澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '删除项目失败。'
   } finally {
     loading.value = false
   }
@@ -1011,13 +1011,13 @@ async function saveProjectEdit() {
       status: projectEditForm.status || null,
       ownerUserId: projectEditForm.ownerUserId ? Number(projectEditForm.ownerUserId) : null
     })
-    success.value = '椤圭洰淇℃伅鏇存柊鎴愬姛'
+    success.value = '项目信息更新成功。'
     editingProject.value = false
     const projectId = selectedProject.value.id
     await loadProjects()
     await selectProject(projectId)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '鏇存柊椤圭洰淇℃伅澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '更新项目信息失败。'
   } finally {
     loading.value = false
   }
@@ -1025,7 +1025,7 @@ async function saveProjectEdit() {
 
 async function guideProjectProductInfo() {
   if (!canGuideProjectInfo.value) {
-    error.value = '璇疯嚦灏戝～鍐欓」鐩悕绉般€侀」鐩弿杩版垨椤圭洰鑳屾櫙涓殑涓€椤瑰悗鍐嶄娇鐢?AI 琛ュ叏'
+    error.value = '请至少填写项目名称、项目描述或项目背景中的一项后，再使用 AI 补全。'
     return
   }
 
@@ -1065,7 +1065,7 @@ async function guideProjectProductInfo() {
     projectAiAnswers.value = nextQuestions.map((question) => existingAnswers.get(question) || '')
     success.value = nextQuestions.length > 0 ? 'AI 已生成建议并提出补充问题。' : 'AI 已生成完整建议。'
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || 'AI 琛ュ叏澶辫触'
+    error.value = e?.response?.data?.message || e?.message || 'AI 补全失败。'
   } finally {
     projectAiLoading.value = false
   }
@@ -1149,7 +1149,7 @@ async function addProjectMember() {
   }
   const userId = Number(memberForm.selectedUserId || memberForm.userId)
   if (!userId || userId <= 0) {
-    error.value = '璇疯緭鍏ユ湁鏁堢殑鐢ㄦ埛 ID'
+    error.value = '请输入有效的用户 ID。'
     return
   }
 
@@ -1161,12 +1161,12 @@ async function addProjectMember() {
       userId,
       projectRole: memberForm.projectRole
     })
-    success.value = '椤圭洰鎴愬憳娣诲姞鎴愬姛'
+    success.value = '项目成员添加成功。'
     memberForm.selectedUserId = ''
     memberForm.userId = ''
     await loadProjectMembers(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '娣诲姞椤圭洰鎴愬憳澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '添加项目成员失败。'
   } finally {
     loading.value = false
   }
@@ -1181,10 +1181,10 @@ async function removeProjectMember(userId: number) {
   success.value = ''
   try {
     await axios.delete(`/api/projects/${selectedProjectId.value}/members/${userId}`)
-    success.value = '椤圭洰鎴愬憳绉婚櫎鎴愬姛'
+    success.value = '项目成员移除成功。'
     await loadProjectMembers(selectedProjectId.value)
   } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '绉婚櫎椤圭洰鎴愬憳澶辫触'
+    error.value = e?.response?.data?.message || e?.message || '移除项目成员失败。'
   } finally {
     loading.value = false
   }

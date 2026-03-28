@@ -2,7 +2,7 @@
   <div class="page">
     <section class="page-hero">
       <div>
-        <p class="eyebrow">System Console</p>
+        <p class="eyebrow">系统工作台</p>
         <h1>系统管理</h1>
         <p class="hero-copy">统一维护用户、角色与权限，并从同一页进入 AI 项目和需求工作台。</p>
       </div>
@@ -16,7 +16,7 @@
     <div class="layout">
       <main class="content">
         <WorkspaceSection
-          eyebrow="Management Tabs"
+          eyebrow="管理分区"
           title="管理工作台"
           description="按对象切换用户、角色和权限管理区域，保持系统操作结构更清晰。"
           :tint="true"
@@ -70,7 +70,7 @@
         <SystemQuickActionsCard :loading="loading" @go-create-ai="goCreateAi" @go-ai-docgen="goAiDocgen" />
 
         <WorkspaceSection
-          eyebrow="Pending Actions"
+          eyebrow="待处理操作"
           title="待处理操作"
           description="这里会承接当前打开的编辑、绑定和修正动作，避免和主列表混在一起。"
         >
@@ -102,7 +102,7 @@
           />
           <EmptyWorkspaceState
             v-else
-            eyebrow="Admin Ready"
+            eyebrow="系统就绪"
             title="当前没有待处理表单"
             description="从左侧工作台选择用户、角色或权限后，对应的编辑和绑定动作会显示在这里。"
           />
@@ -156,60 +156,24 @@ const adminTabs = [
   { key: 'roles' as const, label: '角色与权限' }
 ]
 
-const newUser = ref<NewUserForm>({
-  username: '',
-  password: '',
-  displayName: '',
-  status: 'ENABLED',
-  roleIds: []
-})
-
-const newRole = ref<NewRoleForm>({
-  roleCode: '',
-  roleName: '',
-  status: 'ENABLED'
-})
-
-const newPerm = ref<NewPermForm>({
-  permCode: '',
-  permName: '',
-  status: 'ENABLED'
-})
-
+const newUser = ref<NewUserForm>({ username: '', password: '', displayName: '', status: 'ENABLED', roleIds: [] })
+const newRole = ref<NewRoleForm>({ roleCode: '', roleName: '', status: 'ENABLED' })
+const newPerm = ref<NewPermForm>({ permCode: '', permName: '', status: 'ENABLED' })
 const editingUser = ref<UserItem | null>(null)
-const editUserForm = ref<EditUserForm>({
-  displayName: '',
-  status: 'ENABLED'
-})
-
+const editUserForm = ref<EditUserForm>({ displayName: '', status: 'ENABLED' })
 const bindingUser = ref<UserItem | null>(null)
 const bindUserRoleIds = ref<number[]>([])
-
 const editingRole = ref<RoleItem | null>(null)
-const editRoleForm = ref<EditRoleForm>({
-  roleName: '',
-  status: 'ENABLED'
-})
-
+const editRoleForm = ref<EditRoleForm>({ roleName: '', status: 'ENABLED' })
 const bindingRole = ref<RoleItem | null>(null)
 const bindRolePermIds = ref<number[]>([])
-
 const editingPerm = ref<PermItem | null>(null)
-const editPermForm = ref<EditPermForm>({
-  permName: '',
-  status: 'ENABLED'
-})
+const editPermForm = ref<EditPermForm>({ permName: '', status: 'ENABLED' })
 
 const hasBindingPanels = computed(() => !!(editingUser.value || bindingUser.value || editingRole.value || bindingRole.value || editingPerm.value))
 
-function clearTips() {
-  error.value = ''
-  success.value = ''
-}
-
-function showError(e: any, fallback: string) {
-  error.value = e?.response?.data?.message || e?.message || fallback
-}
+function clearTips() { error.value = ''; success.value = '' }
+function showError(e: any, fallback: string) { error.value = e?.response?.data?.message || e?.message || fallback }
 
 async function loadAll() {
   loading.value = true
@@ -225,9 +189,7 @@ async function loadAll() {
     permissions.value = permRes.data.data || []
   } catch (e: any) {
     showError(e, '加载系统管理数据失败。')
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
 async function createUser() {
@@ -236,294 +198,89 @@ async function createUser() {
   try {
     await axios.post('/api/system/users', newUser.value)
     success.value = '用户创建成功。'
-    newUser.value = {
-      username: '',
-      password: '',
-      displayName: '',
-      status: 'ENABLED',
-      roleIds: []
-    }
+    newUser.value = { username: '', password: '', displayName: '', status: 'ENABLED', roleIds: [] }
     await loadAll()
-  } catch (e: any) {
-    showError(e, '创建用户失败。')
-    loading.value = false
-  }
+  } catch (e: any) { showError(e, '创建用户失败。'); loading.value = false }
 }
-
-function openUserEdit(user: UserItem) {
-  editingUser.value = user
-  editUserForm.value = {
-    displayName: user.displayName || '',
-    status: user.status || 'ENABLED'
-  }
-}
-
+function openUserEdit(user: UserItem) { editingUser.value = user; editUserForm.value = { displayName: user.displayName || '', status: user.status || 'ENABLED' } }
 async function saveUserEdit() {
   if (!editingUser.value) return
   loading.value = true
   clearTips()
-  try {
-    await axios.put(`/api/system/users/${editingUser.value.id}`, editUserForm.value)
-    success.value = '用户更新成功。'
-    editingUser.value = null
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '更新用户失败。')
-    loading.value = false
-  }
+  try { await axios.put(`/api/system/users/${editingUser.value.id}`, editUserForm.value); success.value = '用户更新成功。'; editingUser.value = null; await loadAll() }
+  catch (e: any) { showError(e, '更新用户失败。'); loading.value = false }
 }
-
-function openUserRoles(user: UserItem) {
-  bindingUser.value = user
-  const roleCodes = new Set(user.roleCodes || [])
-  bindUserRoleIds.value = roles.value.filter((role) => roleCodes.has(role.roleCode)).map((role) => role.id)
-}
-
+function openUserRoles(user: UserItem) { bindingUser.value = user; const roleCodes = new Set(user.roleCodes || []); bindUserRoleIds.value = roles.value.filter((role) => roleCodes.has(role.roleCode)).map((role) => role.id) }
 async function saveUserRoles() {
   if (!bindingUser.value) return
   loading.value = true
   clearTips()
-  try {
-    await axios.post(`/api/system/users/${bindingUser.value.id}/roles`, {
-      roleIds: bindUserRoleIds.value
-    })
-    success.value = '用户角色保存成功。'
-    bindingUser.value = null
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '保存用户角色失败。')
-    loading.value = false
-  }
+  try { await axios.post(`/api/system/users/${bindingUser.value.id}/roles`, { roleIds: bindUserRoleIds.value }); success.value = '用户角色保存成功。'; bindingUser.value = null; await loadAll() }
+  catch (e: any) { showError(e, '保存用户角色失败。'); loading.value = false }
 }
-
 async function resetPassword(user: UserItem) {
-  const password = window.prompt(`请为 ${user.username} 输入新密码`) 
+  const password = window.prompt(`请为 ${user.username} 输入新密码`)
   if (!password) return
   loading.value = true
   clearTips()
-  try {
-    await axios.put(`/api/system/users/${user.id}/password`, { newPassword: password })
-    success.value = '密码重置成功。'
-  } catch (e: any) {
-    showError(e, '重置密码失败。')
-  } finally {
-    loading.value = false
-  }
+  try { await axios.put(`/api/system/users/${user.id}/password`, { newPassword: password }); success.value = '密码重置成功。' }
+  catch (e: any) { showError(e, '重置密码失败。') }
+  finally { loading.value = false }
 }
-
 async function createRole() {
   loading.value = true
   clearTips()
-  try {
-    await axios.post('/api/system/roles', newRole.value)
-    success.value = '角色创建成功。'
-    newRole.value = {
-      roleCode: '',
-      roleName: '',
-      status: 'ENABLED'
-    }
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '创建角色失败。')
-    loading.value = false
-  }
+  try { await axios.post('/api/system/roles', newRole.value); success.value = '角色创建成功。'; newRole.value = { roleCode: '', roleName: '', status: 'ENABLED' }; await loadAll() }
+  catch (e: any) { showError(e, '创建角色失败。'); loading.value = false }
 }
-
-function openRoleEdit(role: RoleItem) {
-  editingRole.value = role
-  editRoleForm.value = {
-    roleName: role.roleName || '',
-    status: role.status || 'ENABLED'
-  }
-}
-
+function openRoleEdit(role: RoleItem) { editingRole.value = role; editRoleForm.value = { roleName: role.roleName || '', status: role.status || 'ENABLED' } }
 async function saveRoleEdit() {
   if (!editingRole.value) return
   loading.value = true
   clearTips()
-  try {
-    await axios.put(`/api/system/roles/${editingRole.value.id}`, editRoleForm.value)
-    success.value = '角色更新成功。'
-    editingRole.value = null
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '更新角色失败。')
-    loading.value = false
-  }
+  try { await axios.put(`/api/system/roles/${editingRole.value.id}`, editRoleForm.value); success.value = '角色更新成功。'; editingRole.value = null; await loadAll() }
+  catch (e: any) { showError(e, '更新角色失败。'); loading.value = false }
 }
-
-function openRolePerms(role: RoleItem) {
-  bindingRole.value = role
-  bindRolePermIds.value = []
-}
-
+function openRolePerms(role: RoleItem) { bindingRole.value = role; bindRolePermIds.value = [] }
 async function saveRolePerms() {
   if (!bindingRole.value) return
   loading.value = true
   clearTips()
-  try {
-    await axios.post(`/api/system/roles/${bindingRole.value.id}/permissions`, {
-      permissionIds: bindRolePermIds.value
-    })
-    success.value = '角色权限保存成功。'
-    bindingRole.value = null
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '保存角色权限失败。')
-    loading.value = false
-  }
+  try { await axios.post(`/api/system/roles/${bindingRole.value.id}/permissions`, { permissionIds: bindRolePermIds.value }); success.value = '角色权限保存成功。'; bindingRole.value = null; await loadAll() }
+  catch (e: any) { showError(e, '保存角色权限失败。'); loading.value = false }
 }
-
 async function createPermission() {
   loading.value = true
   clearTips()
-  try {
-    await axios.post('/api/system/permissions', newPerm.value)
-    success.value = '权限创建成功。'
-    newPerm.value = {
-      permCode: '',
-      permName: '',
-      status: 'ENABLED'
-    }
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '创建权限失败。')
-    loading.value = false
-  }
+  try { await axios.post('/api/system/permissions', newPerm.value); success.value = '权限创建成功。'; newPerm.value = { permCode: '', permName: '', status: 'ENABLED' }; await loadAll() }
+  catch (e: any) { showError(e, '创建权限失败。'); loading.value = false }
 }
-
-function openPermEdit(permission: PermItem) {
-  editingPerm.value = permission
-  editPermForm.value = {
-    permName: permission.permName || '',
-    status: permission.status || 'ENABLED'
-  }
-}
-
+function openPermEdit(permission: PermItem) { editingPerm.value = permission; editPermForm.value = { permName: permission.permName || '', status: permission.status || 'ENABLED' } }
 async function savePermEdit() {
   if (!editingPerm.value) return
   loading.value = true
   clearTips()
-  try {
-    await axios.put(`/api/system/permissions/${editingPerm.value.id}`, editPermForm.value)
-    success.value = '权限更新成功。'
-    editingPerm.value = null
-    await loadAll()
-  } catch (e: any) {
-    showError(e, '更新权限失败。')
-    loading.value = false
-  }
+  try { await axios.put(`/api/system/permissions/${editingPerm.value.id}`, editPermForm.value); success.value = '权限更新成功。'; editingPerm.value = null; await loadAll() }
+  catch (e: any) { showError(e, '更新权限失败。'); loading.value = false }
 }
-
-function goCreateAi() {
-  void router.push('/projects/create-ai')
-}
-
-function goAiDocgen() {
-  void router.push('/docgen')
-}
+function goCreateAi() { void router.push('/projects/create-ai') }
+function goAiDocgen() { void router.push('/docgen') }
 
 onMounted(loadAll)
 </script>
 
 <style scoped>
-.page {
-  max-width: 1480px;
-  margin: 18px auto;
-  padding: 0 14px 18px;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-.page-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 18px;
-  border: 1px solid #dbe2ea;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%);
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  color: #0f766e;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-h1 {
-  margin: 0;
-  font-size: 32px;
-  color: #0f172a;
-}
-
-.hero-copy {
-  margin: 10px 0 0;
-  max-width: 720px;
-  color: #64748b;
-  line-height: 1.7;
-}
-
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 14px;
-  align-items: start;
-}
-
-.content,
-.sidebar {
-  min-width: 0;
-}
-
-.workspace-stack,
-.feedback-stack,
-.sidebar {
-  display: grid;
-  gap: 14px;
-}
-
-.tab-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tab {
-  border-radius: 999px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  padding: 8px 12px;
-  cursor: pointer;
-  color: #334155;
-}
-
-.tab--active {
-  background: #0f172a;
-  border-color: #0f172a;
-  color: #fff;
-}
-
-@media (max-width: 1080px) {
-  .page-hero,
-  .hero-badges {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
+.page { max-width: 1480px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.page-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; padding: 18px; border: 1px solid #dbe2ea; border-radius: 20px; background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%); }
+.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+h1 { margin: 0; font-size: 32px; color: #0f172a; }
+.hero-copy { margin: 10px 0 0; max-width: 720px; color: #64748b; line-height: 1.7; }
+.hero-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+.content, .sidebar { min-width: 0; }
+.workspace-stack, .feedback-stack, .sidebar { display: grid; gap: 14px; }
+.tab-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; padding: 8px 12px; cursor: pointer; color: #334155; }
+.tab--active { background: #0f172a; border-color: #0f172a; color: #fff; }
+@media (max-width: 1080px) { .page-hero, .hero-badges { flex-direction: column; align-items: flex-start; } .layout { grid-template-columns: 1fr; } }
 </style>

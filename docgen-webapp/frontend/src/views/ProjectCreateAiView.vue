@@ -2,7 +2,7 @@
   <div class="page">
     <section class="page-hero">
       <div>
-        <p class="eyebrow">AI Project Workspace</p>
+        <p class="eyebrow">AI 项目工作台</p>
         <h1>AI 创建项目</h1>
         <p class="hero-copy">从项目想法、资料沉淀到结构化结果和正式创建，整个过程都在一个工作台里完成。</p>
       </div>

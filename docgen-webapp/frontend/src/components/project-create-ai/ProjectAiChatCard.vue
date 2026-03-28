@@ -1,6 +1,6 @@
 ﻿<template>
   <WorkspaceSection
-    eyebrow="AI Conversation"
+    eyebrow="AI 对话"
     title="AI 对话"
     description="在这里持续补充上下文、回答 AI 追问，并查看每轮会话参考到的知识内容。"
     tint

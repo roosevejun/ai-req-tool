@@ -1,29 +1,29 @@
-<template>
+﻿<template>
   <WorkspaceSection
-    eyebrow="DocGen Workspace"
-    title="AI ???????"
-    description="??????????????? AI ????????? PRD?"
+    eyebrow="需求整理"
+    title="AI 需求整理会话"
+    description="围绕需求澄清、结构化补充和 PRD 生成，持续与 AI 协同完成整理。"
     tint
   >
     <template #actions>
-      <StatusBadge :label="`?? ${jobId}`" variant="neutral" small />
+      <StatusBadge :label="`任务 ${jobId}`" variant="neutral" small />
       <StatusBadge :label="statusLabel(status)" variant="ai" small />
-      <StatusBadge :label="`?? v${currentVersion || 0}`" variant="info" small />
+      <StatusBadge :label="`版本 v${currentVersion || 0}`" variant="info" small />
     </template>
 
     <div class="checklists">
       <div class="list">
-        <h3>?????</h3>
+        <h3>已确认信息</h3>
         <ul>
           <li v-for="(it, idx) in confirmedItems" :key="`confirmed-${idx}`">{{ it }}</li>
-          <li v-if="confirmedItems.length === 0" class="muted">????????</li>
+          <li v-if="confirmedItems.length === 0" class="muted">当前还没有已确认内容。</li>
         </ul>
       </div>
       <div class="list">
-        <h3>?????</h3>
+        <h3>待补充信息</h3>
         <ul>
           <li v-for="(it, idx) in unconfirmedItems" :key="`pending-${idx}`">{{ it }}</li>
-          <li v-if="unconfirmedItems.length === 0" class="muted">??????????????? PRD?</li>
+          <li v-if="unconfirmedItems.length === 0" class="muted">当前没有待补充项，可以直接生成 PRD。</li>
         </ul>
       </div>
     </div>
@@ -31,26 +31,26 @@
     <div class="chat-box">
       <div v-for="(message, idx) in chatHistory" :key="idx" class="msg" :class="message.role">
         <div class="bubble">
-          <div class="role">{{ message.role === 'assistant' ? 'AI' : '?' }}</div>
+          <div class="role">{{ message.role === 'assistant' ? 'AI' : '用户' }}</div>
           <div>{{ message.content }}</div>
         </div>
       </div>
     </div>
 
     <div v-if="status !== 'COMPLETED'">
-      <p v-if="pendingQuestion" class="hint"><b>?????</b>{{ pendingQuestion }}</p>
+      <p v-if="pendingQuestion" class="hint"><b>当前问题：</b>{{ pendingQuestion }}</p>
 
       <div v-if="unconfirmedItems.length > 0" class="guide">
-        <div class="guide-title">???????</div>
+        <div class="guide-title">建议补充模板</div>
         <pre class="guide-pre">{{ buildGuidanceText(unconfirmedItems) }}</pre>
         <div class="row">
-          <button class="ghost" :disabled="loading" @click="$emit('use-guidance-template')">????????</button>
+          <button class="ghost" :disabled="loading" @click="$emit('use-guidance-template')">填入引导模板</button>
         </div>
       </div>
 
       <div v-if="unconfirmedItems.length > 0" class="form-box">
-        <div class="guide-title">?????????</div>
-        <div class="qa-progress">? {{ currentQuestionIndex + 1 }} / {{ unconfirmedItems.length }} ?</div>
+        <div class="guide-title">结构化补充</div>
+        <div class="qa-progress">第 {{ currentQuestionIndex + 1 }} / {{ unconfirmedItems.length }} 项</div>
         <div v-if="currentQuestionItem" class="form-item">
           <label class="form-label">{{ currentQuestionItem }}</label>
           <textarea
@@ -60,58 +60,54 @@
           />
         </div>
         <div class="row">
-          <button class="ghost" :disabled="loading || currentQuestionIndex <= 0" @click="$emit('prev-question')">???</button>
-          <button class="ghost" :disabled="loading || currentQuestionIndex >= unconfirmedItems.length - 1" @click="$emit('next-question')">???</button>
+          <button class="ghost" :disabled="loading || currentQuestionIndex <= 0" @click="$emit('prev-question')">上一项</button>
+          <button class="ghost" :disabled="loading || currentQuestionIndex >= unconfirmedItems.length - 1" @click="$emit('next-question')">下一项</button>
           <button class="primary" :disabled="loading || !canSendCurrent" @click="$emit('send-current')">
-            {{ loading ? '???...' : '??????' }}
+            {{ loading ? '发送中...' : '提交当前项' }}
           </button>
           <button class="ghost" :disabled="loading || !canSendStructured" @click="$emit('send-structured')">
-            {{ loading ? '???...' : '?????????' }}
+            {{ loading ? '发送中...' : '提交全部补充' }}
           </button>
         </div>
       </div>
 
-      <input
-        v-model="chatInput"
-        class="input"
-        placeholder="????????? AI ??????????"
-      />
+      <input v-model="chatInput" class="input" placeholder="继续补充信息，或让 AI 帮你澄清当前需求" />
       <div class="row">
         <button class="primary" :disabled="loading || !chatInput.trim()" @click="$emit('send-chat')">
-          {{ loading ? '???...' : '??? AI' }}
+          {{ loading ? '发送中...' : '发送给 AI' }}
         </button>
         <button class="ghost" :disabled="loading || unconfirmedItems.length > 0" @click="$emit('generate-prd')">
-          {{ loading ? '???...' : '?? PRD' }}
+          {{ loading ? '生成中...' : '生成 PRD' }}
         </button>
-        <button class="ghost" :disabled="loading" @click="$emit('load-knowledge-preview')">???????</button>
+        <button class="ghost" :disabled="loading" @click="$emit('load-knowledge-preview')">查看检索上下文</button>
       </div>
 
       <div v-if="knowledgePreviewVisible" class="knowledge-preview">
-        <div class="guide-title">?????????</div>
-        <div v-if="knowledgePreviewLoading" class="muted">?????????...</div>
+        <div class="guide-title">检索上下文预览</div>
+        <div v-if="knowledgePreviewLoading" class="muted">正在加载检索上下文...</div>
         <template v-else-if="knowledgePreview">
           <div class="diff-box">
-            <b>?? Query</b>
+            <b>检索词</b>
             <div>{{ knowledgePreview.query || '-' }}</div>
           </div>
 
           <div class="checklists">
             <div class="list">
-              <h3>??????</h3>
+              <h3>需求知识命中</h3>
               <ul>
                 <li v-for="item in knowledgePreview.requirementKnowledge.items" :key="`rq-${item.chunkId}`">
-                  ?? #{{ item.documentId }} / Chunk #{{ item.chunkNo }} / Score {{ typeof item.score === 'number' ? item.score.toFixed(3) : '-' }}
+                  文档 #{{ item.documentId }} / Chunk #{{ item.chunkNo }} / 分数 {{ typeof item.score === 'number' ? item.score.toFixed(3) : '-' }}
                 </li>
-                <li v-if="knowledgePreview.requirementKnowledge.items.length === 0" class="muted">????</li>
+                <li v-if="knowledgePreview.requirementKnowledge.items.length === 0" class="muted">暂无命中。</li>
               </ul>
             </div>
             <div class="list">
-              <h3>??????</h3>
+              <h3>项目知识命中</h3>
               <ul>
                 <li v-for="item in knowledgePreview.projectKnowledge.items" :key="`pj-${item.chunkId}`">
-                  ?? #{{ item.documentId }} / Chunk #{{ item.chunkNo }} / Score {{ typeof item.score === 'number' ? item.score.toFixed(3) : '-' }}
+                  文档 #{{ item.documentId }} / Chunk #{{ item.chunkNo }} / 分数 {{ typeof item.score === 'number' ? item.score.toFixed(3) : '-' }}
                 </li>
-                <li v-if="knowledgePreview.projectKnowledge.items.length === 0" class="muted">????</li>
+                <li v-if="knowledgePreview.projectKnowledge.items.length === 0" class="muted">暂无命中。</li>
               </ul>
             </div>
           </div>
@@ -122,14 +118,14 @@
     </div>
 
     <div v-if="status === 'COMPLETED'">
-      <h3>????</h3>
+      <h3>PRD 结果</h3>
       <div class="diff-box" v-if="basePrdMarkdown">
-        <b>???????</b>
-        <div>?? {{ diffSummary.added }} ???? {{ diffSummary.removed }} ??</div>
+        <b>与基线版本对比</b>
+        <div>新增 {{ diffSummary.added }} 处，删除 {{ diffSummary.removed }} 处</div>
       </div>
       <div class="row">
-        <button class="ghost" @click="$emit('export-prd')">?? Markdown</button>
-        <button class="ghost" :disabled="loading" @click="$emit('load-knowledge-preview')">???????</button>
+        <button class="ghost" @click="$emit('export-prd')">导出 Markdown</button>
+        <button class="ghost" :disabled="loading" @click="$emit('load-knowledge-preview')">查看检索上下文</button>
       </div>
       <pre class="pre">{{ prdMarkdown }}</pre>
     </div>

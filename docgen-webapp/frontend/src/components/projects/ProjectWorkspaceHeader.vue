@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="workspace-shell workspace-header">
     <div class="project-summary">
       <div class="title-row">
@@ -12,14 +12,14 @@
         <StatusBadge :label="project.priority || '-'" variant="warning" small />
         <StatusBadge v-if="project.tags" :label="project.tags" variant="ai" small />
       </div>
-      <p class="summary">{{ project.description || '??????????????' }}</p>
+      <p class="summary">{{ project.description || '当前项目还没有补充描述信息。' }}</p>
     </div>
 
     <div class="header-actions">
-      <button class="ghost" type="button" @click="$emit('change-tab', 'overview')">??</button>
-      <button class="ghost" type="button" @click="$emit('change-tab', 'ai')">AI ??</button>
-      <button class="ghost" type="button" @click="$emit('change-tab', 'requirements')">????</button>
-      <button class="primary" type="button" @click="$emit('enter-ai')">?? AI ??</button>
+      <button class="ghost" type="button" @click="$emit('change-tab', 'overview')">概览</button>
+      <button class="ghost" type="button" @click="$emit('change-tab', 'ai')">AI 协同</button>
+      <button class="ghost" type="button" @click="$emit('change-tab', 'requirements')">需求管理</button>
+      <button class="primary" type="button" @click="$emit('enter-ai')">进入 AI 协同</button>
     </div>
 
     <div class="tabs">
@@ -55,9 +55,9 @@ defineEmits<{
 }>()
 
 const tabs: Array<{ value: 'overview' | 'ai' | 'requirements'; label: string }> = [
-  { value: 'overview', label: '??' },
-  { value: 'ai', label: 'AI ??' },
-  { value: 'requirements', label: '????' }
+  { value: 'overview', label: '概览' },
+  { value: 'ai', label: 'AI 协同' },
+  { value: 'requirements', label: '需求管理' }
 ]
 </script>
 

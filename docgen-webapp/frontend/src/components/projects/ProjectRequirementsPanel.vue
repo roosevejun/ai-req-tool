@@ -1,9 +1,5 @@
 <template>
-  <WorkspaceSection
-    eyebrow="Requirements Workspace"
-    title="需求管理"
-    description="在当前项目下创建需求、查看需求列表，并快速进入 AI 工作台或版本页。"
-  >
+  <WorkspaceSection eyebrow="需求管理" title="需求管理" description="在当前项目下创建需求、查看需求列表，并快速进入 AI 工作台或版本页。">
     <div class="split-grid">
       <section class="panel">
         <div class="panel-head">
@@ -71,7 +67,7 @@
     <section v-if="selectedRequirement" class="selected-panel">
       <div class="panel-head">
         <div>
-          <p class="section-label">Current Selection</p>
+          <p class="section-label">当前选中</p>
           <h4>当前选中需求</h4>
         </div>
         <div class="row compact">
@@ -115,152 +111,28 @@ defineEmits<{
 </script>
 
 <style scoped>
-.split-grid {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 16px;
-}
-
-.panel,
-.selected-panel {
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #fff;
-  padding: 14px;
-}
-
-.panel-head,
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.row {
-  flex-wrap: wrap;
-}
-
-.compact {
-  margin-top: 0;
-}
-
-.muted,
-.summary {
-  color: #64748b;
-}
-
-.muted {
-  font-size: 13px;
-}
-
-.form-grid,
-.meta-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.form-grid {
-  grid-template-columns: 1fr;
-  margin-top: 12px;
-}
-
-.meta-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 12px;
-}
-
-.input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #fff;
-}
-
-.textarea {
-  min-height: 96px;
-  resize: vertical;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-}
-
-.table th,
-.table td {
-  border: 1px solid #e5e7eb;
-  padding: 8px;
-  font-size: 13px;
-  text-align: left;
-}
-
-.ops {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.section-label {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.summary {
-  margin: 12px 0 0;
-  white-space: pre-wrap;
-  line-height: 1.7;
-}
-
-.primary,
-.ghost,
-.mini {
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-
-.ghost,
-.mini {
-  background: #f8fafc;
-}
-
-.mini {
-  padding: 5px 9px;
-  font-size: 12px;
-}
-
-.empty {
-  color: #6b7280;
-}
-
-.small {
-  font-size: 12px;
-}
-
-@media (max-width: 980px) {
-  .split-grid,
-  .meta-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
+.split-grid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; }
+.panel, .selected-panel { border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; padding: 14px; }
+.panel-head, .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.row { flex-wrap: wrap; }
+.compact { margin-top: 0; }
+.muted, .summary { color: #64748b; }
+.muted { font-size: 13px; }
+.form-grid, .meta-grid { display: grid; gap: 10px; }
+.form-grid { grid-template-columns: 1fr; margin-top: 12px; }
+.meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
+.input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; background: #fff; }
+.textarea { min-height: 96px; resize: vertical; }
+.table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.table th, .table td { border: 1px solid #e5e7eb; padding: 8px; font-size: 13px; text-align: left; }
+.ops { display: flex; gap: 8px; flex-wrap: wrap; }
+.section-label { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }
+.summary { margin: 12px 0 0; white-space: pre-wrap; line-height: 1.7; }
+.primary, .ghost, .mini { border-radius: 10px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; }
+.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.ghost, .mini { background: #f8fafc; }
+.mini { padding: 5px 9px; font-size: 12px; }
+.empty { color: #6b7280; }
+.small { font-size: 12px; }
+@media (max-width: 980px) { .split-grid, .meta-grid { grid-template-columns: 1fr; } .panel-head { align-items: flex-start; flex-direction: column; } }
 </style>

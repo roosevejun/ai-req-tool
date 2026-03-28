@@ -2,7 +2,7 @@
   <div class="page">
     <section class="page-hero">
       <div>
-        <p class="eyebrow">Requirement Workspace</p>
+        <p class="eyebrow">需求工作台</p>
         <h1>AI 需求整理</h1>
         <p class="hero-copy">围绕项目和需求上下文持续整理、澄清并沉淀 PRD，让 AI 工作台和需求列表保持同一条业务链路。</p>
       </div>
@@ -88,31 +88,14 @@ const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
-
 const selectedProjectId = ref<number | null>(null)
 const selectedRequirementId = ref<number | null>(null)
 const requirements = ref<RequirementItem[]>([])
+const reqForm = reactive({ title: '', summary: '', priority: 'P2', status: 'DRAFT' })
 
-const reqForm = reactive({
-  title: '',
-  summary: '',
-  priority: 'P2',
-  status: 'DRAFT'
-})
-
-function showError(message: string) {
-  error.value = message
-}
-
-function goWorkbench(requirementId: number) {
-  if (!selectedProjectId.value) return
-  void router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`)
-}
-
-function goVersions(requirementId: number) {
-  if (!selectedProjectId.value) return
-  void router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`)
-}
+function showError(message: string) { error.value = message }
+function goWorkbench(requirementId: number) { if (!selectedProjectId.value) return; void router.push(`/requirements/${requirementId}/workbench?projectId=${selectedProjectId.value}`) }
+function goVersions(requirementId: number) { if (!selectedProjectId.value) return; void router.push(`/requirements/${requirementId}/versions?projectId=${selectedProjectId.value}`) }
 
 async function loadRequirements() {
   if (!selectedProjectId.value) return
@@ -123,9 +106,7 @@ async function loadRequirements() {
     requirements.value = res.data.data || []
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '加载需求列表失败。'
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
 async function createRequirement() {
@@ -141,136 +122,39 @@ async function createRequirement() {
     reqForm.priority = 'P2'
     reqForm.status = 'DRAFT'
     await loadRequirements()
-    if (res.data?.data) {
-      selectedRequirementId.value = res.data.data
-    }
+    if (res.data?.data) selectedRequirementId.value = res.data.data
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '创建需求失败。'
-  } finally {
-    loading.value = false
-  }
+  } finally { loading.value = false }
 }
 
-async function onSelectProject(projectId: number) {
-  selectedProjectId.value = projectId
-  selectedRequirementId.value = null
-  await loadRequirements()
-}
-
+async function onSelectProject(projectId: number) { selectedProjectId.value = projectId; selectedRequirementId.value = null; await loadRequirements() }
 async function onSelectRequirement(projectId: number, requirementId: number) {
   selectedProjectId.value = projectId
   selectedRequirementId.value = requirementId
-  if (requirements.value.length === 0 || !requirements.value.some((item) => item.id === requirementId)) {
-    await loadRequirements()
-  }
+  if (requirements.value.length === 0 || !requirements.value.some((item) => item.id === requirementId)) await loadRequirements()
 }
 
 watch(selectedProjectId, async (projectId) => {
-  if (projectId) {
-    await loadRequirements()
-  } else {
-    requirements.value = []
-  }
+  if (projectId) await loadRequirements()
+  else requirements.value = []
 })
 </script>
 
 <style scoped>
-.page {
-  max-width: 1440px;
-  margin: 18px auto;
-  padding: 0 14px 18px;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-.page-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 18px;
-  border: 1px solid #dbe2ea;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%);
-}
-.eyebrow {
-  margin: 0 0 6px;
-  color: #0f766e;
-  font-size: 12px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-h1 {
-  margin: 0;
-  font-size: 32px;
-  color: #0f172a;
-}
-.hero-copy {
-  margin: 10px 0 0;
-  max-width: 760px;
-  color: #64748b;
-  line-height: 1.7;
-}
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.layout {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 14px;
-}
-.card {
-  background: #fff;
-  border: 1px solid #dbe2ea;
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.workspace-card {
-  background: linear-gradient(180deg, #f8fcff 0%, #ffffff 45%);
-}
-.row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.between {
-  justify-content: space-between;
-  align-items: center;
-}
-.ghost,
-.mini {
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  cursor: pointer;
-  background: #f3f4f6;
-}
-.mini {
-  padding: 5px 9px;
-  font-size: 12px;
-}
-.feedback-stack {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-@media (max-width: 980px) {
-  .page-hero,
-  .hero-badges {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .layout {
-    grid-template-columns: 1fr;
-  }
-  .between {
-    align-items: flex-start;
-  }
-}
+.page { max-width: 1440px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.page-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; padding: 18px; border: 1px solid #dbe2ea; border-radius: 20px; background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%); }
+.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+h1 { margin: 0; font-size: 32px; color: #0f172a; }
+.hero-copy { margin: 10px 0 0; max-width: 760px; color: #64748b; line-height: 1.7; }
+.hero-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.layout { display: grid; grid-template-columns: 350px 1fr; gap: 14px; }
+.card { background: #fff; border: 1px solid #dbe2ea; border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+.workspace-card { background: linear-gradient(180deg, #f8fcff 0%, #ffffff 45%); }
+.row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.between { justify-content: space-between; align-items: center; }
+.ghost, .mini { border-radius: 8px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; background: #f3f4f6; }
+.mini { padding: 5px 9px; font-size: 12px; }
+.feedback-stack { display: grid; gap: 10px; margin-top: 12px; }
+@media (max-width: 980px) { .page-hero, .hero-badges { flex-direction: column; align-items: flex-start; } .layout { grid-template-columns: 1fr; } .between { align-items: flex-start; } }
 </style>
-

@@ -3,7 +3,7 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <p class="eyebrow">Knowledge Detail</p>
+          <p class="eyebrow">知识详情</p>
           <h3>知识文档详情</h3>
         </div>
         <div class="actions">
@@ -50,7 +50,7 @@
         </div>
 
         <div class="block">
-          <div class="section-line">
+          <div class="section-head">
             <strong>分块预览</strong>
             <button class="ghost mini" type="button" @click="$emit('toggle-chunks')">
               {{ chunkExpanded ? '收起' : '展开全部' }}
@@ -105,106 +105,22 @@ function assetDownloadUrl(assetId: number) {
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 60;
-}
-.panel {
-  width: min(920px, 100%);
-  max-height: 85vh;
-  overflow: auto;
-  background: #fff;
-  border-radius: 20px;
-  padding: 18px;
-}
-.panel-head,
-.section-line {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-.eyebrow {
-  margin: 0 0 6px;
-  color: #0f766e;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-h3 {
-  margin: 0;
-  font-size: 24px;
-  color: #0f172a;
-}
-.actions {
-  display: flex;
-  gap: 8px;
-}
-.detail-body {
-  margin-top: 16px;
-}
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 10px;
-}
-.block {
-  margin-top: 14px;
-}
-.block p {
-  white-space: pre-wrap;
-}
-.chunk-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 10px;
-  background: #fafcff;
-  margin-top: 8px;
-}
-.simple-list {
-  margin: 8px 0 0;
-  padding-left: 18px;
-}
-.asset-item {
-  margin-bottom: 8px;
-}
-.asset-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-.link-button {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-.muted,
-.empty-state {
-  color: #6b7280;
-}
-.ghost,
-.mini {
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  padding: 6px 10px;
-  cursor: pointer;
-  background: #f3f4f6;
-  font-size: 12px;
-}
-@media (max-width: 960px) {
-  .meta-grid {
-    grid-template-columns: 1fr;
-  }
-  .panel-head {
-    flex-direction: column;
-  }
-}
+.overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 60; }
+.panel { width: min(920px, 100%); max-height: 85vh; overflow: auto; background: #fff; border-radius: 20px; padding: 18px; }
+.panel-head, .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+h3 { margin: 0; font-size: 24px; color: #0f172a; }
+.actions { display: flex; gap: 8px; }
+.detail-body { margin-top: 16px; }
+.meta-grid { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: 10px; }
+.block { margin-top: 14px; }
+.block p { white-space: pre-wrap; }
+.chunk-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; background: #fafcff; margin-top: 8px; }
+.simple-list { margin: 8px 0 0; padding-left: 18px; }
+.asset-item { margin-bottom: 8px; }
+.asset-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.link-button { text-decoration: none; display: inline-flex; align-items: center; }
+.muted, .empty-state { color: #6b7280; }
+.ghost, .mini { border-radius: 10px; border: 1px solid #d1d5db; padding: 6px 10px; cursor: pointer; background: #f3f4f6; font-size: 12px; }
+@media (max-width: 960px) { .meta-grid { grid-template-columns: 1fr; } .panel-head { flex-direction: column; } }
 </style>

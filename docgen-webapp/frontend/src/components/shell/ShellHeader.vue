@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <header class="shell-header">
     <div class="brand" @click="$emit('go-default')">
       <div class="brand-mark">AI</div>
