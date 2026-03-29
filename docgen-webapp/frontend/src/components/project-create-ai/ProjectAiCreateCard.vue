@@ -2,7 +2,7 @@
   <WorkspaceSection
     eyebrow="结果决策"
     title="保留当前项目框架，或正式立项"
-    description="当前 AI 会话会持续保留项目框架。你可以先保存这一阶段结果，后续继续孵化；也可以在信息足够准确时正式立项。"
+    description="当前 AI 会话会持续保留项目框架。你可以先保存这一个阶段结果，后续继续孵化；也可以在信息足够准确时正式立项。"
   >
     <template #actions>
       <StatusBadge :label="readyToCreate ? '可以正式立项' : '更适合先保留框架'" :variant="readyToCreate ? 'success' : 'warning'" small />
@@ -11,7 +11,7 @@
     <div class="decision-card decision-card--draft">
       <div>
         <h4>保留当前项目框架</h4>
-        <p>保留这次 AI 孵化结果，后续可以回来继续补资料、补对话、再决定是否正式立项。</p>
+        <p>保留这次 AI 孵化结果，后续可以回来继续补资料、补对话，再决定是否正式立项。</p>
       </div>
       <button class="ghost" type="button" :disabled="loading || !sessionId" @click="$emit('save-framework')">
         保留当前框架
@@ -31,7 +31,7 @@
           <option value="">项目类型</option>
           <option value="PRODUCT">产品型</option>
           <option value="PLATFORM">平台型</option>
-          <option value="OPS">运维型</option>
+          <option value="OPS">运营型</option>
           <option value="INTEGRATION">集成型</option>
         </select>
         <select v-model="createForm.priority" class="input">
@@ -93,10 +93,6 @@ defineEmits<{
   align-items: flex-start;
   gap: 12px;
   background: #f8fbff;
-}
-
-.decision-card--launch {
-  background: #fff;
 }
 
 .launch-copy {

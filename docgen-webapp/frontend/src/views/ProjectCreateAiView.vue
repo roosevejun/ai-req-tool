@@ -1,48 +1,100 @@
-﻿<template>
+<template>
   <div class="page">
-    <section class="page-hero">
-      <div>
-        <p class="eyebrow">AI 项目孵化</p>
-        <h1>先提炼项目框架，再决定是否立项</h1>
-        <p class="hero-copy">这里的入口不是立项，而是通过 AI 对话持续整理、校准并保留当前阶段的项目框架。立项只是提炼后的结果选项之一。</p>
-      </div>
-      <div class="hero-badges">
-        <button class="hero-switch" type="button" @click="goFormMode">切换到传统创建</button>
-        <StatusBadge :label="sessionId ? `会话 #${sessionId}` : '未启动会话'" :variant="sessionId ? 'success' : 'warning'" />
-        <StatusBadge :label="readyToCreate ? '框架已接近立项标准' : '仍在项目孵化中'" :variant="readyToCreate ? 'success' : 'ai'" />
-        <StatusBadge :label="`${confirmedItems.length} 项已形成`" variant="info" />
-      </div>
-    </section>
+    <ProjectAiHeroPanel
+      :confirmed-count="confirmedItems.length"
+      :pending-count="followUpQuestions.length"
+      :missing-count="missingItems.length"
+      :ready-to-create="readyToCreate"
+      :accuracy-advice="accuracyAdvice"
+      @go-form-mode="goFormMode"
+    />
 
-    <div class="layout">
-      <ProjectAiChatCard
-        v-model:chat-message="chatMessage"
-        :loading="loading"
-        :session-id="sessionId"
-        :status="status"
-        :messages="messages"
-        :follow-up-questions="followUpQuestions"
-        :knowledge-preview-visible="knowledgePreviewVisible"
-        :knowledge-preview-loading="knowledgePreviewLoading"
-        :knowledge-preview="knowledgePreview"
-        :knowledge-preview-query-text="knowledgePreviewQueryText"
-        @send-message="sendMessage"
-        @refresh-conversation="refreshConversation"
-        @load-knowledge-preview="loadKnowledgePreview"
-      />
-
-      <ProjectAiResultCard
-        :ready-to-create="readyToCreate"
-        :confirmed-items="confirmedItems"
-        :pending-questions="followUpQuestions"
-        :missing-items="missingItems"
-        :accuracy-advice="accuracyAdvice"
-      />
+    <div class="workspace-tabs">
+      <div class="main-tabs" role="tablist" aria-label="AI 项目孵化工作区">
+        <button
+          class="main-tab"
+          :class="{ active: mainTab === 'conversation' }"
+          type="button"
+          role="tab"
+          :aria-selected="mainTab === 'conversation'"
+          @click="mainTab = 'conversation'"
+        >
+          AI 沟通
+        </button>
+        <button
+          class="main-tab"
+          :class="{ active: mainTab === 'decision' }"
+          type="button"
+          role="tab"
+          :aria-selected="mainTab === 'decision'"
+          @click="mainTab = 'decision'"
+        >
+          结果决策
+        </button>
+      </div>
     </div>
 
-    <div class="lower-layout">
-      <ProjectAiSetupCard
-        ref="setupCardRef"
+    <div class="workspace-layout">
+      <section class="main-stack">
+        <div class="main-tabs" role="tablist" aria-label="AI 项目孵化工作区">
+          <button
+            class="main-tab"
+            :class="{ active: mainTab === 'conversation' }"
+            type="button"
+            role="tab"
+            :aria-selected="mainTab === 'conversation'"
+            @click="mainTab = 'conversation'"
+          >
+            AI 沟通
+          </button>
+          <button
+            class="main-tab"
+            :class="{ active: mainTab === 'decision' }"
+            type="button"
+            role="tab"
+            :aria-selected="mainTab === 'decision'"
+            @click="mainTab = 'decision'"
+          >
+            结果决策
+          </button>
+        </div>
+
+        <template v-if="mainTab === 'conversation'">
+          <ProjectAiChatCard
+            v-model:chat-message="chatMessage"
+            :loading="loading"
+            :session-id="sessionId"
+            :status="status"
+            :messages="messages"
+            :follow-up-questions="followUpQuestions"
+            :knowledge-preview-visible="knowledgePreviewVisible"
+            :knowledge-preview-loading="knowledgePreviewLoading"
+            :knowledge-preview="knowledgePreview"
+            :knowledge-preview-query-text="knowledgePreviewQueryText"
+            @send-message="sendMessage"
+            @refresh-conversation="refreshConversation"
+            @load-knowledge-preview="loadKnowledgePreview"
+          />
+        </template>
+
+        <template v-else>
+          <ProjectAiDecisionPanel
+            :loading="loading"
+            :session-id="sessionId"
+            :ready-to-create="readyToCreate"
+            :confirmed-items="confirmedItems"
+            :pending-questions="followUpQuestions"
+            :missing-items="missingItems"
+            :accuracy-advice="accuracyAdvice"
+            :create-form="createForm"
+            @save-framework="saveFramework"
+            @create-project="createProject"
+          />
+        </template>
+      </section>
+
+      <ProjectAiSidebar
+        ref="sidebarRef"
         :loading="loading"
         :session-id="sessionId"
         :start-form="startForm"
@@ -54,6 +106,9 @@
         :pending-materials="pendingMaterials"
         :saved-materials="savedMaterials"
         :material-knowledge-map="materialKnowledgeMap"
+        :workspace-advice="workspaceAdvice"
+        :error="error"
+        :success="success"
         @add-url-material="addUrlMaterial"
         @add-text-material="addTextMaterial"
         @clear-pending-materials="clearPendingMaterials"
@@ -64,21 +119,6 @@
         @open-knowledge-detail="goKnowledgeLibrary"
         @retry-knowledge-document="retryKnowledgeDocument"
       />
-
-      <section class="side-stack">
-        <ProjectAiCreateCard
-          :loading="loading"
-          :session-id="sessionId"
-          :ready-to-create="readyToCreate"
-          :create-form="createForm"
-          @save-framework="saveFramework"
-          @create-project="createProject"
-        />
-
-        <FeedbackPanel title="下一步建议" :message="workspaceAdvice" tone="warning" />
-        <FeedbackPanel title="处理提示" :message="error" tone="danger" />
-        <FeedbackPanel title="最新进展" :message="success" tone="success" />
-      </section>
     </div>
 
     <KnowledgeDetailModal
@@ -99,13 +139,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
-import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
-import StatusBadge from '../components/projects/StatusBadge.vue'
 import KnowledgeDetailModal from '../components/project-create-ai/KnowledgeDetailModal.vue'
 import ProjectAiChatCard from '../components/project-create-ai/ProjectAiChatCard.vue'
-import ProjectAiCreateCard from '../components/project-create-ai/ProjectAiCreateCard.vue'
-import ProjectAiResultCard from '../components/project-create-ai/ProjectAiResultCard.vue'
-import ProjectAiSetupCard from '../components/project-create-ai/ProjectAiSetupCard.vue'
+import ProjectAiDecisionPanel from '../components/project-create-ai/ProjectAiDecisionPanel.vue'
+import ProjectAiHeroPanel from '../components/project-create-ai/ProjectAiHeroPanel.vue'
+import ProjectAiSidebar from '../components/project-create-ai/ProjectAiSidebar.vue'
 import { latestQuestions, visibleChunks as toVisibleChunks } from '../components/project-create-ai/helpers'
 import type {
   ApiResponse,
@@ -128,7 +166,7 @@ import type {
 
 const router = useRouter()
 const route = useRoute()
-const setupCardRef = ref<InstanceType<typeof ProjectAiSetupCard> | null>(null)
+const sidebarRef = ref<InstanceType<typeof ProjectAiSidebar> | null>(null)
 
 const loading = ref(false)
 const error = ref('')
@@ -151,6 +189,7 @@ const chunkExpanded = ref(false)
 const knowledgePreviewLoading = ref(false)
 const knowledgePreviewVisible = ref(false)
 const knowledgePreview = ref<KnowledgePreview | null>(null)
+const mainTab = ref<'conversation' | 'decision'>('conversation')
 
 const structuredInfo = reactive<StructuredInfo>({
   projectName: '',
@@ -175,7 +214,9 @@ const urlDraft = reactive<UrlDraftState>({ title: '', sourceUri: '' })
 const textDraft = reactive<TextDraftState>({ title: '', rawContent: '' })
 const fileDraft = reactive<FileDraftState>({ title: '' })
 
-const canStartConversation = computed(() => !!(startForm.projectName.trim() || startForm.description.trim() || pendingMaterials.value.length > 0))
+const canStartConversation = computed(
+  () => !!(startForm.projectName.trim() || startForm.description.trim() || pendingMaterials.value.length > 0)
+)
 const knowledgePreviewQueryText = computed(
   () => knowledgePreview.value?.query || chatMessage.value.trim() || structuredInfo.projectName || startForm.projectName.trim()
 )
@@ -204,38 +245,38 @@ const missingItems = computed<StructuredFieldItem[]>(() => {
 })
 const accuracyAdvice = computed(() => {
   if (!sessionId.value) {
-    return '先让 AI 听懂你的项目想法。建议输入项目名称和一段背景描述，再启动会话。'
+    return '先让 AI 听懂你的项目想法。建议输入项目名称和一段背景描述，再让第一句话自动启动会话。'
   }
   if (followUpQuestions.value.length > 0) {
-    return `当前还有 ${followUpQuestions.value.length} 个关键问题待确认。优先回答这些问题，能最快提升项目框架准确性。`
+    return `当前还有 ${followUpQuestions.value.length} 个关键问题待确认。优先围绕这些问题补充事实，能最快提升框架成熟度。`
   }
   if (missingItems.value.length > 0) {
-    return `AI 已经提炼出主体框架，但 ${missingItems.value.map((item) => item.label).join('、')} 仍不够明确。建议继续补充业务事实，而不是只给结论。`
+    return `AI 已经提炼出主体框架，但 ${missingItems.value.map((item) => item.label).join('、')} 仍不够清晰。建议继续补充业务事实，而不是只给结论。`
   }
   if (!readyToCreate.value) {
-    return '当前框架已经比较完整，建议先判断这份框架是否值得保留，再决定是否继续孵化或正式立项。'
+    return '当前框架已经比较完整，建议先判断这份框架是否值得保留，再决定继续孵化还是正式立项。'
   }
-  return '当前关键项目信息已基本形成闭环。你可以先保留这份项目框架，或在确认准确后正式立项。'
+  return '当前关键项目信息已经基本闭环。你可以先保留这份项目框架，也可以在确认无误后正式立项。'
 })
 const workspaceAdvice = computed(() => {
   if (!sessionId.value) {
-    if (!canStartConversation.value) return '先写下项目名称或补充一段背景描述，再启动 AI 会话。'
-    if (pendingMaterials.value.length > 0) return '当前已有待保存资料，建议启动会话后先把资料沉淀进去，再开始和 AI 对话。'
-    return '先启动 AI 会话，让项目想法进入可持续澄清和项目孵化流程。'
+    if (!canStartConversation.value) return '先写下项目名称或补充一段背景描述，再让第一句话启动 AI 项目孵化。'
+    if (pendingMaterials.value.length > 0) return '当前已有待保存资料。建议先说出项目想法，再让资料参与 AI 校准。'
+    return '直接开始和 AI 沟通，让项目想法进入可持续澄清和孵化流程。'
   }
   if (savedMaterials.value.length === 0) {
-    return '当前会话已启动，建议继续补充网址、文本或文件资料，让 AI 有足够上下文参与项目框架梳理。'
+    return '会话已启动。建议继续补充网站、文本或文件资料，让 AI 有更完整的上下文参与框架整理。'
   }
   if (!readyToCreate.value) {
-    return '当前资料和会话已经建立，建议继续追问、补充信息并让 AI 把结果沉淀成可保留的项目框架。'
+    return '当前资料和会话已经建立，建议继续回答追问、补充信息，并让 AI 把结果沉淀成可保留的项目框架。'
   }
-  return '当前已经形成一份较成熟的项目框架。你可以先保留它，也可以在确认无误后正式立项。'
+  return '当前已经形成一份较成熟的项目框架。你可以先保留它，也可以在确认准确后正式立项。'
 })
 
 function resetFileDraft() {
   selectedFile.value = null
   fileDraft.title = ''
-  setupCardRef.value?.resetFileInput()
+  sidebarRef.value?.resetFileInput()
 }
 
 function handleFileSelect(file: File | null) {
@@ -320,102 +361,6 @@ async function restoreConversation(targetSessionId: number) {
   }
 }
 
-async function retryKnowledgeDocument(documentId: number) {
-  loading.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    await axios.post(`/api/knowledge-documents/${documentId}/reprocess`)
-    await refreshKnowledgeStatuses()
-    if (knowledgeDetail.value?.document.id === documentId) {
-      await openKnowledgeDetail(documentId)
-    }
-    success.value = '知识文档已重新处理。'
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function reprocessKnowledgeDetail() {
-  if (!knowledgeDetail.value) {
-    return
-  }
-  knowledgeReprocessing.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    const documentId = knowledgeDetail.value.document.id
-    const res = await axios.post<ApiResponse<KnowledgeDocumentDetail>>(`/api/knowledge-documents/${documentId}/reprocess`)
-    knowledgeDetail.value = res.data.data
-    await refreshKnowledgeStatuses()
-    success.value = '知识文档已重新处理。'
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
-  } finally {
-    knowledgeReprocessing.value = false
-  }
-}
-
-function closeKnowledgeDetail() {
-  knowledgeDetailVisible.value = false
-  knowledgeDetail.value = null
-  chunkExpanded.value = false
-  knowledgeReprocessing.value = false
-}
-
-async function loadKnowledgePreview() {
-  if (!sessionId.value) return
-  knowledgePreviewLoading.value = true
-  knowledgePreviewVisible.value = true
-  try {
-    const query = chatMessage.value.trim()
-    const res = await axios.get<ApiResponse<KnowledgePreview>>(`/api/projects/ai/conversations/${sessionId.value}/knowledge-preview`, {
-      params: query ? { query } : undefined
-    })
-    knowledgePreview.value = res.data.data
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || e?.message || '加载检索上下文失败。'
-  } finally {
-    knowledgePreviewLoading.value = false
-  }
-}
-
-function addUrlMaterial() {
-  if (!urlDraft.sourceUri.trim()) {
-    error.value = '请先填写网站链接。'
-    return
-  }
-  pendingMaterials.value.push({
-    materialType: 'URL',
-    title: urlDraft.title.trim() || undefined,
-    sourceUri: urlDraft.sourceUri.trim()
-  })
-  urlDraft.title = ''
-  urlDraft.sourceUri = ''
-  error.value = ''
-}
-
-function addTextMaterial() {
-  if (!textDraft.rawContent.trim()) {
-    error.value = '请先填写文本资料内容。'
-    return
-  }
-  pendingMaterials.value.push({
-    materialType: 'TEXT',
-    title: textDraft.title.trim() || undefined,
-    rawContent: textDraft.rawContent.trim()
-  })
-  textDraft.title = ''
-  textDraft.rawContent = ''
-  error.value = ''
-}
-
-function clearPendingMaterials() {
-  pendingMaterials.value = []
-}
-
 async function refreshConversation() {
   if (!sessionId.value) return
   loading.value = true
@@ -437,14 +382,104 @@ async function refreshConversation() {
   }
 }
 
+function addUrlMaterial() {
+  if (!urlDraft.sourceUri.trim()) return
+  pendingMaterials.value = [
+    ...pendingMaterials.value,
+    {
+      materialType: 'URL',
+      title: urlDraft.title.trim() || '',
+      sourceUri: urlDraft.sourceUri.trim()
+    }
+  ]
+  urlDraft.title = ''
+  urlDraft.sourceUri = ''
+}
+
+function addTextMaterial() {
+  if (!textDraft.rawContent.trim()) return
+  pendingMaterials.value = [
+    ...pendingMaterials.value,
+    {
+      materialType: 'TEXT',
+      title: textDraft.title.trim() || '',
+      rawContent: textDraft.rawContent.trim()
+    }
+  ]
+  textDraft.title = ''
+  textDraft.rawContent = ''
+}
+
+function clearPendingMaterials() {
+  pendingMaterials.value = []
+}
+
+async function retryKnowledgeDocument(documentId: number) {
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/knowledge-documents/${documentId}/reprocess`)
+    await refreshKnowledgeStatuses()
+    success.value = '已重新提交知识文档处理任务。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    loading.value = false
+  }
+}
+
+function closeKnowledgeDetail() {
+  knowledgeDetailVisible.value = false
+  knowledgeDetail.value = null
+  chunkExpanded.value = false
+}
+
+async function reprocessKnowledgeDetail() {
+  const documentId = knowledgeDetail.value?.document?.id
+  if (!documentId) return
+  knowledgeReprocessing.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await axios.post(`/api/knowledge-documents/${documentId}/reprocess`)
+    await openKnowledgeDetail(documentId)
+    await refreshKnowledgeStatuses()
+    success.value = '已重新提交知识文档处理任务。'
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '重新处理知识文档失败。'
+  } finally {
+    knowledgeReprocessing.value = false
+  }
+}
+
+async function loadKnowledgePreview() {
+  if (!sessionId.value) return
+  knowledgePreviewVisible.value = true
+  knowledgePreviewLoading.value = true
+  error.value = ''
+  try {
+    const res = await axios.post<ApiResponse<KnowledgePreview>>(`/api/projects/ai/conversations/${sessionId.value}/knowledge-preview`, {
+      query: knowledgePreviewQueryText.value
+    })
+    knowledgePreview.value = res.data.data
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || e?.message || '加载检索上下文失败。'
+  } finally {
+    knowledgePreviewLoading.value = false
+  }
+}
+
 async function startConversation() {
+  if (!canStartConversation.value) return
   loading.value = true
   error.value = ''
   success.value = ''
   try {
     const res = await axios.post<ApiResponse<ConversationView>>('/api/projects/ai/conversations', {
-      projectName: startForm.projectName,
-      description: startForm.description,
+      projectName: startForm.projectName || null,
+      description: startForm.description || null,
+      initialMessage: null,
       materials: pendingMaterials.value
     })
     const data = res.data.data
@@ -458,7 +493,7 @@ async function startConversation() {
     applyStructuredInfo(data.structuredInfo)
     await refreshKnowledgeStatuses()
     await router.replace({ path: '/projects/create-ai', query: { sessionId: String(data.sessionId) } })
-    success.value = 'AI 项目孵化会话已启动。'
+    success.value = 'AI 会话已启动，你可以继续补充想法、资料和关键事实。'
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '启动 AI 会话失败。'
   } finally {
@@ -486,16 +521,14 @@ async function saveMaterials() {
 }
 
 async function saveFramework() {
-  if (!sessionId.value) {
-    return
-  }
+  if (!sessionId.value) return
   loading.value = true
   error.value = ''
   success.value = ''
   try {
     await refreshConversation()
     await router.replace({ path: '/projects/create-ai', query: { sessionId: String(sessionId.value) } })
-    success.value = `当前项目框架已保留。后续可通过此页面继续孵化，当前会话编号 #${sessionId.value}。`
+    success.value = `当前项目框架已保留。后续可以通过此页面继续孵化，当前会话编号 #${sessionId.value}。`
   } catch (e: any) {
     error.value = e?.response?.data?.message || e?.message || '保留当前项目框架失败。'
   } finally {
@@ -514,8 +547,11 @@ async function uploadFileMaterial() {
     if (fileDraft.title.trim()) {
       formData.append('title', fileDraft.title.trim())
     }
-    const res = await axios.post<ApiResponse<UploadFileMaterialResponse>>(`/api/projects/ai/conversations/${sessionId.value}/materials/upload`, formData)
-    const uploadedMaterial = res.data.data?.material
+    const res = await axios.post<ApiResponse<UploadFileMaterialResponse>>(
+      `/api/projects/ai/conversations/${sessionId.value}/materials/upload`,
+      formData
+    )
+    const uploadedMaterial = (res.data.data as any)?.material
     if (uploadedMaterial) {
       savedMaterials.value = [...savedMaterials.value, uploadedMaterial]
     }
@@ -562,7 +598,7 @@ async function sendMessage() {
     const res = await axios.post<ApiResponse<ConversationTurnResult>>(`/api/projects/ai/conversations/${sessionId.value}/chat`, {
       message
     })
-    const data = res.data.data
+    const data: any = res.data.data
     status.value = data.status || status.value
     readyToCreate.value = data.readyToCreate
     messages.value = data.messages || []
@@ -616,77 +652,61 @@ onMounted(async () => {
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.page-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 18px;
-  border: 1px solid #dbe2ea;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%);
-}
-.eyebrow {
-  margin: 0 0 6px;
-  color: #0f766e;
-  font-size: 12px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-h1 {
-  margin: 0;
-  font-size: 32px;
-  color: #0f172a;
-}
-.hero-copy {
-  margin: 10px 0 0;
-  max-width: 720px;
-  color: #64748b;
-  line-height: 1.7;
-}
-.hero-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.hero-switch {
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-  color: #0f172a;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-.layout {
+
+.workspace-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 0.95fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.95fr);
   gap: 14px;
+  margin-top: 12px;
 }
-.lower-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) 360px;
-  gap: 14px;
+
+.workspace-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   margin-top: 14px;
 }
-.side-stack {
+
+.main-stack {
   display: grid;
-  gap: 14px;
+  gap: 0;
   align-content: start;
 }
 
+.main-stack > .main-tabs {
+  display: none;
+}
+
+.main-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #dbe2ea;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  width: fit-content;
+}
+
+.main-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.main-tab.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
+}
+
 @media (max-width: 1024px) {
-  .page-hero,
-  .hero-badges {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .layout,
-  .lower-layout {
+  .workspace-layout {
     grid-template-columns: 1fr;
   }
 }
 </style>
-

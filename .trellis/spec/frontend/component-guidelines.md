@@ -6,6 +6,42 @@
 
 This project uses Vue 3 SFCs with route views as orchestration layers and domain components as focused UI sections.
 
+## Mandatory Page Workflow
+
+For all page-related work in this project, including:
+- page structure
+- layout
+- navigation
+- visual hierarchy
+- interaction design
+- user-facing copy structure
+
+the workflow is fixed and mandatory:
+
+1. Output `三省意见`
+   - `中书省`: clarify the user's real product goal
+   - `门下省`: identify current problems, conflicts, and risks
+   - `尚书省`: define the execution conclusion and implementation direction
+2. Output `六部意见`
+   - `项目部`
+   - `需求部`
+   - `知识部`
+   - `模板部`
+   - `任务部`
+   - `治理部`
+3. Summarize execution requirements
+   - what should change
+   - what should not change
+   - what final page model should be produced
+4. Only after the above, use the `ui-ux-pro-max` skill to derive page structure, layout, hierarchy, and visual direction
+5. Only after both the `三省六部` conclusion and the `ui-ux-pro-max` design direction are explicit, implement the page change
+
+Do not:
+- implement first and explain later
+- skip `三省六部`
+- skip the `ui-ux-pro-max` step for page work
+- treat this workflow as optional
+
 ## Scenario: Building Or Refactoring A Page
 
 ### 1. Scope / Trigger
@@ -68,6 +104,7 @@ This project uses Vue 3 SFCs with route views as orchestration layers and domain
   - child emits still trigger parent actions
   - labels and status mappings still display correctly
   - no duplicated top navigation is reintroduced
+  - page work followed the mandatory `三省六部 -> ui-ux-pro-max -> implementation` workflow before editing
 
 ### 7. Wrong vs Correct
 
@@ -145,6 +182,17 @@ Minimum requirements:
 - modals and expandable panels should expose obvious close or collapse controls
 
 ## Common Mistakes
+
+### Common Mistake: Modifying a page before running the required workflow
+
+**Symptom**: implementation starts first, and the page rationale or layout model is explained afterward.
+
+**Fix**: stop and rewind to the mandatory sequence:
+1. `三省意见`
+2. `六部意见`
+3. execution requirements
+4. `ui-ux-pro-max`
+5. implementation
 
 ### Common Mistake: Rebuilding global navigation inside a page
 

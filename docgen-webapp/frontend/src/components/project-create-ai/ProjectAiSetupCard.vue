@@ -1,28 +1,25 @@
 ﻿<template>
   <WorkspaceSection
     eyebrow="辅助输入"
-    title="项目起点与佐证资料"
-    description="这里负责给 AI 一个起点，并补充能帮助 AI 校准理解的资料。主工作区仍以对话和框架提炼为主。"
+    title="补充资料"
+    description="补充链接、原文或文件，帮助 AI 校准理解。"
   >
-    <div class="grid two">
-      <input v-model.trim="startForm.projectName" class="input" placeholder="先写下项目名称，或一个临时工作名" />
-      <textarea
-        v-model="startForm.description"
-        class="input"
-        placeholder="补充项目背景、想解决的问题、目标用户，或当前已有的业务设想。"
-      />
+    <div class="materials-topbar">
+      <div>
+        <p class="topbar-title">选择一种方式补充资料</p>
+        <p class="topbar-note">项目想法请继续在主工作区和 AI 沟通，这里只补充不便口头表达的信息。</p>
+      </div>
+      <StatusBadge :label="sessionId ? '已关联当前会话' : '首条消息发送时一并提交'" :variant="sessionId ? 'success' : 'warning'" small />
     </div>
 
-    <div class="materials-header">
-      <div>
-        <p class="section-label">知识输入</p>
-        <h4>补充佐证资料</h4>
-      </div>
-      <StatusBadge :label="sessionId ? '会话已启动' : '等待启动会话'" :variant="sessionId ? 'success' : 'warning'" small />
+    <div class="material-mode-switch">
+      <button class="mode-chip" :class="{ active: activeMode === 'url' }" type="button" @click="activeMode = 'url'">网站链接</button>
+      <button class="mode-chip" :class="{ active: activeMode === 'text' }" type="button" @click="activeMode = 'text'">原文资料</button>
+      <button class="mode-chip" :class="{ active: activeMode === 'file' }" type="button" @click="activeMode = 'file'">文件资料</button>
     </div>
 
     <div class="materials">
-      <div class="material-card">
+      <div v-if="activeMode === 'url'" class="material-card">
         <div class="section-head">
           <strong>网站链接</strong>
           <button class="mini" type="button" @click="$emit('add-url-material')">添加</button>
@@ -31,20 +28,20 @@
         <input v-model.trim="urlDraft.sourceUri" class="input" placeholder="https://example.com" />
       </div>
 
-      <div class="material-card">
+      <div v-else-if="activeMode === 'text'" class="material-card">
         <div class="section-head">
-          <strong>文本资料</strong>
+          <strong>补充原文资料</strong>
           <button class="mini" type="button" @click="$emit('add-text-material')">添加</button>
         </div>
-        <input v-model.trim="textDraft.title" class="input" placeholder="文本标题，可选" />
+        <input v-model.trim="textDraft.title" class="input" placeholder="资料标题，可选" />
         <textarea
           v-model="textDraft.rawContent"
           class="input"
-          placeholder="把会议纪要、需求说明、竞品分析或你的业务构想直接贴进来。"
+          placeholder="可粘贴会议纪要、调研摘要、客户原话、竞品资料等较长原文。"
         />
       </div>
 
-      <div class="material-card">
+      <div v-else class="material-card">
         <div class="section-head">
           <strong>文件资料</strong>
         </div>
@@ -54,8 +51,19 @@
           <button class="ghost" type="button" :disabled="loading || !sessionId || !selectedFile" @click="$emit('upload-file')">
             上传文件
           </button>
-          <span class="muted">{{ selectedFile ? selectedFile.name : '尚未选择文件' }}</span>
+          <span class="muted">{{ sessionId ? (selectedFile ? selectedFile.name : '尚未选择文件') : '请先在主工作区发送第一条消息后再上传文件' }}</span>
         </div>
+      </div>
+    </div>
+
+    <div class="materials-summary">
+      <div class="summary-card">
+        <span class="summary-label">待提交资料</span>
+        <strong>{{ pendingMaterials.length }}</strong>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">已保存资料</span>
+        <strong>{{ savedMaterials.length }}</strong>
       </div>
     </div>
 
@@ -100,12 +108,10 @@
     </div>
 
     <div class="row">
-      <button class="primary" type="button" :disabled="loading || !canStartConversation" @click="$emit('start-conversation')">
-        启动 AI 会话
-      </button>
       <button class="ghost" type="button" :disabled="loading || !sessionId || pendingMaterials.length === 0" @click="$emit('save-materials')">
         保存资料到会话
       </button>
+      <span v-if="!sessionId" class="muted">首次发送消息时，待提交资料会自动跟随会话一起创建。</span>
     </div>
   </WorkspaceSection>
 </template>
@@ -125,6 +131,7 @@ import type {
 } from './types'
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const activeMode = ref<'url' | 'text' | 'file'>('url')
 
 const props = defineProps<{
   loading: boolean
@@ -175,12 +182,18 @@ defineExpose({
 .grid.two { grid-template-columns: 1fr 1.3fr; }
 .input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 10px; padding: 9px 10px; background: #fff; }
 textarea.input { min-height: 92px; resize: vertical; }
-.materials-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 10px; }
-.section-label { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
-h4 { margin: 0; color: #0f172a; }
+.materials-topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 12px 0 10px; }
+.topbar-title { margin: 0; color: #0f172a; font-size: 15px; font-weight: 700; }
+.topbar-note { margin: 4px 0 0; color: #64748b; font-size: 13px; line-height: 1.6; }
+.material-mode-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.mode-chip { border-radius: 999px; border: 1px solid #d1d5db; background: #fff; color: #475569; padding: 7px 11px; cursor: pointer; }
+.mode-chip.active { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
 .materials { display: grid; gap: 12px; margin-top: 10px; }
 .material-card, .pending-item { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; background: #fafcff; }
 .pending-list { margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 14px; background: #fff; }
+.materials-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.summary-card { border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.summary-label { color: #64748b; font-size: 13px; }
 .knowledge-status-list, .knowledge-status-block { display: grid; gap: 6px; }
 .knowledge-status-item, .section-head, .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .section-head { justify-content: space-between; margin-bottom: 8px; }
@@ -190,5 +203,5 @@ h4 { margin: 0; color: #0f172a; }
 .primary { background: #2563eb; border-color: #2563eb; color: #fff; }
 .ghost, .mini { background: #f3f4f6; }
 .mini { padding: 5px 9px; font-size: 12px; }
-@media (max-width: 960px) { .grid.two { grid-template-columns: 1fr; } .materials-header { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 960px) { .grid.two { grid-template-columns: 1fr; } .materials-topbar { flex-direction: column; align-items: flex-start; } .materials-summary { grid-template-columns: 1fr; } }
 </style>
