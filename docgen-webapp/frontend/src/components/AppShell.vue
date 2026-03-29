@@ -1,24 +1,27 @@
-﻿<template>
+<template>
   <div class="shell">
     <ShellHeader
       :nav-items="navItems"
       :active-section="activeSection"
+      :current-path="route.path"
       :login-user="loginUser"
       @go-default="goDefault"
       @navigate="navigate"
       @logout="handleLogout"
     />
 
-    <ShellContextBar
-      v-if="!isLoginPage"
-      :breadcrumbs="breadcrumbs"
-      :back-target="backTarget"
-      @navigate="navigate"
-    />
+    <div class="shell-main" :class="{ 'shell-main--entry': isProjectEntryPage }">
+      <ShellContextBar
+        v-if="!isLoginPage"
+        :breadcrumbs="breadcrumbs"
+        :back-target="backTarget"
+        @navigate="navigate"
+      />
 
-    <main class="shell-body">
-      <router-view />
-    </main>
+      <main class="shell-body" :class="{ 'shell-body--entry': isProjectEntryPage }">
+        <router-view />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -34,7 +37,15 @@ const route = useRoute()
 const router = useRouter()
 
 const navItems: NavItem[] = [
-  { label: '项目管理中心', to: '/projects', section: 'projects' },
+  {
+    label: '项目管理中心',
+    to: '/projects',
+    section: 'projects',
+    children: [
+      { label: '创建项目', to: '/projects' },
+      { label: '项目管理', to: '/projects/manage' }
+    ]
+  },
   { label: '需求管理中心', to: '/docgen', section: 'requirements' },
   { label: '模板管理中心', to: '/templates', section: 'templates' },
   { label: '企业行业知识库', to: '/knowledge', section: 'knowledge' },
@@ -43,6 +54,7 @@ const navItems: NavItem[] = [
 
 const loginUser = computed(() => getLoginUser())
 const isLoginPage = computed(() => route.path === '/login')
+const isProjectEntryPage = computed(() => route.path === '/projects')
 
 const activeSection = computed(() => {
   const section = String(route.meta.section || '')
@@ -108,12 +120,12 @@ const breadcrumbs = computed<Crumb[]>(() => {
   items.push({ label: '项目管理中心', to: '/projects' })
 
   if (route.path === '/projects') {
-    items[items.length - 1].to = undefined
+    items.push({ label: '创建项目' })
     return items
   }
 
   if (route.path === '/projects/manage') {
-    items.push({ label: '项目管理页' })
+    items.push({ label: '项目管理' })
     return items
   }
 
@@ -170,11 +182,44 @@ function handleLogout() {
 <style scoped>
 .shell {
   min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 296px minmax(0, 1fr);
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
     linear-gradient(180deg, #f6f9fd 0%, #eef4fb 100%);
 }
+
+.shell-main {
+  min-width: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-main--entry {
+  min-height: 100dvh;
+}
+
 .shell-body {
-  padding: 12px 0 28px;
+  flex: 1;
+  min-height: 0;
+  padding: 8px 0 14px;
+  overflow-y: auto;
+}
+
+.shell-body--entry {
+  padding: 4px 0 8px;
+  overflow: hidden;
+}
+
+@media (max-width: 1120px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-main {
+    min-height: 0;
+  }
 }
 </style>
