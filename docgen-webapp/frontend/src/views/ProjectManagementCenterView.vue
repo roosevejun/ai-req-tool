@@ -1,38 +1,16 @@
 <template>
   <div class="page">
-    <CenterHero
-      eyebrow="Project Management Center"
-      title="项目管理中心"
-      summary="围绕项目创建、项目孵化与项目办理建立统一入口。先明确从哪里开始，再进入对应业务页面推进。"
-    >
-      <template #badges>
+    <section class="page-note">
+      <div>
+        <p class="note-label">项目管理入口</p>
+        <h1>请选择项目创建或管理方式</h1>
+        <p class="note-copy">系统级模块导航已在顶部统一承接，这里直接进入项目业务入口与后续办理动作。</p>
+      </div>
+      <div class="note-metrics">
         <StatusBadge :label="`${metrics.projectCount} 个项目`" variant="info" />
         <StatusBadge :label="`${metrics.activeCount} 个进行中`" variant="success" />
         <StatusBadge :label="`${metrics.needsAiCount} 个待补框架`" variant="warning" />
-      </template>
-      <template #actions>
-        <button class="ghost" type="button" @click="goManage">进入项目管理页</button>
-        <button class="primary" type="button" @click="goCreate">快速创建项目</button>
-      </template>
-    </CenterHero>
-
-    <section class="overview-strip">
-      <article class="metric-card">
-        <span>项目总数</span>
-        <strong>{{ metrics.projectCount }}</strong>
-      </article>
-      <article class="metric-card">
-        <span>进行中项目</span>
-        <strong>{{ metrics.activeCount }}</strong>
-      </article>
-      <article class="metric-card">
-        <span>待补框架项目</span>
-        <strong>{{ metrics.needsAiCount }}</strong>
-      </article>
-      <article class="metric-card">
-        <span>已归档项目</span>
-        <strong>{{ metrics.archivedCount }}</strong>
-      </article>
+      </div>
     </section>
 
     <section class="entry-layout">
@@ -40,7 +18,7 @@
         <WorkspaceSection
           eyebrow="Business Entry 01"
           title="传统创建项目"
-          description="适合项目信息已经比较明确的场景，直接录入项目名称、背景、客户群体与价值信息，快速建立项目档案。"
+          description="适合项目信息已经比较明确的场景，直接录入项目名称、背景、客户群体与价值信息，快速建立正式项目档案。"
           :tint="true"
         >
           <ul class="entry-list">
@@ -69,7 +47,7 @@
         <WorkspaceSection
           eyebrow="Management Entry"
           title="进入项目管理"
-          description="已有项目时，直接进入项目管理页查看项目列表、项目详情、AI 协同与需求入口。"
+          description="已有项目时，直接进入项目管理页查看项目列表、项目信息、AI 协同与后续需求入口。"
         >
           <button class="ghost full" type="button" @click="goManage">进入项目管理页</button>
         </WorkspaceSection>
@@ -89,12 +67,7 @@
       </aside>
     </section>
 
-    <div class="feedback-stack">
-      <FeedbackPanel
-        title="使用说明"
-        tone="warning"
-        message="项目管理中心首页只负责业务分流与入口引导。进入具体业务后，再完成项目创建、项目办理与协同维护。"
-      />
+    <div v-if="error" class="feedback-stack">
       <FeedbackPanel title="处理提示" tone="danger" :message="error" />
     </div>
   </div>
@@ -104,10 +77,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
-import CenterHero from '../components/shell/CenterHero.vue'
+import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 
 type ProjectListItem = {
   id: number
@@ -123,10 +95,6 @@ const metrics = reactive({
   needsAiCount: 0,
   archivedCount: 0
 })
-
-function goCreate() {
-  void router.push('/projects/create')
-}
 
 function goForm() {
   void router.push('/projects/create/form')
@@ -162,51 +130,72 @@ onMounted(() => {
 <style scoped>
 .page {
   max-width: 1480px;
-  margin: 18px auto;
-  padding: 0 14px 18px;
+  margin: 12px auto;
+  padding: 0 14px 12px;
   display: grid;
-  gap: 16px;
+  gap: 12px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #0f172a;
 }
-.overview-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.metric-card {
+
+.page-note {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
   padding: 16px 18px;
-  border-radius: 20px;
   border: 1px solid #dbe2ea;
-  background: #fff;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.05);
+  border-radius: 16px;
+  background: #ffffff;
 }
-.metric-card span {
-  display: block;
+
+.note-label {
+  margin: 0 0 6px;
+  color: #2563eb;
   font-size: 12px;
-  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
-.metric-card strong {
-  display: block;
-  margin-top: 8px;
-  font-size: 26px;
+
+.page-note h1 {
+  margin: 0;
+  font-size: 28px;
   color: #0f172a;
 }
+
+.note-copy {
+  margin: 8px 0 0;
+  color: #475569;
+  line-height: 1.65;
+  max-width: 780px;
+}
+
+.note-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .entry-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) 360px;
-  gap: 16px;
+  gap: 12px;
 }
+
 .entry-main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
+
 .entry-side,
 .feedback-stack {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
+
 .entry-list,
 .advice-list {
   margin: 0;
@@ -214,6 +203,7 @@ onMounted(() => {
   color: #475569;
   line-height: 1.8;
 }
+
 .primary,
 .ghost,
 .ai-button {
@@ -223,28 +213,42 @@ onMounted(() => {
   cursor: pointer;
   font-weight: 700;
 }
+
 .primary {
   background: #1d4ed8;
   border-color: #1d4ed8;
   color: #fff;
 }
+
 .ghost {
   background: #fff;
   color: #0f172a;
 }
+
 .ai-button {
   background: #0f766e;
   border-color: #0f766e;
   color: #fff;
 }
+
 .full {
   width: 100%;
 }
+
 @media (max-width: 1180px) {
-  .overview-strip,
   .entry-layout,
   .entry-main {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .page-note {
+    flex-direction: column;
+  }
+
+  .note-metrics {
+    justify-content: flex-start;
   }
 }
 </style>
