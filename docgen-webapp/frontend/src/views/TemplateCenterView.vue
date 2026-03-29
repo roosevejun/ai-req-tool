@@ -1,26 +1,23 @@
 <template>
   <div class="page">
-    <section class="page-hero">
-      <div>
-        <p class="eyebrow">模板中心</p>
-        <h1>文档标准中心</h1>
-        <p class="hero-copy">
-          在这里统一管理需求模板、版本、正文和变量结构，让后续需求整理和文档生成都建立在稳定标准上。
-        </p>
-      </div>
-      <div class="hero-badges">
+    <CenterHero
+      eyebrow="Template Management Center"
+      title="模板管理中心"
+      summary="统一维护模板目录、发布版本、正文内容与变量结构，让需求整理与文档生成建立在稳定标准之上。"
+    >
+      <template #badges>
         <StatusBadge :label="`${templates.length} 个模板`" variant="info" />
         <StatusBadge :label="`${publishedCount} 个已发布`" variant="success" />
         <StatusBadge :label="selectedTemplate ? `当前：${selectedTemplate.templateCode}` : '请选择模板'" variant="ai" />
-      </div>
-    </section>
+      </template>
+    </CenterHero>
 
     <div class="layout">
       <main class="content">
         <WorkspaceSection
-          eyebrow="模板目录"
-          title="标准模板清单"
-          description="模板先定义文档标准，再驱动需求整理和文档生成。建议优先维护模板说明、发布版本和变量结构。"
+          eyebrow="Template Catalog"
+          title="标准模板目录"
+          description="模板先定义标准，再驱动需求整理和文档生成。建议优先维护模板说明、发布版本和变量结构。"
           :tint="true"
         >
           <template #actions>
@@ -78,9 +75,9 @@
 
       <aside class="sidebar">
         <WorkspaceSection
-          eyebrow="标准详情"
+          eyebrow="Template Detail"
           title="版本与编辑器"
-          description="在这里查看版本、维护正文和变量结构，并决定哪个版本可以成为默认标准。"
+          description="在这里查看版本、维护正文和变量结构，并决定哪个版本成为默认标准。"
         >
           <template v-if="detail && selectedTemplate">
             <div class="template-detail">
@@ -177,7 +174,7 @@
           <EmptyWorkspaceState
             v-else
             eyebrow="模板详情"
-            title="请先选择模板"
+            title="请选择模板"
             description="选择左侧模板后，这里会显示版本、标准建议和模板编辑器。"
           />
         </WorkspaceSection>
@@ -199,6 +196,7 @@ import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
+import CenterHero from '../components/shell/CenterHero.vue'
 import { scopeLevelLabel, templateStatusLabel, templateStatusVariant, templateUsageHint } from '../components/template-center/helpers'
 import type { ApiResponse, TemplateDetail, TemplateEditorForm, TemplateItem, TemplateVersionItem } from '../components/template-center/types'
 
@@ -391,56 +389,243 @@ onMounted(loadTemplates)
 </script>
 
 <style scoped>
-.page { display: grid; gap: 18px; }
-.page-hero { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 28px; border-radius: 24px; background: linear-gradient(135deg, #eff6ff, #f8fafc); border: 1px solid #dbeafe; }
-.eyebrow { margin: 0 0 8px; color: #0f766e; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
-.page-hero h1 { margin: 0; font-size: 32px; color: #0f172a; }
-.hero-copy { margin: 10px 0 0; max-width: 720px; color: #475569; line-height: 1.7; }
-.hero-badges { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 18px; align-items: start; }
-.content, .sidebar { display: grid; gap: 18px; min-width: 0; }
-.catalog-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
-.summary-card { border: 1px solid #dbe2ea; border-radius: 14px; padding: 14px; background: #fff; }
-.summary-card span { display: block; font-size: 12px; color: #64748b; }
-.summary-card strong { display: block; margin-top: 8px; color: #0f172a; font-size: 24px; }
-.template-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-.template-card { width: 100%; text-align: left; border: 1px solid #dbe2ea; border-radius: 18px; padding: 16px; background: #fff; cursor: pointer; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
-.template-card:hover, .template-card--active { border-color: #3b82f6; box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12); transform: translateY(-1px); }
-.template-card__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.template-card__head h3 { margin: 0; font-size: 18px; color: #0f172a; }
-.template-card__head p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
-.template-card__desc { margin: 12px 0; color: #475569; line-height: 1.6; min-height: 48px; }
-.template-card__meta { display: grid; gap: 6px; color: #64748b; font-size: 12px; }
-.template-detail { display: grid; gap: 16px; }
-.template-detail__header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.template-detail__header h3 { margin: 0; font-size: 22px; color: #0f172a; }
-.template-detail__header p { margin: 6px 0 0; color: #64748b; }
-.template-detail__copy { margin: 0; color: #475569; line-height: 1.7; }
-.governance-card { border: 1px solid #dbe2ea; border-radius: 14px; padding: 14px; background: linear-gradient(180deg, #f8fcff 0%, #ffffff 100%); }
-.governance-title { margin: 0 0 10px; color: #0f172a; font-weight: 700; }
-.governance-card ul { margin: 0; padding-left: 18px; color: #475569; line-height: 1.8; }
-.version-list { display: grid; gap: 12px; }
-.version-item { text-align: left; border: 1px solid #dbe2ea; border-radius: 14px; padding: 12px; background: #fff; cursor: pointer; }
-.version-item--active { border-color: #2563eb; background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); }
-.version-item__head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 8px; }
-.version-item p { margin: 0 0 6px; color: #475569; line-height: 1.6; }
-.version-published { color: #166534; font-weight: 700; }
-.editor-card { display: grid; gap: 14px; border: 1px solid #dbe2ea; border-radius: 16px; padding: 16px; background: #fff; }
-.field { display: grid; gap: 8px; }
-.field span { font-size: 13px; font-weight: 700; color: #334155; }
-.input, .textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; }
-.textarea { resize: vertical; line-height: 1.6; }
-.textarea--small { min-height: 88px; }
-.textarea--medium { min-height: 180px; font-family: "Consolas", "SFMono-Regular", monospace; }
-.textarea--large { min-height: 260px; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
-.between { justify-content: space-between; align-items: center; }
-.feedback-stack { display: grid; gap: 12px; }
-.primary, .ghost { border-radius: 10px; border: 1px solid #d1d5db; padding: 10px 14px; cursor: pointer; }
-.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-.ghost { background: #f8fafc; }
+.page {
+  display: grid;
+  gap: 18px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 18px;
+  align-items: start;
+}
+.content,
+.sidebar,
+.feedback-stack {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.catalog-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.summary-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 18px;
+  padding: 16px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+}
+.summary-card span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+.summary-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 24px;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.template-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #dbe2ea;
+  border-radius: 18px;
+  padding: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.template-card:hover,
+.template-card--active {
+  border-color: #2563eb;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.10);
+  transform: translateY(-1px);
+}
+.template-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.template-card__head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+.template-card__head p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+.template-card__desc {
+  margin: 12px 0;
+  color: #475569;
+  line-height: 1.7;
+  min-height: 52px;
+}
+.template-card__meta {
+  display: grid;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+.template-detail {
+  display: grid;
+  gap: 16px;
+}
+.template-detail__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.template-detail__header h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+.template-detail__header p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+.template-detail__copy {
+  margin: 0;
+  color: #475569;
+  line-height: 1.75;
+}
+.governance-card {
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+.governance-title {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-weight: 700;
+}
+.governance-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  line-height: 1.8;
+}
+.version-list {
+  display: grid;
+  gap: 12px;
+}
+.version-item {
+  text-align: left;
+  border: 1px solid #dbe2ea;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.version-item--active {
+  border-color: #2563eb;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+.version-item__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.version-item p {
+  margin: 0 0 6px;
+  color: #475569;
+  line-height: 1.6;
+}
+.version-published {
+  color: #166534;
+  font-weight: 700;
+}
+.editor-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+}
+.field {
+  display: grid;
+  gap: 8px;
+}
+.field span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+.input,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+.textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+.textarea--small {
+  min-height: 88px;
+}
+.textarea--medium {
+  min-height: 180px;
+  font-family: "Consolas", "SFMono-Regular", monospace;
+}
+.textarea--large {
+  min-height: 260px;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.between {
+  justify-content: space-between;
+  align-items: center;
+}
+.primary,
+.ghost {
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+.ghost {
+  background: #f8fafc;
+}
 @media (max-width: 1180px) {
-  .page-hero, .hero-badges, .template-detail__header, .between { flex-direction: column; align-items: flex-start; }
-  .layout, .catalog-summary { grid-template-columns: 1fr; }
+  .template-detail__header,
+  .between {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .layout,
+  .catalog-summary {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,17 +1,16 @@
 ﻿<template>
   <div class="page">
-    <section class="page-hero">
-      <div>
-        <p class="eyebrow">系统工作台</p>
-        <h1>系统管理</h1>
-        <p class="hero-copy">统一维护用户、角色与权限，并从同一页进入 AI 项目和需求工作台。</p>
-      </div>
-      <div class="hero-badges">
+    <CenterHero
+      eyebrow="System Administration Center"
+      title="系统管理"
+      summary="统一维护用户、角色、权限和治理动作，并从这里进入模板标准和业务工作台。"
+    >
+      <template #badges>
         <StatusBadge :label="`${users.length} 个用户`" variant="info" />
         <StatusBadge :label="`${roles.length} 个角色`" variant="ai" />
         <StatusBadge :label="`${permissions.length} 条权限`" variant="success" />
-      </div>
-    </section>
+      </template>
+    </CenterHero>
 
     <div class="layout">
       <main class="content">
@@ -138,6 +137,7 @@ import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
+import CenterHero from '../components/shell/CenterHero.vue'
 import BindingPanels from '../components/system-admin/BindingPanels.vue'
 import RolePermissionCards from '../components/system-admin/RolePermissionCards.vue'
 import SystemHealthPanel from '../components/system-admin/SystemHealthPanel.vue'
@@ -293,16 +293,11 @@ onMounted(loadAll)
 
 <style scoped>
 .page { max-width: 1480px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-.page-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; padding: 18px; border: 1px solid #dbe2ea; border-radius: 20px; background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%); }
-.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
-h1 { margin: 0; font-size: 32px; color: #0f172a; }
-.hero-copy { margin: 10px 0 0; max-width: 720px; color: #64748b; line-height: 1.7; }
-.hero-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
 .content, .sidebar { min-width: 0; }
 .workspace-stack, .feedback-stack, .sidebar { display: grid; gap: 14px; }
 .tab-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .tab { border-radius: 999px; border: 1px solid #cbd5e1; background: #fff; padding: 8px 12px; cursor: pointer; color: #334155; }
 .tab--active { background: #0f172a; border-color: #0f172a; color: #fff; }
-@media (max-width: 1080px) { .page-hero, .hero-badges { flex-direction: column; align-items: flex-start; } .layout { grid-template-columns: 1fr; } }
+@media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
 </style>

@@ -1,17 +1,16 @@
 ﻿<template>
   <div class="page">
-    <section class="page-hero">
-      <div>
-        <p class="eyebrow">知识工作台</p>
-        <h1>知识库</h1>
-        <p class="hero-copy">统一查看项目知识文档、需求知识、处理状态、失败原因，以及资源预览和重跑入口。</p>
-      </div>
-      <div class="hero-badges">
+    <CenterHero
+      eyebrow="Enterprise Knowledge Center"
+      title="企业行业知识库"
+      summary="统一查看项目知识、需求知识、处理状态、失败原因，以及资源预览、下载与重跑入口。"
+    >
+      <template #badges>
         <StatusBadge :label="selectedProject ? `项目 #${selectedProject.id}` : '未选择项目'" :variant="selectedProject ? 'info' : 'warning'" />
         <StatusBadge :label="selectedRequirement ? `需求 #${selectedRequirement.id}` : '当前查看项目知识'" :variant="selectedRequirement ? 'ai' : 'neutral'" />
         <StatusBadge :label="`${documents.length} 份文档`" variant="success" />
-      </div>
-    </section>
+      </template>
+    </CenterHero>
 
     <div class="layout">
       <aside class="sidebar">
@@ -134,6 +133,7 @@ import KnowledgeLifecyclePanel from '../components/knowledge/KnowledgeLifecycleP
 import StatusBadge from '../components/projects/StatusBadge.vue'
 import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
 import KnowledgeLibraryDetailModal from '../components/knowledge/KnowledgeLibraryDetailModal.vue'
+import CenterHero from '../components/shell/CenterHero.vue'
 import { visibleChunks as toVisibleChunks } from '../components/project-create-ai/helpers'
 import type { ApiResponse, KnowledgeDocumentChunk, KnowledgeDocumentDetail, KnowledgeDocumentListItem } from '../components/project-create-ai/types'
 import type { ProjectItem, RequirementItem } from '../components/projects/types'
@@ -255,11 +255,6 @@ onMounted(async () => { await loadProjects(); await applyRouteSelection() })
 
 <style scoped>
 .page { max-width: 1480px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-.page-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; padding: 18px; border: 1px solid #dbe2ea; border-radius: 20px; background: linear-gradient(135deg, #f8fcff 0%, #ffffff 55%); }
-.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
-h1 { margin: 0; font-size: 32px; color: #0f172a; }
-.hero-copy { margin: 10px 0 0; max-width: 720px; color: #64748b; line-height: 1.7; }
-.hero-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; }
 .sidebar, .feedback-stack { display: grid; gap: 14px; align-content: start; }
 .field { display: grid; gap: 8px; margin-bottom: 12px; }
@@ -282,5 +277,5 @@ h1 { margin: 0; font-size: 32px; color: #0f172a; }
 .error-text { margin: 10px 0 0; color: #b91c1c; line-height: 1.6; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .ghost { border-radius: 10px; border: 1px solid #d1d5db; background: #fff; padding: 8px 12px; cursor: pointer; }
-@media (max-width: 1080px) { .page-hero, .hero-badges { flex-direction: column; align-items: flex-start; } .layout { grid-template-columns: 1fr; } .document-head { flex-direction: column; } .doc-status { justify-content: flex-start; } }
+@media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } .document-head { flex-direction: column; } .doc-status { justify-content: flex-start; } }
 </style>

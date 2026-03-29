@@ -37,7 +37,7 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 18px 0;
+  padding: 12px 20px 0;
 }
 .breadcrumbs {
   display: flex;
@@ -46,19 +46,20 @@ defineEmits<{
 }
 .crumb,
 .ghost {
-  border: 1px solid #d1d5db;
+  border: 1px solid #d4dce6;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 999px;
   padding: 8px 12px;
   cursor: pointer;
 }
 .crumb {
-  color: #334155;
+  color: #475569;
 }
 .crumb.current {
-  background: #e0ecff;
-  border-color: #b6d0ff;
+  background: #eff6ff;
+  border-color: #bfdbfe;
   color: #1d4ed8;
+  font-weight: 700;
 }
 .crumb.clickable:hover,
 .ghost:hover {

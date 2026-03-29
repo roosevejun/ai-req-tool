@@ -1,17 +1,16 @@
 ﻿<template>
   <div class="page">
-    <section class="page-hero">
-      <div>
-        <p class="eyebrow">需求工作台</p>
-        <h1>AI 需求整理</h1>
-        <p class="hero-copy">围绕项目和需求上下文持续整理、澄清并沉淀 PRD，让 AI 工作台和需求列表保持同一条业务链路。</p>
-      </div>
-      <div class="hero-badges">
+    <CenterHero
+      eyebrow="Requirements Management Center"
+      title="AI 需求整理"
+      summary="围绕项目与需求上下文持续整理、澄清并沉淀 PRD，让需求列表、AI 工作台与版本链路保持同一条业务主线。"
+    >
+      <template #badges>
         <StatusBadge :label="selectedProjectId ? `项目 #${selectedProjectId}` : '未选中项目'" :variant="selectedProjectId ? 'info' : 'warning'" />
         <StatusBadge :label="selectedRequirementId ? `需求 #${selectedRequirementId}` : '未选中需求'" :variant="selectedRequirementId ? 'success' : 'warning'" />
         <StatusBadge :label="`${requirements.length} 条需求`" variant="ai" />
-      </div>
-    </section>
+      </template>
+    </CenterHero>
 
     <div class="layout">
       <aside class="sidebar">
@@ -85,6 +84,7 @@ import axios from 'axios'
 import EmptyWorkspaceState from '../components/projects/EmptyWorkspaceState.vue'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
 import StatusBadge from '../components/projects/StatusBadge.vue'
+import CenterHero from '../components/shell/CenterHero.vue'
 import DocGenPage from '../components/DocGenPage.vue'
 import ProjectRequirementTree from '../components/ProjectRequirementTree.vue'
 import DocGenStagePanel from '../components/docgen-view/DocGenStagePanel.vue'
@@ -160,11 +160,6 @@ watch(selectedProjectId, async (projectId) => {
 
 <style scoped>
 .page { max-width: 1440px; margin: 18px auto; padding: 0 14px 18px; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-.page-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; padding: 18px; border: 1px solid #dbe2ea; border-radius: 20px; background: linear-gradient(135deg, #f7fbff 0%, #ffffff 55%); }
-.eyebrow { margin: 0 0 6px; color: #0f766e; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
-h1 { margin: 0; font-size: 32px; color: #0f172a; }
-.hero-copy { margin: 10px 0 0; max-width: 760px; color: #64748b; line-height: 1.7; }
-.hero-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .layout { display: grid; grid-template-columns: 350px 1fr; gap: 14px; }
 .card { background: #fff; border: 1px solid #dbe2ea; border-radius: 16px; padding: 14px; margin-bottom: 14px; }
 .workspace-card { background: linear-gradient(180deg, #f8fcff 0%, #ffffff 45%); }
@@ -173,5 +168,5 @@ h1 { margin: 0; font-size: 32px; color: #0f172a; }
 .ghost, .mini { border-radius: 8px; border: 1px solid #d1d5db; padding: 8px 12px; cursor: pointer; background: #f3f4f6; }
 .mini { padding: 5px 9px; font-size: 12px; }
 .feedback-stack { display: grid; gap: 10px; margin-top: 12px; }
-@media (max-width: 980px) { .page-hero, .hero-badges { flex-direction: column; align-items: flex-start; } .layout { grid-template-columns: 1fr; } .between { align-items: flex-start; } }
+@media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .between { align-items: flex-start; } }
 </style>

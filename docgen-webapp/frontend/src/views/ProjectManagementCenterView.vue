@@ -1,19 +1,20 @@
 <template>
   <div class="page">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">项目管理中心</p>
-        <h1>项目管理业务入口</h1>
-        <p class="summary">
-          面向项目创建、项目孵化与项目办理的统一入口。先选择业务入口，再进入对应业务页面处理项目事项。
-        </p>
-      </div>
-
-      <div class="hero-actions">
-        <button class="secondary" type="button" @click="goManage">进入项目管理页</button>
+    <CenterHero
+      eyebrow="Project Management Center"
+      title="项目管理中心"
+      summary="围绕项目创建、项目孵化与项目办理建立统一入口。先明确从哪里开始，再进入对应业务页面推进。"
+    >
+      <template #badges>
+        <StatusBadge :label="`${metrics.projectCount} 个项目`" variant="info" />
+        <StatusBadge :label="`${metrics.activeCount} 个进行中`" variant="success" />
+        <StatusBadge :label="`${metrics.needsAiCount} 个待补框架`" variant="warning" />
+      </template>
+      <template #actions>
+        <button class="ghost" type="button" @click="goManage">进入项目管理页</button>
         <button class="primary" type="button" @click="goCreate">快速创建项目</button>
-      </div>
-    </section>
+      </template>
+    </CenterHero>
 
     <section class="overview-strip">
       <article class="metric-card">
@@ -36,50 +37,55 @@
 
     <section class="entry-layout">
       <div class="entry-main">
-        <article class="entry-card entry-card--primary">
-          <p class="entry-eyebrow">业务入口一</p>
-          <h2>传统创建项目</h2>
-          <p>
-            适合项目信息已经明确的场景，直接录入项目名称、背景、客户群体、商业价值等核心信息，快速建立项目档案。
-          </p>
-          <ul>
-            <li>直接创建项目并进入项目管理页</li>
-            <li>后续仍可进入 AI 协同优化项目框架</li>
-            <li>适合已有明确立项结论的项目</li>
+        <WorkspaceSection
+          eyebrow="Business Entry 01"
+          title="传统创建项目"
+          description="适合项目信息已经比较明确的场景，直接录入项目名称、背景、客户群体与价值信息，快速建立项目档案。"
+          :tint="true"
+        >
+          <ul class="entry-list">
+            <li>直接建立正式项目并进入项目管理页。</li>
+            <li>后续仍可进入 AI 协同继续补充和校准项目框架。</li>
+            <li>适合已有明确立项结论的项目。</li>
           </ul>
-          <button class="primary" type="button" @click="goForm">进入传统创建</button>
-        </article>
+          <button class="primary full" type="button" @click="goForm">进入传统创建</button>
+        </WorkspaceSection>
 
-        <article class="entry-card entry-card--ai">
-          <p class="entry-eyebrow">业务入口二</p>
-          <h2>AI 项目孵化</h2>
-          <p>
-            适合想法还不完整、需要一边沟通一边校准的场景。先和 AI 沟通想法，提炼当前项目框架，再决定是否正式立项。
-          </p>
-          <ul>
-            <li>第一句话即可启动 AI 孵化</li>
-            <li>支持补充资料、校准理解、保留当前框架</li>
-            <li>适合新想法探索和前期立项评估</li>
+        <WorkspaceSection
+          eyebrow="Business Entry 02"
+          title="AI 项目孵化"
+          description="适合想法仍在梳理、需要边沟通边提炼项目框架的场景。先对话，再判断当前框架是否值得保留或正式立项。"
+        >
+          <ul class="entry-list">
+            <li>第一句话即可启动 AI 孵化，不需要先建立正式项目。</li>
+            <li>支持补资料、持续追问与保存当前项目框架。</li>
+            <li>适合新想法探索与前期立项判断。</li>
           </ul>
-          <button class="ai-button" type="button" @click="goAi">进入 AI 项目孵化</button>
-        </article>
+          <button class="ai-button full" type="button" @click="goAi">进入 AI 项目孵化</button>
+        </WorkspaceSection>
       </div>
 
       <aside class="entry-side">
-        <section class="panel">
-          <h3>项目办理入口</h3>
-          <p>已有项目时，直接进入项目管理页查看项目列表、项目详情、AI 协同和需求事项。</p>
-          <button class="secondary full" type="button" @click="goManage">进入项目管理页</button>
-        </section>
+        <WorkspaceSection
+          eyebrow="Management Entry"
+          title="进入项目管理"
+          description="已有项目时，直接进入项目管理页查看项目列表、项目详情、AI 协同与需求入口。"
+        >
+          <button class="ghost full" type="button" @click="goManage">进入项目管理页</button>
+        </WorkspaceSection>
 
-        <section class="panel">
-          <h3>办理建议</h3>
-          <ul class="tips">
+        <WorkspaceSection
+          eyebrow="Action Advice"
+          title="办理建议"
+          description="根据当前项目准备程度，选择最顺手的进入路径。"
+          :tint="true"
+        >
+          <ul class="advice-list">
             <li>信息已经明确：优先走传统创建。</li>
             <li>还在梳理想法：优先走 AI 项目孵化。</li>
-            <li>已有项目要继续维护：直接进入项目管理页。</li>
+            <li>已有项目继续推进：直接进入项目管理页。</li>
           </ul>
-        </section>
+        </WorkspaceSection>
       </aside>
     </section>
 
@@ -87,7 +93,7 @@
       <FeedbackPanel
         title="使用说明"
         tone="warning"
-        message="项目管理中心首页只负责业务分流与入口引导。进入具体业务后，再在对应页面完成项目创建、项目办理和协同维护。"
+        message="项目管理中心首页只负责业务分流与入口引导。进入具体业务后，再完成项目创建、项目办理与协同维护。"
       />
       <FeedbackPanel title="处理提示" tone="danger" :message="error" />
     </div>
@@ -99,6 +105,9 @@ import { onMounted, reactive, ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import FeedbackPanel from '../components/projects/FeedbackPanel.vue'
+import StatusBadge from '../components/projects/StatusBadge.vue'
+import WorkspaceSection from '../components/projects/WorkspaceSection.vue'
+import CenterHero from '../components/shell/CenterHero.vue'
 
 type ProjectListItem = {
   id: number
@@ -155,193 +164,85 @@ onMounted(() => {
   max-width: 1480px;
   margin: 18px auto;
   padding: 0 14px 18px;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  color: #111827;
-}
-
-.hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) auto;
   gap: 16px;
-  align-items: start;
-  padding: 20px 22px;
-  background: #ffffff;
-  border: 1px solid #d4dde8;
-  border-top: 4px solid #1d4ed8;
-  border-radius: 10px;
-}
-
-.eyebrow,
-.entry-eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #1d4ed8;
-  font-weight: 700;
-}
-
-h1 {
-  margin: 0;
-  font-size: 34px;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #0f172a;
 }
-
-.summary {
-  margin: 10px 0 0;
-  max-width: 760px;
-  color: #475569;
-  line-height: 1.7;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 .overview-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 14px;
 }
-
-.metric-card,
-.entry-card,
-.panel {
-  background: #ffffff;
-  border: 1px solid #d4dde8;
-  border-radius: 10px;
-}
-
 .metric-card {
-  padding: 14px 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid #dbe2ea;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.05);
 }
-
 .metric-card span {
   display: block;
   font-size: 12px;
   color: #64748b;
 }
-
 .metric-card strong {
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 26px;
   color: #0f172a;
 }
-
 .entry-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) 340px;
+  grid-template-columns: minmax(0, 1.35fr) 360px;
   gap: 16px;
-  margin-top: 14px;
 }
-
 .entry-main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-
-.entry-card {
-  padding: 20px;
-}
-
-.entry-card--primary {
-  border-top: 4px solid #1d4ed8;
-}
-
-.entry-card--ai {
-  border-top: 4px solid #0f766e;
-}
-
-h2,
-h3 {
-  margin: 0;
-  color: #0f172a;
-}
-
-.entry-card p,
-.panel p {
-  color: #475569;
-  line-height: 1.7;
-}
-
-.entry-card ul,
-.tips {
-  margin: 16px 0;
-  padding-left: 18px;
-  color: #334155;
-  line-height: 1.8;
-}
-
-.entry-side {
+.entry-side,
+.feedback-stack {
   display: grid;
   gap: 16px;
 }
-
-.panel {
-  padding: 18px;
+.entry-list,
+.advice-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  line-height: 1.8;
 }
-
 .primary,
-.secondary,
+.ghost,
 .ai-button {
-  border-radius: 6px;
+  border-radius: 12px;
   border: 1px solid #cbd5e1;
-  padding: 10px 16px;
+  padding: 11px 16px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
 }
-
 .primary {
   background: #1d4ed8;
   border-color: #1d4ed8;
-  color: #ffffff;
+  color: #fff;
 }
-
-.secondary {
-  background: #ffffff;
+.ghost {
+  background: #fff;
   color: #0f172a;
 }
-
 .ai-button {
   background: #0f766e;
   border-color: #0f766e;
-  color: #ffffff;
+  color: #fff;
 }
-
 .full {
   width: 100%;
 }
-
-.feedback-stack {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
 @media (max-width: 1180px) {
-  .hero,
-  .entry-layout {
-    grid-template-columns: 1fr;
-  }
-
   .overview-strip,
-  .entry-main {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .hero-actions {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 760px) {
-  .overview-strip,
+  .entry-layout,
   .entry-main {
     grid-template-columns: 1fr;
   }
