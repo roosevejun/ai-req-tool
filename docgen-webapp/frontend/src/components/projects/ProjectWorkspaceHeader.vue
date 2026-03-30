@@ -32,7 +32,7 @@
     </div>
 
     <div class="action-panel">
-      <button class="primary" type="button" @click="$emit('enter-ai')">继续用 AI 校准项目框架</button>
+      <button class="primary" type="button" @click="$emit('enter-ai')">进入 AI 协同</button>
     </div>
 
     <nav class="section-nav" aria-label="项目业务分区">
@@ -57,20 +57,21 @@ import type { ProjectItem } from './types'
 
 defineProps<{
   project: ProjectItem
-  activeTab: 'overview' | 'ai'
+  activeTab: 'overview' | 'ai' | 'materials'
   projectTypeLabel: (value?: string) => string
   visibilityLabel: (value?: string) => string
   projectStatusLabel: (value?: string) => string
 }>()
 
 defineEmits<{
-  (event: 'change-tab', tab: 'overview' | 'ai'): void
+  (event: 'change-tab', tab: 'overview' | 'ai' | 'materials'): void
   (event: 'enter-ai'): void
 }>()
 
-const tabs: Array<{ value: 'overview' | 'ai'; label: string; description: string }> = [
-  { value: 'overview', label: '项目信息', description: '查看并维护项目基础信息、成员和关键属性。' },
-  { value: 'ai', label: 'AI 协同', description: '继续校准项目框架，补充资料并修正理解偏差。' }
+const tabs: Array<{ value: 'overview' | 'ai' | 'materials'; label: string; description: string }> = [
+  { value: 'overview', label: '项目概览', description: '查看项目状态、成员信息和关键业务描述。' },
+  { value: 'ai', label: 'AI 补全', description: '通过沟通补全项目背景、客户、价值和描述，并回填表单。' },
+  { value: 'materials', label: '资料与知识', description: '管理补充资料和知识处理状态，为 AI 补全提供上下文。' }
 ]
 </script>
 
