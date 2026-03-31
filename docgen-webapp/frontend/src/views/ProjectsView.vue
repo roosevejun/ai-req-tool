@@ -6,7 +6,7 @@
         :projects="projects"
         :selected-project-id="selectedProjectId"
         :project-count="projects.length"
-        :requirement-count="selectedProject ? requirementsOf(selectedProject.id).length : 0"
+        :requirement-count="selectedRequirements.length"
         :pending-knowledge-count="pendingKnowledgeCount"
         @reload-projects="loadProjects"
         @select-project="selectProject"
@@ -16,7 +16,7 @@
         <EmptyWorkspaceState
           v-if="!selectedProject"
           title="请选择一个项目开始协同"
-          description="先在左侧选择项目，这里会切换到项目概览、AI 协同和资料知识工作区。"
+          description="先在左侧选择项目，这里会切换到项目驾驶舱，并显示项目定义、AI 补全和资料知识工作区。"
         />
 
         <template v-else>
@@ -26,8 +26,12 @@
             :project-type-label="projectTypeLabel"
             :visibility-label="visibilityLabel"
             :project-status-label="projectStatusLabel"
+            :completeness-score="projectCompleteness.score"
+            :requirement-count="selectedRequirements.length"
+            :pending-knowledge-count="pendingKnowledgeCount"
+            :member-count="selectedMembers.length"
+            :missing-field-count="projectCompleteness.missingFieldLabels.length"
             @change-tab="handleWorkspaceTabChange"
-            @enter-ai="ensureAiWorkspace"
           />
 
           <section v-if="activeWorkspaceTab === 'overview'" class="workspace-stack">
@@ -37,16 +41,19 @@
               :project-type-label="projectTypeLabel"
               :visibility-label="visibilityLabel"
               :project-status-label="projectStatusLabel"
+              :missing-field-labels="projectCompleteness.missingFieldLabels"
               @start-edit="startEditProject"
               @enter-ai="ensureAiWorkspace"
               @delete-project="deleteProject"
             />
+          </section>
 
+          <section v-else-if="activeWorkspaceTab === 'collaboration'" class="workspace-stack">
             <ProjectMembersCard
               :loading="loading"
               :member-form="memberForm"
               :user-options="userOptions"
-              :members="membersOf(selectedProject.id)"
+              :members="selectedMembers"
               :project-role-label="projectRoleLabel"
               :member-status-label="memberStatusLabel"
               @add-member="addProjectMember"
@@ -69,6 +76,8 @@
               :project-knowledge-preview="projectKnowledgePreview"
               :project-knowledge-preview-query-text="projectKnowledgePreviewQueryText"
               :user-options="userOptions"
+              :completeness-score="projectCompleteness.score"
+              :missing-field-labels="projectCompleteness.missingFieldLabels"
               @cancel-edit="cancelProjectEdit"
               @save-edit="saveProjectEdit"
               @delete-project="deleteProject"
@@ -113,6 +122,24 @@
           </section>
         </template>
       </main>
+
+      <ProjectWorkspaceInsightsSidebar
+        v-if="selectedProject"
+        :completeness-score="projectCompleteness.score"
+        :completed-field-count="projectCompleteness.completedCount"
+        :total-field-count="projectCompleteness.totalCount"
+        :health-tone="healthTone"
+        :requirement-count="selectedRequirements.length"
+        :member-count="selectedMembers.length"
+        :pending-knowledge-count="pendingKnowledgeCount"
+        :failed-knowledge-count="failedKnowledgeCount"
+        :next-action-title="nextActionTitle"
+        :next-action-description="nextActionDescription"
+        :missing-field-labels="projectCompleteness.missingFieldLabels"
+        :recommended-workspace-tab="recommendedWorkspaceTab"
+        :project-conversation-ready="!!projectConversation?.sessionId"
+        @jump-to-tab="handleWorkspaceTabChange"
+      />
     </div>
 
     <ProjectKnowledgeDetailModal
@@ -148,6 +175,7 @@ import ProjectMembersCard from '../components/projects/ProjectMembersCard.vue'
 import ProjectOverviewPanel from '../components/projects/ProjectOverviewPanel.vue'
 import ProjectsSidebar from '../components/projects/ProjectsSidebar.vue'
 import ProjectWorkspaceHeader from '../components/projects/ProjectWorkspaceHeader.vue'
+import ProjectWorkspaceInsightsSidebar from '../components/projects/ProjectWorkspaceInsightsSidebar.vue'
 import { createProjectEditFormState, fillProjectEditForm } from '../components/projects/projectWorkspaceForm'
 import { useProjectConversation } from '../components/projects/useProjectConversation'
 import { useProjectKnowledgeDetail } from '../components/projects/useProjectKnowledgeDetail'
@@ -161,7 +189,7 @@ import {
   projectTypeLabel,
   visibilityLabel
 } from '../components/projects/labels'
-import type { MemberFormState, ProjectEditFormState } from '../components/projects/types'
+import type { MemberFormState, ProjectEditFormState, WorkspaceTab } from '../components/projects/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -210,6 +238,9 @@ const {
   resetProjectMaterials: () => runResetProjectMaterials(),
   closeProjectKnowledgeDetail: () => runCloseProjectKnowledgeDetail()
 })
+
+const selectedRequirements = computed(() => (selectedProject.value ? requirementsOf(selectedProject.value.id) : []))
+const selectedMembers = computed(() => (selectedProject.value ? membersOf(selectedProject.value.id) : []))
 
 const {
   projectConversationLoading,
@@ -282,16 +313,26 @@ runResetProjectMaterials = resetProjectMaterials
 runCloseProjectKnowledgeDetail = closeProjectKnowledgeDetail
 
 const {
+  projectCompleteness,
+  recommendedWorkspaceTab,
+  nextActionTitle,
+  nextActionDescription,
+  healthTone,
   pendingKnowledgeCount,
+  failedKnowledgeCount,
   workspaceAdvice
 } = useProjectWorkspaceAdvice({
   selectedProject,
+  selectedRequirements,
+  selectedMembers,
   activeWorkspaceTab,
   projectConversation,
   projectMaterialKnowledgeMap
 })
 
-async function handleWorkspaceTabChange(tab: 'overview' | 'ai' | 'materials') {
+const autoRoutedProjectId = ref<number | null>(null)
+
+async function handleWorkspaceTabChange(tab: WorkspaceTab) {
   activeWorkspaceTab.value = tab
   if ((tab === 'ai' || tab === 'materials') && !projectConversation.value) {
     await ensureProjectConversation()
@@ -362,6 +403,17 @@ watch(
   }
 )
 
+watch(
+  selectedProjectId,
+  async (projectId) => {
+    if (!projectId || autoRoutedProjectId.value === projectId) {
+      return
+    }
+    autoRoutedProjectId.value = projectId
+    await handleWorkspaceTabChange(recommendedWorkspaceTab.value)
+  }
+)
+
 onMounted(async () => {
   await Promise.all([loadProjects(), loadUserOptions()])
 })
@@ -369,17 +421,19 @@ onMounted(async () => {
 
 <style scoped>
 .page {
-  max-width: 1560px;
+  max-width: 1680px;
   margin: 18px auto;
   padding: 0 14px 18px;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: #111827;
-  background: #f4f7fb;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 16%),
+    #f4f7fb;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr) 320px;
   gap: 16px;
   align-items: start;
 }
@@ -401,9 +455,9 @@ onMounted(async () => {
   margin-top: 12px;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1380px) {
   .layout {
-    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-columns: 300px minmax(0, 1fr);
   }
 }
 

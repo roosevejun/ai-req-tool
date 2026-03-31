@@ -1,46 +1,74 @@
 <template>
   <WorkspaceSection
-    eyebrow="资料与知识"
-    title="资料归档与知识状态"
-    description="把链接、文本和文件沉淀到项目知识中，跟踪处理状态并查看失败原因。"
+    eyebrow="资料知识"
+    title="资料录入与知识处理"
+    description="先补上下文资料，再观察知识处理状态，确保 AI 使用的是可检索、可追踪的项目知识。"
     tint
   >
-    <div class="materials-grid">
-      <div class="material-card">
-        <div class="panel-head">
-          <strong>网站链接</strong>
-          <button class="ghost mini" type="button" @click="$emit('add-project-url-material')">添加</button>
+    <div class="status-strip">
+      <div class="status-card">
+        <span>待保存资料</span>
+        <strong>{{ projectPendingMaterials.length }}</strong>
+      </div>
+      <div class="status-card">
+        <span>已保存资料</span>
+        <strong>{{ projectConversation?.materials?.length || 0 }}</strong>
+      </div>
+      <div class="status-card">
+        <span>知识文档</span>
+        <strong>{{ totalKnowledgeDocuments }}</strong>
+      </div>
+      <div class="status-card">
+        <span>失败任务</span>
+        <strong>{{ failedKnowledgeDocuments }}</strong>
+      </div>
+    </div>
+
+    <div class="section-shell">
+      <div class="section-headline">
+        <div>
+          <p class="section-label">资料录入区</p>
+          <h4>补充 AI 所需上下文</h4>
         </div>
-        <input v-model.trim="projectUrlDraft.title" class="input" placeholder="链接标题，可选" />
-        <input v-model.trim="projectUrlDraft.sourceUri" class="input" placeholder="https://example.com" />
       </div>
 
-      <div class="material-card">
-        <div class="panel-head">
-          <strong>文本资料</strong>
-          <button class="ghost mini" type="button" @click="$emit('add-project-text-material')">添加</button>
+      <div class="materials-grid">
+        <div class="material-card">
+          <div class="panel-head">
+            <strong>网站链接</strong>
+            <button class="ghost mini" type="button" @click="$emit('add-project-url-material')">添加</button>
+          </div>
+          <input v-model.trim="projectUrlDraft.title" class="input" placeholder="链接标题，可选" />
+          <input v-model.trim="projectUrlDraft.sourceUri" class="input" placeholder="https://example.com" />
         </div>
-        <input v-model.trim="projectTextDraft.title" class="input" placeholder="文本标题，可选" />
-        <textarea v-model="projectTextDraft.rawContent" class="input textarea" placeholder="把项目补充说明、会议纪要或业务资料直接贴进来。" />
-      </div>
 
-      <div class="material-card">
-        <div class="panel-head">
-          <strong>文件资料</strong>
-          <span class="muted">上传后进入当前 AI 会话</span>
+        <div class="material-card">
+          <div class="panel-head">
+            <strong>文本资料</strong>
+            <button class="ghost mini" type="button" @click="$emit('add-project-text-material')">添加</button>
+          </div>
+          <input v-model.trim="projectTextDraft.title" class="input" placeholder="文本标题，可选" />
+          <textarea v-model="projectTextDraft.rawContent" class="input textarea" placeholder="把项目补充说明、会议纪要或业务资料直接粘贴进来。" />
         </div>
-        <input class="input" type="file" :disabled="projectConversationLoading || !projectConversation" @change="onProjectFileChange" />
-        <input
-          v-model.trim="projectFileDraft.title"
-          class="input"
-          :disabled="projectConversationLoading || !projectConversation"
-          placeholder="文件标题，可选"
-        />
-        <div class="row">
-          <button class="ghost mini" type="button" :disabled="projectConversationLoading || !canUploadProjectFile" @click="$emit('upload-project-file')">
-            上传文件
-          </button>
-          <span class="muted">{{ projectSelectedFile ? projectSelectedFile.name : '尚未选择文件' }}</span>
+
+        <div class="material-card">
+          <div class="panel-head">
+            <strong>文件资料</strong>
+            <span class="muted">上传后写入当前 AI 会话</span>
+          </div>
+          <input class="input" type="file" :disabled="projectConversationLoading || !projectConversation" @change="onProjectFileChange" />
+          <input
+            v-model.trim="projectFileDraft.title"
+            class="input"
+            :disabled="projectConversationLoading || !projectConversation"
+            placeholder="文件标题，可选"
+          />
+          <div class="row">
+            <button class="ghost mini" type="button" :disabled="projectConversationLoading || !canUploadProjectFile" @click="$emit('upload-project-file')">
+              上传文件
+            </button>
+            <span class="muted">{{ projectSelectedFile ? projectSelectedFile.name : '尚未选择文件' }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -62,6 +90,13 @@
     </div>
 
     <div v-if="projectConversation?.materials?.length" class="pending-list">
+      <div class="section-headline">
+        <div>
+          <p class="section-label">知识处理区</p>
+          <h4>查看已保存资料的处理状态</h4>
+        </div>
+      </div>
+
       <div class="panel-head">
         <strong>已保存资料</strong>
         <span class="muted">{{ projectConversation.materials.length }} 条</span>
@@ -124,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import StatusBadge from './StatusBadge.vue'
 import WorkspaceSection from './WorkspaceSection.vue'
 import type {
@@ -135,7 +171,7 @@ import type {
   UrlDraftState
 } from './types'
 
-defineProps<{
+const props = defineProps<{
   projectConversationLoading: boolean
   projectConversation: ProjectConversationView | null
   projectUrlDraft: UrlDraftState
@@ -168,6 +204,13 @@ const emit = defineEmits<{
   (event: 'toggle-project-materials-collapse'): void
 }>()
 
+const totalKnowledgeDocuments = computed(() => Object.values(props.projectMaterialKnowledgeMap).flat().length)
+const failedKnowledgeDocuments = computed(() => {
+  return Object.values(props.projectMaterialKnowledgeMap)
+    .flat()
+    .filter((doc) => doc.status === 'FAILED' || doc.latestTaskStatus === 'FAILED').length
+})
+
 function onProjectFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   emit('select-project-file', input.files?.[0] || null)
@@ -175,14 +218,70 @@ function onProjectFileChange(event: Event) {
 </script>
 
 <style scoped>
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.status-card {
+  border: 1px solid #dbe5ef;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+}
+
+.status-card span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.status-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.section-shell,
+.pending-list {
+  border: 1px solid #dbe5ef;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+}
+
+.section-headline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-headline h4 {
+  margin: 6px 0 0;
+  color: #0f172a;
+}
+
+.section-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
 .materials-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.material-card,
-.pending-list {
+.material-card {
   border: 1px solid #dbe5ef;
   border-radius: 16px;
   background: #fff;
@@ -290,13 +389,20 @@ function onProjectFileChange(event: Event) {
 }
 
 @media (max-width: 1180px) {
+  .status-strip,
   .materials-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 860px) {
-  .panel-head {
+  .status-strip,
+  .materials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-head,
+  .section-headline {
     align-items: flex-start;
     flex-direction: column;
   }

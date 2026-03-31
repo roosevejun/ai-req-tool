@@ -2,69 +2,35 @@
   <section class="panel conversation-panel">
     <div class="panel-head">
       <div>
-        <p class="eyebrow">AI 协同</p>
-        <h4>通过沟通补全项目信息</h4>
+        <p class="eyebrow">AI 对话</p>
+        <h4>告诉 AI 这个项目是什么、面向谁、价值在哪里</h4>
       </div>
-      <div class="row compact">
-        <button class="ghost mini" :disabled="projectConversationLoading" @click="$emit('refresh-project-ai')">
-          {{ projectConversation ? '刷新会话' : '启动 AI' }}
-        </button>
-        <button class="ghost mini" :disabled="projectConversationLoading || !projectConversation" @click="$emit('apply-project-ai')">
-          应用 AI 结果
-        </button>
-      </div>
+      <button class="ghost mini" :disabled="projectConversationLoading" @click="$emit('refresh-project-ai')">
+        {{ projectConversation ? '刷新会话' : '启动 AI' }}
+      </button>
     </div>
 
-    <p class="summary">
-      目标是补全项目名称背后的业务背景、客户对象、商业价值和核心产品价值。先沟通，再把 AI 结果应用到左侧表单。
+    <p v-if="projectConversation?.assistantSummary" class="summary-inline">
+      {{ projectConversation.assistantSummary }}
     </p>
 
-    <div class="guide-card">
-      <p class="guide-title">推荐沟通方式</p>
-      <ul class="guide-list">
-        <li>先说明项目做什么、解决谁的问题。</li>
-        <li>再补充行业背景、竞品、目标客户和价值判断。</li>
-        <li>最后让 AI 帮你整理成适合保存的项目描述。</li>
-      </ul>
-    </div>
-
-    <div class="prompt-group">
-      <span class="prompt-label">快捷引导</span>
-      <div class="prompt-list">
-        <button
-          v-for="prompt in starterPrompts"
-          :key="prompt"
-          class="prompt-chip"
-          type="button"
-          :disabled="projectConversationLoading"
-          @click="$emit('update-project-ai-input', prompt)"
-        >
-          {{ prompt }}
-        </button>
-      </div>
-    </div>
-
-    <div v-if="projectConversation" class="ai-status">
-      <strong>会话状态</strong>
-      <StatusBadge :label="projectConversation.status || '-'" variant="ai" small />
-      <StatusBadge v-if="projectConversation.readyToCreate" label="可回填表单" variant="success" small />
-    </div>
-
-    <div v-if="projectConversation?.assistantSummary" class="ai-assistant">
-      <strong>AI 当前整理结果</strong> {{ projectConversation.assistantSummary }}
-    </div>
-
-    <div v-if="projectConversation?.messages?.length" class="ai-history">
-      <div v-for="message in projectConversation.messages.slice(-6)" :key="message.id" class="ai-message" :class="message.role">
-        <div class="ai-message-role">{{ message.role === 'assistant' ? 'AI' : '你' }}</div>
-        <div class="ai-message-content">{{ message.content }}</div>
-      </div>
+    <div class="prompt-list">
+      <button
+        v-for="prompt in starterPrompts"
+        :key="prompt"
+        class="prompt-chip"
+        type="button"
+        :disabled="projectConversationLoading"
+        @click="$emit('update-project-ai-input', prompt)"
+      >
+        {{ prompt }}
+      </button>
     </div>
 
     <textarea
       :value="projectConversationInput"
       class="input textarea"
-      placeholder="告诉 AI 项目做什么、面向谁、为什么值得做，或直接要求它帮你补全项目背景/客户/价值描述。"
+      placeholder="直接输入项目背景、目标客户、商业价值、竞品判断，或让 AI 帮你补全这些信息。"
       @input="$emit('update-project-ai-input', ($event.target as HTMLTextAreaElement).value)"
     />
 
@@ -76,19 +42,32 @@
       >
         发送给 AI
       </button>
-      <button class="ghost mini" :disabled="projectConversationLoading || !projectConversation" @click="$emit('apply-project-ai')">
-        回填到表单
-      </button>
-      <button class="ghost mini" :disabled="projectConversationLoading || !projectConversation" @click="$emit('load-project-knowledge-preview')">
+      <button
+        class="ghost mini"
+        :disabled="projectConversationLoading || !projectConversation"
+        @click="$emit('load-project-knowledge-preview')"
+      >
         查看检索上下文
       </button>
+      <div v-if="projectConversation" class="status-line">
+        <span>会话状态</span>
+        <StatusBadge :label="projectConversation.status || '-'" variant="ai" small />
+        <StatusBadge v-if="projectConversation.readyToCreate" label="可生成建议" variant="success" small />
+      </div>
     </div>
 
-    <div v-if="projectKnowledgePreviewVisible" class="knowledge-preview">
-      <div class="panel-head">
-        <h4>检索上下文</h4>
-        <span class="muted" v-if="projectKnowledgePreviewQueryText">检索词：{{ projectKnowledgePreviewQueryText }}</span>
+    <details v-if="projectConversation?.messages?.length" class="details-card">
+      <summary>查看最近对话</summary>
+      <div class="ai-history">
+        <div v-for="message in projectConversation.messages.slice(-4)" :key="message.id" class="ai-message" :class="message.role">
+          <div class="ai-message-role">{{ message.role === 'assistant' ? 'AI' : '你' }}</div>
+          <div class="ai-message-content">{{ message.content }}</div>
+        </div>
       </div>
+    </details>
+
+    <details v-if="projectKnowledgePreviewVisible" class="details-card" open>
+      <summary>查看检索上下文</summary>
       <div v-if="projectKnowledgePreviewLoading" class="muted">正在加载检索上下文...</div>
       <div v-else-if="projectKnowledgePreview">
         <div class="preview-item">
@@ -105,7 +84,7 @@
           <p>{{ projectKnowledgePreview.contextText || '-' }}</p>
         </div>
       </div>
-    </div>
+    </details>
   </section>
 </template>
 
@@ -127,16 +106,14 @@ defineProps<{
 defineEmits<{
   (event: 'refresh-project-ai'): void
   (event: 'send-project-ai'): void
-  (event: 'apply-project-ai'): void
   (event: 'update-project-ai-input', value: string): void
   (event: 'load-project-knowledge-preview'): void
 }>()
 
 const starterPrompts = [
-  '请根据我当前的项目名称，帮我补全项目背景。',
-  '请帮我梳理这个项目的目标客户群体和核心痛点。',
-  '请帮我整理商业价值、类似产品和差异化能力。',
-  '请把我们的对话整理成适合保存到项目信息表单的内容。'
+  '请先补全这个项目的业务背景。',
+  '请梳理目标客户群体和核心痛点。',
+  '请总结商业价值、竞品和差异化。'
 ]
 </script>
 
@@ -181,57 +158,30 @@ h4 {
   font-size: 20px;
 }
 
-.input {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font: inherit;
-  color: #0f172a;
-  background: #fff;
-  box-sizing: border-box;
-}
-
-.textarea {
-  min-height: 108px;
-  resize: vertical;
-}
-
-.summary,
-.muted,
-.preview-item p,
-.ai-message-content,
-.ai-assistant {
+.summary-inline {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #dbe5ef;
+  background: rgba(255, 255, 255, 0.88);
   color: #475569;
   line-height: 1.65;
   white-space: pre-wrap;
 }
 
-.guide-card,
-.knowledge-preview {
+.details-card {
   border: 1px solid #dbe5ef;
   border-radius: 16px;
   background: #fff;
   padding: 14px;
 }
 
-.guide-title,
-.prompt-label {
-  color: #0f172a;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.guide-list {
-  margin: 10px 0 0;
-  padding-left: 18px;
+.muted,
+.preview-item p,
+.ai-message-content {
   color: #475569;
   line-height: 1.65;
-}
-
-.prompt-group {
-  display: grid;
-  gap: 10px;
+  white-space: pre-wrap;
 }
 
 .prompt-list {
@@ -251,28 +201,41 @@ h4 {
   cursor: pointer;
 }
 
-.muted {
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #475569;
   font-size: 13px;
 }
 
-.ai-status,
-.ai-assistant {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  border-radius: 14px;
-  padding: 12px 14px;
+.input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: #0f172a;
+  background: #fff;
+  box-sizing: border-box;
 }
 
-.ai-status {
-  background: #eff6ff;
-  color: #1e3a8a;
+.textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.details-card summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .ai-history {
   display: grid;
   gap: 10px;
+  margin-top: 12px;
 }
 
 .ai-message {

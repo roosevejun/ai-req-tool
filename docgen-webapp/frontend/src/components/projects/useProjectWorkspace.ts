@@ -38,7 +38,7 @@ export function useProjectWorkspace({
   const projectMembersMap = ref<Record<number, ProjectMemberItem[]>>({})
   const userOptions = ref<UserOption[]>([])
   const selectedProjectId = ref<number | null>(null)
-  const activeWorkspaceTab = ref<'overview' | 'ai' | 'materials'>('overview')
+  const activeWorkspaceTab = ref<'overview' | 'collaboration' | 'ai' | 'materials'>('overview')
 
   const selectedProject = computed(() => projects.value.find((project) => project.id === selectedProjectId.value) || null)
 

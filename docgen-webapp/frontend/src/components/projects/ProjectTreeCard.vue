@@ -3,12 +3,19 @@
     <div class="tree-head">
       <div>
         <h3>项目列表</h3>
-        <p class="caption">在左侧选择项目，右侧查看项目基础信息、维护信息和 AI 协同结果。</p>
+        <p class="caption">先找到最值得处理的项目，再进入项目定义、AI 补全或资料知识工作区。</p>
       </div>
       <button class="ghost mini" :disabled="loading" @click="$emit('reload-projects')">刷新</button>
     </div>
 
-    <input v-model.trim="searchText" class="search-input" placeholder="搜索项目名称或项目 Key" />
+    <div class="filter-bar">
+      <input v-model.trim="searchText" class="search-input" placeholder="搜索项目名称或项目 Key" />
+      <select v-model="filterMode" class="filter-select">
+        <option value="ALL">全部项目</option>
+        <option value="ATTENTION">待补全</option>
+        <option value="READY">较完整</option>
+      </select>
+    </div>
 
     <div v-if="filteredProjects.length === 0" class="empty">当前没有可显示的项目。</div>
 
@@ -20,9 +27,22 @@
           :title="project.projectName"
           @click="$emit('select-project', project.id)"
         >
-          <span class="project-key">{{ project.projectKey || `项目 #${project.id}` }}</span>
+          <div class="project-head">
+            <span class="project-key">{{ project.projectKey || `项目 #${project.id}` }}</span>
+            <span class="health-dot" :class="healthClass(project)"></span>
+          </div>
           <span class="project-name">{{ project.projectName }}</span>
-          <span class="project-meta">{{ project.status || 'ACTIVE' }} · {{ project.priority || 'P2' }}</span>
+          <div class="project-foot">
+            <span class="project-meta">{{ project.status || 'ACTIVE' }} · {{ project.priority || 'P2' }}</span>
+            <span class="project-score">{{ completenessOf(project).score }}%</span>
+          </div>
+          <span class="project-hint">
+            {{
+              completenessOf(project).missingFieldLabels.length
+                ? `缺少 ${completenessOf(project).missingFieldLabels.slice(0, 2).join('、')}`
+                : '项目信息较完整'
+            }}
+          </span>
         </button>
       </li>
     </ul>
@@ -31,6 +51,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { getProjectCompleteness, getProjectHealthTone } from './projectHealth'
 import type { ProjectItem } from './types'
 
 const props = defineProps<{
@@ -45,12 +66,29 @@ defineEmits<{
 }>()
 
 const searchText = ref('')
+const filterMode = ref<'ALL' | 'ATTENTION' | 'READY'>('ALL')
+
+function completenessOf(project: ProjectItem) {
+  return getProjectCompleteness(project)
+}
+
+function healthClass(project: ProjectItem) {
+  return `health-dot--${getProjectHealthTone(completenessOf(project).score)}`
+}
 
 const filteredProjects = computed(() => {
   const keyword = searchText.value.trim().toLowerCase()
-  if (!keyword) return props.projects
   return props.projects.filter((project) => {
-    return (project.projectName || '').toLowerCase().includes(keyword) || (project.projectKey || '').toLowerCase().includes(keyword)
+    const matchedKeyword =
+      !keyword ||
+      (project.projectName || '').toLowerCase().includes(keyword) ||
+      (project.projectKey || '').toLowerCase().includes(keyword)
+    const score = completenessOf(project).score
+    const matchedFilter =
+      filterMode.value === 'ALL' ||
+      (filterMode.value === 'ATTENTION' && score < 75) ||
+      (filterMode.value === 'READY' && score >= 75)
+    return matchedKeyword && matchedFilter
   })
 })
 </script>
@@ -84,10 +122,17 @@ h3 {
   line-height: 1.6;
 }
 
-.search-input {
+.filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.search-input,
+.filter-select {
   width: 100%;
   box-sizing: border-box;
-  margin-top: 12px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   padding: 9px 12px;
@@ -105,14 +150,22 @@ h3 {
 .tree-label {
   width: 100%;
   display: grid;
-  gap: 4px;
+  gap: 6px;
   text-align: left;
   border: 1px solid #dbe5f0;
   background: #f8fafc;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 12px;
+  border-radius: 10px;
   cursor: pointer;
   color: #1f2937;
+}
+
+.project-head,
+.project-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .tree-label:hover {
@@ -133,6 +186,25 @@ h3 {
   color: #64748b;
 }
 
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.health-dot--danger {
+  background: #ef4444;
+}
+
+.health-dot--warning {
+  background: #f59e0b;
+}
+
+.health-dot--success {
+  background: #10b981;
+}
+
 .tree-label.active .project-key {
   color: rgba(255, 255, 255, 0.78);
 }
@@ -142,13 +214,30 @@ h3 {
   font-weight: 700;
 }
 
-.project-meta {
+.project-meta,
+.project-score,
+.project-hint {
   font-size: 12px;
+}
+
+.project-meta,
+.project-hint {
   color: #64748b;
 }
 
-.tree-label.active .project-meta {
-  color: rgba(255, 255, 255, 0.82);
+.project-score {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.project-hint {
+  line-height: 1.5;
+}
+
+.tree-label.active .project-meta,
+.tree-label.active .project-score,
+.tree-label.active .project-hint {
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .empty {
@@ -164,5 +253,11 @@ h3 {
   cursor: pointer;
   background: #f8fafc;
   font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -112,7 +112,7 @@ export function useProjectConversation({ selectedProject, projectEditForm, error
       })
       projectConversationInput.value = ''
       await ensureProjectConversation()
-      success.value = '项目 AI 已生成新的优化建议。'
+      success.value = '项目 AI 已生成新的字段建议。'
     } catch (e: any) {
       error.value = e?.response?.data?.message || e?.message || '发送项目 AI 消息失败。'
     } finally {
@@ -120,12 +120,13 @@ export function useProjectConversation({ selectedProject, projectEditForm, error
     }
   }
 
-  function applyConversationStructuredInfo() {
+  function applyConversationStructuredInfo(selectedFields?: Array<keyof ProjectEditFormState>) {
     const structured = projectConversation.value?.structuredInfo
     if (!structured) {
       error.value = '当前没有可应用的 AI 结果。'
       return
     }
+
     const nextFields: Array<keyof ProjectEditFormState> = []
     const fieldMap: Array<[keyof ProjectEditFormState, string | undefined]> = [
       ['projectName', structured.projectName],
@@ -136,8 +137,12 @@ export function useProjectConversation({ selectedProject, projectEditForm, error
       ['commercialValue', structured.commercialValue],
       ['coreProductValue', structured.coreProductValue]
     ]
+    const selectedSet = new Set(selectedFields || fieldMap.map(([field]) => field))
 
     fieldMap.forEach(([field, incomingValue]) => {
+      if (!selectedSet.has(field)) {
+        return
+      }
       const normalizedValue = incomingValue?.trim()
       if (!normalizedValue) {
         return
@@ -150,8 +155,8 @@ export function useProjectConversation({ selectedProject, projectEditForm, error
 
     aiUpdatedFields.value = nextFields
     success.value = nextFields.length
-      ? `AI 已回填 ${nextFields.length} 个项目字段，请确认后保存。`
-      : 'AI 已完成整理，但没有发现需要更新的项目信息。'
+      ? `AI 已应用 ${nextFields.length} 个字段变更，请确认后保存。`
+      : '没有发现需要应用的字段变更。'
   }
 
   function resetProjectConversation() {

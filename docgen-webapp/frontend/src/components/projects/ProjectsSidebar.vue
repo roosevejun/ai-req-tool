@@ -2,7 +2,7 @@
   <aside class="sidebar">
     <section class="summary-card">
       <p class="eyebrow">项目管理中心</p>
-      <h3>项目概览</h3>
+      <h3>项目导航</h3>
       <div class="stat-grid">
         <div class="stat-item">
           <span>项目总数</span>
@@ -16,7 +16,12 @@
           <span>待处理知识任务</span>
           <strong>{{ pendingKnowledgeCount }}</strong>
         </div>
+        <div class="stat-item">
+          <span>较完整项目</span>
+          <strong>{{ readyProjectCount }}</strong>
+        </div>
       </div>
+
     </section>
 
     <ProjectTreeCard
@@ -30,10 +35,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import ProjectTreeCard from './ProjectTreeCard.vue'
+import { getProjectCompleteness } from './projectHealth'
 import type { ProjectItem } from './types'
 
-defineProps<{
+const props = defineProps<{
   loading: boolean
   projects: ProjectItem[]
   selectedProjectId: number | null
@@ -46,6 +53,8 @@ defineEmits<{
   (event: 'reload-projects'): void
   (event: 'select-project', projectId: number): void
 }>()
+
+const readyProjectCount = computed(() => props.projects.filter((project) => getProjectCompleteness(project).score >= 75).length)
 </script>
 
 <style scoped>

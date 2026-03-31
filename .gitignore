@@ -9,6 +9,10 @@ Thumbs.db
 .trellis/
 **/.claude/
 **/.trellis/
+!.agents/
+!.agents/skills/
+!.agents/skills/ui-ux-pro-max/
+!.agents/skills/ui-ux-pro-max/SKILL.md
 
 # Node
 node_modules/

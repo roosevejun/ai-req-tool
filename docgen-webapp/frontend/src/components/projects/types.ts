@@ -5,6 +5,8 @@ export type ApiResponse<T> = {
   traceId: string
 }
 
+export type WorkspaceTab = 'overview' | 'collaboration' | 'ai' | 'materials'
+
 export type ProjectItem = {
   id: number
   projectKey: string

@@ -1,41 +1,62 @@
 <template>
   <section class="workspace-header">
-    <div class="summary-panel">
-      <p class="eyebrow">当前项目对象</p>
-      <div class="title-row">
-        <h3>{{ project.projectName }}</h3>
-        <StatusBadge :label="projectStatusLabel(project.status)" variant="info" />
+    <div class="hero-panel">
+      <div class="hero-copy">
+        <p class="eyebrow">当前项目对象</p>
+        <div class="title-row">
+          <h3>{{ project.projectName }}</h3>
+          <StatusBadge :label="projectStatusLabel(project.status)" variant="info" />
+        </div>
+        <p class="summary">
+          {{ project.description || "当前项目还没有形成完整说明，建议优先完善项目信息。" }}
+        </p>
+        <dl class="meta-grid">
+          <div class="meta-item">
+            <dt>项目 Key</dt>
+            <dd>{{ project.projectKey || "-" }}</dd>
+          </div>
+          <div class="meta-item">
+            <dt>项目类型</dt>
+            <dd>{{ projectTypeLabel(project.projectType) }}</dd>
+          </div>
+          <div class="meta-item">
+            <dt>可见范围</dt>
+            <dd>{{ visibilityLabel(project.visibility) }}</dd>
+          </div>
+          <div class="meta-item">
+            <dt>优先级</dt>
+            <dd>{{ project.priority || "-" }}</dd>
+          </div>
+        </dl>
       </div>
 
-      <dl class="meta-grid">
-        <div class="meta-item">
-          <dt>项目 Key</dt>
-          <dd>{{ project.projectKey || '-' }}</dd>
+      <div class="hero-side">
+        <div class="status-grid">
+          <div class="status-card">
+            <span>完整度</span>
+            <strong>{{ completenessScore }}%</strong>
+          </div>
+          <div class="status-card">
+            <span>需求数</span>
+            <strong>{{ requirementCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>知识处理中</span>
+            <strong>{{ pendingKnowledgeCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>成员数</span>
+            <strong>{{ memberCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>缺失项</span>
+            <strong>{{ missingFieldCount }}</strong>
+          </div>
         </div>
-        <div class="meta-item">
-          <dt>项目类型</dt>
-          <dd>{{ projectTypeLabel(project.projectType) }}</dd>
-        </div>
-        <div class="meta-item">
-          <dt>可见范围</dt>
-          <dd>{{ visibilityLabel(project.visibility) }}</dd>
-        </div>
-        <div class="meta-item">
-          <dt>优先级</dt>
-          <dd>{{ project.priority || '-' }}</dd>
-        </div>
-      </dl>
-
-      <p class="summary">
-        {{ project.description || '当前项目还没有形成完整说明，建议优先进入 AI 协同校准项目框架。' }}
-      </p>
+      </div>
     </div>
 
-    <div class="action-panel">
-      <button class="primary" type="button" @click="$emit('enter-ai')">进入 AI 协同</button>
-    </div>
-
-    <nav class="section-nav" aria-label="项目业务分区">
+    <nav class="section-nav" aria-label="项目工作区导航">
       <button
         v-for="tab in tabs"
         :key="tab.value"
@@ -53,25 +74,30 @@
 
 <script setup lang="ts">
 import StatusBadge from './StatusBadge.vue'
-import type { ProjectItem } from './types'
+import type { ProjectItem, WorkspaceTab } from './types'
 
 defineProps<{
   project: ProjectItem
-  activeTab: 'overview' | 'ai' | 'materials'
+  activeTab: WorkspaceTab
   projectTypeLabel: (value?: string) => string
   visibilityLabel: (value?: string) => string
   projectStatusLabel: (value?: string) => string
+  completenessScore: number
+  requirementCount: number
+  pendingKnowledgeCount: number
+  memberCount: number
+  missingFieldCount: number
 }>()
 
 defineEmits<{
-  (event: 'change-tab', tab: 'overview' | 'ai' | 'materials'): void
-  (event: 'enter-ai'): void
+  (event: 'change-tab', tab: WorkspaceTab): void
 }>()
 
-const tabs: Array<{ value: 'overview' | 'ai' | 'materials'; label: string; description: string }> = [
-  { value: 'overview', label: '项目概览', description: '查看项目状态、成员信息和关键业务描述。' },
-  { value: 'ai', label: 'AI 补全', description: '通过沟通补全项目背景、客户、价值和描述，并回填表单。' },
-  { value: 'materials', label: '资料与知识', description: '管理补充资料和知识处理状态，为 AI 补全提供上下文。' }
+const tabs: Array<{ value: WorkspaceTab; label: string; description: string }> = [
+  { value: 'overview', label: '项目概览', description: '查看项目基础信息、产品背景和推进状态。' },
+  { value: 'collaboration', label: '团队协作', description: '维护负责人、角色分工和项目成员关系。' },
+  { value: 'ai', label: 'AI 补全', description: '围绕缺失字段做结构化补全，而不是单纯聊天。' },
+  { value: 'materials', label: '资料知识', description: '管理上下文资料、知识处理状态和异常重试。' }
 ]
 </script>
 
@@ -81,9 +107,11 @@ const tabs: Array<{ value: 'overview' | 'ai' | 'materials'; label: string; descr
   gap: 16px;
   padding: 18px 20px;
   margin-bottom: 14px;
-  background: #ffffff;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
   border: 1px solid #d4dde8;
-  border-radius: 10px;
+  border-radius: 18px;
 }
 
 .eyebrow {
@@ -95,6 +123,13 @@ const tabs: Array<{ value: 'overview' | 'ai' | 'materials'; label: string; descr
   font-weight: 700;
 }
 
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  align-items: start;
+}
+
 .title-row {
   display: flex;
   align-items: center;
@@ -104,7 +139,7 @@ const tabs: Array<{ value: 'overview' | 'ai' | 'materials'; label: string; descr
 
 h3 {
   margin: 0;
-  font-size: 28px;
+  font-size: 32px;
   color: #0f172a;
 }
 
@@ -139,29 +174,39 @@ h3 {
   line-height: 1.7;
 }
 
-.action-panel {
-  display: flex;
-  justify-content: flex-start;
+.hero-side {
+  display: grid;
 }
 
-.primary {
-  padding: 10px 16px;
-  border-radius: 6px;
-  border: 1px solid #0f766e;
-  background: #0f766e;
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.primary:hover {
-  background: #115e59;
-  border-color: #115e59;
+.status-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #dbe5ef;
+}
+
+.status-card span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.status-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  color: #0f172a;
 }
 
 .section-nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   padding-top: 14px;
   border-top: 1px solid #e2e8f0;
@@ -174,7 +219,7 @@ h3 {
   padding: 12px 14px;
   background: #f8fafc;
   border: 1px solid #dbe5f0;
-  border-radius: 8px;
+  border-radius: 12px;
   text-align: left;
   cursor: pointer;
 }
@@ -195,6 +240,7 @@ h3 {
 }
 
 @media (max-width: 1100px) {
+  .hero-panel,
   .meta-grid,
   .section-nav {
     grid-template-columns: 1fr 1fr;
@@ -202,6 +248,7 @@ h3 {
 }
 
 @media (max-width: 720px) {
+  .hero-panel,
   .meta-grid,
   .section-nav {
     grid-template-columns: 1fr;

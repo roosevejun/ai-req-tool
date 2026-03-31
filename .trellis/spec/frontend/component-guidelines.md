@@ -33,13 +33,14 @@ the workflow is fixed and mandatory:
    - what should change
    - what should not change
    - what final page model should be produced
-4. Only after the above, use the `ui-ux-pro-max` skill to derive page structure, layout, hierarchy, and visual direction
+4. Only after the above, use the local `ui-ux-pro-max` skill at `.agents/skills/ui-ux-pro-max/SKILL.md` to derive page structure, layout, hierarchy, and visual direction
+   - This local skill is the project-adapted version of `nextlevelbuilder/ui-ux-pro-max-skill`
 5. Only after both the `三省六部` conclusion and the `ui-ux-pro-max` design direction are explicit, implement the page change
 
 Do not:
 - implement first and explain later
 - skip `三省六部`
-- skip the `ui-ux-pro-max` step for page work
+- skip the `ui-ux-pro-max` step for page work when the skill is available in the repository
 - treat this workflow as optional
 
 ## Scenario: Building Or Refactoring A Page

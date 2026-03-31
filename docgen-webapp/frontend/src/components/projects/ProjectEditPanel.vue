@@ -2,37 +2,80 @@
   <section class="panel">
     <div class="panel-head">
       <div>
-        <p class="eyebrow">项目编辑</p>
-        <h4>项目信息表单</h4>
+        <p class="eyebrow">最终保存</p>
+        <h4>检查项目定义后保存</h4>
       </div>
       <button class="danger mini" :disabled="loading" @click="$emit('delete-project')">删除项目</button>
     </div>
 
-    <p class="summary">这里是最终落表的数据区。建议先通过右侧对话补全信息，再把 AI 结果回填到这里确认并保存。</p>
-
-    <div class="meta-grid compact-grid">
-      <div><strong>ID:</strong> {{ project.id }}</div>
-      <div><strong>项目 Key:</strong> {{ project.projectKey }}</div>
-    </div>
-
     <div class="section-card">
       <div class="section-head">
-        <div>
-          <h5>核心项目信息</h5>
-          <p>先确认项目名称、描述和类型，这些是 AI 回填的主要落点。</p>
-        </div>
-        <span class="section-badge">优先确认</span>
+        <h5>核心字段</h5>
+        <p>这里保留项目定义的关键内容。AI 应用后的字段会被高亮，你可以再手动修正后保存。</p>
       </div>
 
-      <div class="form-grid">
+      <div class="field-stack">
         <label class="field" :class="{ highlighted: isAiUpdated('projectName') }">
           <span class="field-label">
             项目名称
-            <span v-if="isAiUpdated('projectName')" class="ai-tag">AI 刚更新</span>
+            <span v-if="isAiUpdated('projectName')" class="ai-tag">AI 已更新</span>
           </span>
           <input v-model.trim="projectEditForm.projectName" class="input" placeholder="项目名称" />
         </label>
 
+        <label class="field" :class="{ highlighted: isAiUpdated('description') }">
+          <span class="field-label">
+            项目描述
+            <span v-if="isAiUpdated('description')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.description" class="input textarea" placeholder="项目描述" />
+        </label>
+
+        <label class="field" :class="{ highlighted: isAiUpdated('projectBackground') }">
+          <span class="field-label">
+            项目背景
+            <span v-if="isAiUpdated('projectBackground')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.projectBackground" class="input textarea" placeholder="项目背景" />
+        </label>
+
+        <label class="field" :class="{ highlighted: isAiUpdated('targetCustomerGroups') }">
+          <span class="field-label">
+            目标客户群体
+            <span v-if="isAiUpdated('targetCustomerGroups')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.targetCustomerGroups" class="input textarea" placeholder="目标客户群体" />
+        </label>
+
+        <label class="field" :class="{ highlighted: isAiUpdated('commercialValue') }">
+          <span class="field-label">
+            商业价值
+            <span v-if="isAiUpdated('commercialValue')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.commercialValue" class="input textarea" placeholder="商业价值" />
+        </label>
+
+        <label class="field" :class="{ highlighted: isAiUpdated('coreProductValue') }">
+          <span class="field-label">
+            核心产品价值
+            <span v-if="isAiUpdated('coreProductValue')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.coreProductValue" class="input textarea" placeholder="核心产品价值" />
+        </label>
+
+        <label class="field" :class="{ highlighted: isAiUpdated('similarProducts') }">
+          <span class="field-label">
+            类似产品或竞品信息
+            <span v-if="isAiUpdated('similarProducts')" class="ai-tag">AI 已更新</span>
+          </span>
+          <textarea v-model="projectEditForm.similarProducts" class="input textarea" placeholder="类似产品或竞品信息" />
+        </label>
+      </div>
+    </div>
+
+    <details class="section-card">
+      <summary>展开高级管理字段</summary>
+      <div class="advanced-grid">
         <label class="field">
           <span class="field-label">项目类型</span>
           <select v-model="projectEditForm.projectType" class="input">
@@ -43,85 +86,7 @@
             <option value="INTEGRATION">集成型</option>
           </select>
         </label>
-      </div>
 
-      <label class="field" :class="{ highlighted: isAiUpdated('description') }">
-        <span class="field-label">
-          项目描述
-          <span v-if="isAiUpdated('description')" class="ai-tag">AI 刚更新</span>
-        </span>
-        <textarea v-model="projectEditForm.description" class="input textarea" placeholder="项目描述" />
-      </label>
-
-      <label class="field" :class="{ highlighted: isAiUpdated('projectBackground') }">
-        <span class="field-label">
-          项目背景
-          <span v-if="isAiUpdated('projectBackground')" class="ai-tag">AI 刚更新</span>
-        </span>
-        <textarea v-model="projectEditForm.projectBackground" class="input textarea" placeholder="项目背景" />
-      </label>
-    </div>
-
-    <div class="section-card">
-      <div class="section-head">
-        <div>
-          <h5>客户与价值判断</h5>
-          <p>这一组字段用于承接 AI 沟通整理后的业务理解。</p>
-        </div>
-      </div>
-
-      <div class="field-stack">
-        <label class="field" :class="{ highlighted: isAiUpdated('targetCustomerGroups') }">
-          <span class="field-label">
-            目标客户群体
-            <span v-if="isAiUpdated('targetCustomerGroups')" class="ai-tag">AI 刚更新</span>
-          </span>
-          <textarea
-            v-model="projectEditForm.targetCustomerGroups"
-            class="input textarea"
-            placeholder="目标客户群体"
-          />
-        </label>
-
-        <label class="field" :class="{ highlighted: isAiUpdated('commercialValue') }">
-          <span class="field-label">
-            商业价值
-            <span v-if="isAiUpdated('commercialValue')" class="ai-tag">AI 刚更新</span>
-          </span>
-          <textarea v-model="projectEditForm.commercialValue" class="input textarea" placeholder="商业价值" />
-        </label>
-
-        <label class="field" :class="{ highlighted: isAiUpdated('coreProductValue') }">
-          <span class="field-label">
-            核心产品价值
-            <span v-if="isAiUpdated('coreProductValue')" class="ai-tag">AI 刚更新</span>
-          </span>
-          <textarea v-model="projectEditForm.coreProductValue" class="input textarea" placeholder="核心产品价值" />
-        </label>
-
-        <label class="field" :class="{ highlighted: isAiUpdated('similarProducts') }">
-          <span class="field-label">
-            类似产品或竞品信息
-            <span v-if="isAiUpdated('similarProducts')" class="ai-tag">AI 刚更新</span>
-          </span>
-          <textarea
-            v-model="projectEditForm.similarProducts"
-            class="input textarea"
-            placeholder="类似产品或竞品信息"
-          />
-        </label>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-head">
-        <div>
-          <h5>管理属性</h5>
-          <p>这里保留负责人、时间、优先级等管理字段，便于在确认业务信息后统一保存。</p>
-        </div>
-      </div>
-
-      <div class="form-grid form-grid-wide">
         <label class="field">
           <span class="field-label">优先级</span>
           <select v-model="projectEditForm.priority" class="input">
@@ -171,13 +136,13 @@
 
         <label class="field field-full">
           <span class="field-label">标签</span>
-          <input v-model.trim="projectEditForm.tags" class="input" placeholder="标签，多个用逗号分隔" />
+          <input v-model.trim="projectEditForm.tags" class="input" placeholder="多个标签用逗号分隔" />
         </label>
       </div>
-    </div>
+    </details>
 
     <div class="row">
-      <button class="primary mini" :disabled="loading || !projectEditForm.projectName" @click="$emit('save-edit')">保存修改</button>
+      <button class="primary mini" :disabled="loading || !projectEditForm.projectName" @click="$emit('save-edit')">保存项目定义</button>
       <button class="ghost mini" :disabled="loading" @click="$emit('cancel-edit')">取消编辑</button>
     </div>
   </section>
@@ -242,12 +207,6 @@ h4 {
   font-size: 20px;
 }
 
-.summary,
-.compact-grid {
-  color: #475569;
-  line-height: 1.65;
-}
-
 .section-card {
   border: 1px solid #dbe5ef;
   border-radius: 16px;
@@ -255,13 +214,6 @@ h4 {
   display: grid;
   gap: 12px;
   background: #fcfdff;
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
 }
 
 .section-head h5 {
@@ -277,34 +229,15 @@ h4 {
   font-size: 13px;
 }
 
-.section-badge,
-.ai-tag {
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.section-badge {
-  background: #e0f2fe;
-  color: #075985;
-  padding: 6px 10px;
-}
-
-.meta-grid,
-.form-grid {
+.field-stack,
+.advanced-grid {
   display: grid;
   gap: 12px;
+}
+
+.advanced-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.form-grid-wide {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.field-stack {
-  display: grid;
-  gap: 10px;
+  margin-top: 12px;
 }
 
 .field {
@@ -333,9 +266,12 @@ h4 {
 }
 
 .ai-tag {
+  border-radius: 999px;
   background: #dcfce7;
   color: #166534;
   padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .input {
@@ -350,8 +286,14 @@ h4 {
 }
 
 .textarea {
-  min-height: 108px;
+  min-height: 96px;
   resize: vertical;
+}
+
+details summary {
+  cursor: pointer;
+  color: #0f172a;
+  font-weight: 700;
 }
 
 .primary,
@@ -390,13 +332,7 @@ h4 {
     flex-direction: column;
   }
 
-  .section-head {
-    flex-direction: column;
-  }
-
-  .meta-grid,
-  .form-grid,
-  .form-grid-wide {
+  .advanced-grid {
     grid-template-columns: 1fr;
   }
 }
